@@ -1,0 +1,81 @@
+import type { Metadata } from "next";
+import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
+import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
+import { ScrollFx } from "@/components/ScrollFx";
+
+// A refined, warm humanist grotesque — the closest open-source match to the
+// polished agency-grade grotesques these sites use. One family, many weights.
+const hanken = Hanken_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-jb", display: "swap" });
+
+const url = "https://merrymen.dev";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(url),
+  title: {
+    default: "merrymen — trading agents you never have to trust",
+    template: "%s — merrymen",
+  },
+  description:
+    "Trading agents you never have to trust — self-hosted or hosted. On-chain trading is non-custodial: your owner key never leaves you, every cap enforced by the account contract itself. Name your agent, chat with it and steer it from Telegram.",
+  // "non-custodial" is scoped to on-chain trading everywhere it appears —
+  // deliberately, per the venue split in spikes/robinhood-mcp/DESIGN.md §9: a
+  // future brokerage rail is custodial by construction (the broker holds the
+  // account; merrymen holds a revocable trading token), and a product-wide
+  // absolute here would become false the day it ships.
+  keywords: ["merrymen", "Robinhood Chain", "trading agent", "self-hosted", "non-custodial on-chain trading", "session keys", "Telegram bot", "crypto", "autonomous agent"],
+  openGraph: {
+    title: "merrymen — trading agents you never have to trust",
+    description:
+      "Trading agents inside hard caps — on-chain, the chain itself enforces them, non-custodially. Self-host it or run it hosted; your owner key never leaves you. Verify the wall in the explorer; steer the band from Telegram.",
+    url,
+    siteName: "merrymen",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "merrymen",
+    description: "Trading agents you never have to trust — your keys, your caps, enforced on-chain.",
+    site: "@MerrymenAI",
+    creator: "@MerrymenAI",
+  },
+  icons: { icon: "/favicon.svg" },
+  // Site-verification tokens (public by design — they prove ownership of the
+  // domain to third-party platforms). Rendered as <meta name=… content=… />.
+  other: {
+    "virtual-protocol-site-verification": "26638f81e63af7797ea3c878c60be319",
+  },
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" className={`${hanken.variable} ${mono.variable}`}>
+      <body>
+        {/* Arm the reveal layer before first paint so content never flashes in
+            un-animated; a delayed backstop un-hides everything if JS stalled. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var d=document.documentElement;if(!matchMedia('(prefers-reduced-motion: reduce)').matches){d.classList.add('fx-ready');setTimeout(function(){if(!document.querySelector('[data-reveal].is-in'))d.classList.add('fx-done')},4000)}}catch(e){}",
+          }}
+        />
+        <div className="page">
+          <div className="ambient" />
+          <div className="halftone" />
+          <div className="grain" />
+          <ScrollFx />
+          <Nav />
+          <main>{children}</main>
+          <Footer />
+        </div>
+      </body>
+    </html>
+  );
+}

@@ -1,0 +1,65 @@
+# electron-builder — produces the installers.
+#   npm run dist:win   → dist/merrymen-Setup-<v>.exe   (NSIS, Windows)
+#   npm run dist:mac   → dist/merrymen-<v>.dmg          (must run ON a Mac)
+#   npm run dist:linux → dist/merrymen-<v>.AppImage
+appId: dev.merrymen.desktop
+productName: merrymen
+copyright: merrymen
+
+# The whole point: bundle Node + merrymen + its deps so nothing is fetched at
+# runtime. asar is OFF because Next/tsx read many files from disk and don't run
+# cleanly from inside an asar archive (optimize later with asarUnpack if wanted).
+asar: false
+
+directories:
+  output: dist
+  buildResources: build
+
+# Ship the app + everything under node_modules (merrymen, next, tsx, viem, …).
+# The prebuilt dashboard (merrymen/web/.next) and the worker source ride along.
+files:
+  - main.js
+  - loading.html
+  - build/icon.png # bundled at RUNTIME too — used for the window + tray icon
+  - "node_modules/**/*"
+  - "!node_modules/**/{CHANGELOG.md,README.md,readme.md,*.map,*.ts.map}"
+  - "!node_modules/merrymen/web/.next/cache/**"
+
+  # DO NOT try to trim node_modules/merrymen with negation patterns here — they
+  # are accepted and then silently ignored, because `merrymen` is a file:..
+  # symlink and exclusions don't apply inside a symlinked package. Seven of them
+  # were added and the rebuilt bundle still contained every directory they named.
+  #
+  # What ships is decided by `npm run stage` (desktop/stage-bundle.mjs), which
+  # replaces the symlink with the contents of `npm pack` — i.e. the root
+  # package.json `files` allowlist. Read that file before changing this one.
+
+# Icons: a single build/icon.png (1024×1024) — electron-builder auto-generates
+# the .ico (Windows) and .icns (macOS) from it, so no per-platform icon needed.
+
+win:
+  target:
+    - nsis
+  # signing (recommended — unsigned .exe shows a SmartScreen warning):
+  # set env CSC_LINK (path to .pfx) + CSC_KEY_PASSWORD, then electron-builder signs.
+
+nsis:
+  oneClick: true # true = single-click install; false = choose-folder wizard
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.finance
+  # notarization (required for Gatekeeper — unsigned .dmg is blocked on modern macOS):
+  # sign with a Developer ID cert (CSC_LINK/CSC_KEY_PASSWORD) and notarize with
+  # APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID env vars.
+  hardenedRuntime: true
+
+linux:
+  target:
+    - AppImage
+  category: Finance

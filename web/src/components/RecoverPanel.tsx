@@ -1,0 +1,453 @@
+"use client";
+
+import { useState } from "react";
+import { listSavedWallets } from "@/lib/session";
+import { isAddr, normalizeAddr } from "@/lib/address";
+import { planFromBrowser, sweepFromBrowser, redact, type BrowserWallet } from "@/lib/recover-client";
+
+/**
+ * "Get my money out" — the one-click counterpart to `merrymen recover`.
+ *
+ * Funds sit in a counterfactual smart account, not a plain wallet, so users
+ * can't reach them by importing the owner key into MetaMask. This sweeps the
+ * balance to any address they control, signed by the owner (sudo) key — works
+ * even after a kill switch. For an active agent the server signs with the key in
+ * grant.json (nothing typed); after a kill, the user pastes their backed-up key.
+ */
+
+interface Balance {
+  symbol: string;
+  amount: string;
+}
+interface Ctx {
+  hasStoredKey: boolean;
+  hasBundler: boolean;
+  chainId?: number;
+  explorer?: string;
+  smartAccount?: string;
+  ownerAddress?: string;
+  balances?: Balance[];
+  /** Labels whose balance could not be READ. Never conflate with "not held". */
+  unreadable?: string[];
+  error?: string;
+  /** The server's explanation. Was returned, parsed, and never rendered. */
+  detail?: string;
+  /** Hosted: the server cannot sweep, the browser must. */
+  clientSide?: boolean;
+}
+interface PlanRes {
+  smartAccount: string;
+  ownerAddress: string;
+  explorer: string;
+  chainId: number;
+  balances: Balance[];
+  /** Labels whose balance could not be READ. Never conflate with "not held". */
+  unreadable?: string[];
+  error?: string;
+}
+interface SweepRes {
+  /** NULL when nothing moved. Typed nullable because it IS nullable — as a bare
+   * string, tsc waved through a success block that rendered /tx/null. */
+  txHash: string | null;
+  to: string;
+  smartAccount: string;
+  explorer: string;
+  balances: Balance[];
+  /** Held, but refused to transfer. Non-empty means nothing was swept. */
+  skipped?: { symbol: string; reason: string }[];
+  unreadable?: string[];
+  error?: string;
+}
+
+const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+
+const isKey = (v: string) => /^0x[0-9a-fA-F]{64}$/.test(v.trim());
+const MAINNET = 4663;
+const TESTNET = 46630;
+
+/**
+ * @param initialOwnerKey The key this browser ALREADY holds, when it holds one.
+ *
+ * Asking a person to paste a key the page can read from its own localStorage is
+ * not security, it is friction — and friction on the exit is the worst place to
+ * put it. A user who could not find this flow imported his key into MetaMask
+ * instead, saw an empty address, and concluded his money was gone.
+ *
+ * Left optional and defaulting to empty so /home keeps working exactly as it
+ * did: that page is reachable while signed out and on a machine that never had
+ * the wallet, which is the case the paste field exists for.
+ */
+export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: string } = {}) {
+  const [open, setOpen] = useState(false);
+  const [ctx, setCtx] = useState<Ctx | null>(null);
+  const [loadingCtx, setLoadingCtx] = useState(false);
+
+  const [ownerKey, setOwnerKey] = useState(initialOwnerKey);
+  const [chainId, setChainId] = useState<number>(MAINNET);
+  const [plan, setPlan] = useState<PlanRes | null>(null);
+
+  const [to, setTo] = useState("");
+  const [busy, setBusy] = useState<null | "checking" | "sweeping">(null);
+  const [result, setResult] = useState<SweepRes | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function expand() {
+    setOpen(true);
+    if (ctx || loadingCtx) return;
+    setLoadingCtx(true);
+    try {
+      const r = await fetch("/api/recover");
+      setCtx((await r.json()) as Ctx);
+    } catch {
+      setCtx({ hasStoredKey: false, hasBundler: false, error: "couldn't reach the recovery service" });
+    }
+    setLoadingCtx(false);
+  }
+
+  /**
+   * HOSTED: the server holds no owner key and says so. Do the work here.
+   *
+   * The panel used to fetch that refusal, drop it on the floor, and fall
+   * through to a paste-a-key form whose button POSTed to a route that 403s
+   * before it even parses the body. A user with money in the account saw an
+   * empty form and one red line.
+   */
+  function browserWallet(): BrowserWallet | null {
+    const key = ownerKey.trim();
+    if (!isKey(key)) return null;
+    // Prefer the stored wallet, so grantTokens (and therefore the sweep list)
+    // comes from what the wall actually covers rather than the builtin floor.
+    const saved = (() => {
+      try {
+        return listSavedWallets().find(
+          (w) => (w.ownerKey ?? "").toLowerCase() === key.toLowerCase(),
+        );
+      } catch {
+        return undefined;
+      }
+    })();
+    if (!saved) return null;
+    return {
+      smartAccount: saved.smartAccount,
+      ownerKey: key as `0x${string}`,
+      chainId: saved.chainId ?? chainId,
+      grantTokens: (saved as { grantTokens?: string[] }).grantTokens,
+    };
+  }
+
+  async function checkInBrowser() {
+    setError(null);
+    const w = browserWallet();
+    if (!w) {
+      setError(
+        "this browser doesn't hold that wallet, so it can't withdraw here. Use `merrymen recover` on the machine with your key.",
+      );
+      return;
+    }
+    setBusy("checking");
+    try {
+      const b = await planFromBrowser(w);
+      setPlan({
+        smartAccount: b.smartAccount,
+        chainId: w.chainId,
+        // TokenBalance already carries the display string as `amount`, and the
+        // panel renders exactly that shape — so pass it through rather than
+        // rebuilding it and losing `note` along the way.
+        balances: b.balances,
+      } as unknown as PlanRes);
+      // The one thing that stops a sweep dead, said BEFORE they press it.
+      if (b.needsGas) {
+        setError(
+          `this account has no ETH, and a withdrawal is an on-chain operation it has to pay for. Send a little ETH to ${b.smartAccount} and try again — a few dollars is plenty.`,
+        );
+      }
+    } catch (e) {
+      setError(redact(e, w.ownerKey));
+    }
+    setBusy(null);
+  }
+
+  async function sweepInBrowser() {
+    setError(null);
+    if (!isAddr(to)) {
+      setError("enter a valid destination address (0x + 40 hex).");
+      return;
+    }
+    const w = browserWallet();
+    if (!w) {
+      setError("this browser doesn't hold that wallet.");
+      return;
+    }
+    const list = balances.map((b) => `${b.amount} ${b.symbol}`).join(", ") || "the balance";
+    if (
+      !window.confirm(
+        `Sweep ${list} to ${normalizeAddr(to)}?\n\nThis is real and irreversible. The account keeps a little ETH to pay for gas.`,
+      )
+    ) {
+      return;
+    }
+    setBusy("sweeping");
+    try {
+      const r = await sweepFromBrowser(w, normalizeAddr(to) as `0x${string}`);
+      setResult(r as unknown as SweepRes);
+    } catch (e) {
+      setError(redact(e, w.ownerKey));
+    }
+    setBusy(null);
+  }
+
+  async function checkPasted() {
+    setError(null);
+    if (!isKey(ownerKey)) {
+      setError("that isn't a 32-byte owner key (0x + 64 hex chars).");
+      return;
+    }
+    setBusy("checking");
+    try {
+      const r = await fetch("/api/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "plan", ownerKey: ownerKey.trim(), chainId }),
+      });
+      const j = (await r.json()) as PlanRes;
+      if (!r.ok || j.error) setError(j.error ?? "couldn't read that wallet.");
+      else setPlan(j);
+    } catch {
+      setError("couldn't reach the recovery service.");
+    }
+    setBusy(null);
+  }
+
+  // HOSTED: the server told us it cannot sweep. Do it here instead of showing
+  // its refusal as though the user had done something wrong.
+  const clientSide = ctx?.clientSide === true;
+
+  // Balances/addresses come from the pasted-key plan if present, else the GET ctx.
+  const balances = plan?.balances ?? ctx?.balances ?? [];
+  const smartAccount = plan?.smartAccount ?? ctx?.smartAccount;
+  const explorer = plan?.explorer ?? ctx?.explorer;
+  const activeChain = plan?.chainId ?? ctx?.chainId ?? chainId;
+  // CAN THIS WITHDRAWAL BE SUBMITTED AT ALL?
+  //
+  // Hosted, the answer is always yes: the relay holds the house bundler key, and
+  // that is the entire reason it exists. `ctx.hasBundler` describes the SERVER’s
+  // own key, which hosted is deliberately absent — so reading it alone told a
+  // hosted owner to add a Pimlico key in settings, a field the hosted settings
+  // route silently strips, and then disabled the button so they could not proceed
+  // even if they ignored the advice. A dead end dressed as an instruction.
+  const canSubmit = clientSide || (ctx?.hasBundler ?? false);
+  // Do we know what's in the account yet? (stored-key ctx, or a checked paste.)
+  const known = !!(plan || (ctx?.hasStoredKey && ctx));
+  // "Empty" is a CLAIM, and it may only be made when everything was actually
+  // read. Saying an account is empty because an RPC blinked is how somebody
+  // concludes their money is gone.
+  const unreadable = (ctx?.unreadable ?? plan?.unreadable ?? []) as string[];
+  const empty = known && balances.length === 0 && unreadable.length === 0;
+  const blind = known && balances.length === 0 && unreadable.length > 0;
+
+  async function sweep() {
+    setError(null);
+    if (!isAddr(to)) {
+      setError("enter a valid destination address (0x + 40 hex).");
+      return;
+    }
+    const list = balances.map((b) => `${b.amount} ${b.symbol}`).join(", ") || "the balance";
+    if (!window.confirm(`Sweep ${list} to ${normalizeAddr(to)}?\n\nThis is real and irreversible. The account keeps a little ETH to pay for gas.`)) {
+      return;
+    }
+    setBusy("sweeping");
+    try {
+      const body: Record<string, unknown> = { mode: "sweep", to: normalizeAddr(to) };
+      if (plan) {
+        body.ownerKey = ownerKey.trim();
+        body.chainId = chainId;
+      }
+      const r = await fetch("/api/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const j = (await r.json()) as SweepRes;
+      if (!r.ok || j.error) setError(j.error ?? "recovery failed.");
+      else setResult(j);
+    } catch {
+      setError("couldn't reach the recovery service.");
+    }
+    setBusy(null);
+  }
+
+  return (
+    <div className="panel recover-panel">
+      <div className="section-title">recover funds</div>
+
+      {!open ? (
+        <>
+          <p className="recover-sub">
+            Your money lives in a smart account, not a MetaMask wallet — so importing the owner key
+            won&apos;t show it. Sweep it back to any address you control, anytime (even after a kill).
+          </p>
+          <button className="recover-btn" onClick={() => void expand()}>
+            🏹 recover my funds
+          </button>
+        </>
+      ) : loadingCtx ? (
+        <p className="recover-sub">reading your account…</p>
+      ) : result ? (
+        <div className="recover-done">
+          {result.txHash ? (
+            <>
+              <p className="recover-sub">
+                <b>Recovered ✓</b> — {result.balances.map((b) => `${b.amount} ${b.symbol}`).join(", ")} sent to{" "}
+                <span className="mono">{short(result.to)}</span>.
+              </p>
+              {result.skipped?.length ? (
+                <p className="recover-sub">
+                  Left behind, because they refused to transfer:{" "}
+                  {result.skipped.map((s) => s.symbol).join(", ")}.
+                </p>
+              ) : null}
+              <a className="recover-btn" href={`${result.explorer}/tx/${result.txHash}`} target="_blank" rel="noreferrer">
+                view the transaction ↗
+              </a>
+            </>
+          ) : (
+            /* NOTHING MOVED — and this used to render as "Recovered ✓" with a
+               link to /tx/null, which reads as explorer lag rather than as
+               failure. A false success claim on the escape hatch is the worst
+               place in the product to have one: the owner walks away believing
+               their money is out. */
+            <>
+              <p className="recover-sub">
+                <b>Nothing moved.</b> Every token in this account refused to transfer, so no
+                transaction was sent — your funds are still where they were.
+              </p>
+              {result.skipped?.length ? (
+                <ul className="recover-sub">
+                  {result.skipped.map((s) => (
+                    <li key={s.symbol}>
+                      <span className="mono">{s.symbol}</span> — {s.reason}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Killed/expired: no stored key — ask for the backed-up one. */}
+          {ctx && !ctx.hasStoredKey && !plan && (
+            <>
+              <p className="recover-sub">
+                {clientSide
+                  ? "Withdrawing happens right here in your browser — your owner key never leaves this device. It signs the withdrawal locally; this site only relays it to the network."
+                  : "No active agent on this machine, so paste the owner key you backed up when you created the wallet. It stays on your machine — it is used once to sign the sweep."}
+              </p>
+              <input
+                className="recover-input mono"
+                type="password"
+                placeholder="owner key (0x…)"
+                value={ownerKey}
+                onChange={(e) => setOwnerKey(e.target.value)}
+                autoComplete="off"
+              />
+              <div className="recover-chain">
+                <label>
+                  <input type="radio" checked={chainId === MAINNET} onChange={() => setChainId(MAINNET)} /> mainnet · 4663
+                </label>
+                <label>
+                  <input type="radio" checked={chainId === TESTNET} onChange={() => setChainId(TESTNET)} /> testnet · 46630
+                </label>
+              </div>
+              <button className="recover-btn" onClick={() => void (clientSide ? checkInBrowser() : checkPasted())} disabled={busy !== null}>
+                {busy === "checking" ? "reading the wallet…" : "check what's in it"}
+              </button>
+            </>
+          )}
+
+          {/* Balances known — show them and the sweep form. */}
+          {known && (
+            <>
+              {smartAccount && (
+                <p className="recover-sub">
+                  account{" "}
+                  {explorer ? (
+                    <a className="mono" href={`${explorer}/address/${smartAccount}`} target="_blank" rel="noreferrer">
+                      {short(smartAccount)} ↗
+                    </a>
+                  ) : (
+                    <span className="mono">{short(smartAccount)}</span>
+                  )}{" "}
+                  · chain {activeChain}
+                </p>
+              )}
+
+              {empty ? (
+                <p className="recover-sub">This account is empty — nothing to recover.</p>
+              ) : blind ? (
+                /* NOT "empty". Every balance read failed, which is a different
+                   fact — and telling someone their account is empty because an
+                   RPC blinked is how they conclude their money is gone. */
+                <p className="recover-sub">
+                  Nothing found — but {unreadable.join(", ")} could not be read. That is NOT a zero
+                  balance. Check the RPC and try again before concluding anything.
+                </p>
+              ) : (
+                <>
+                  <div className="recover-holdings mono">
+                    {balances.map((b) => (
+                      <span key={b.symbol} className="recover-hold">
+                        {b.amount} {b.symbol}
+                      </span>
+                    ))}
+                  </div>
+
+                  {!canSubmit && (
+                    <p className="recover-warn">
+                      Recovery sends an on-chain transaction, so it needs your bundler key. Add a free
+                      Pimlico key in <a href="/settings">settings</a>, then come back.
+                    </p>
+                  )}
+
+                  <input
+                    className="recover-input mono"
+                    type="text"
+                    placeholder="send to… (an address you control, e.g. MetaMask)"
+                    value={to}
+                    onChange={(e) => setTo(e.target.value)}
+                    autoComplete="off"
+                  />
+                  {/* A DISABLED BUTTON THAT EXPLAINS ITSELF.
+                      Silence here cost a user his whole attempt: he had done
+                      everything right and the only feedback was a button that
+                      would not press. */}
+                  {to.trim().length > 0 && !isAddr(to) && (
+                    <p className="recover-warn">
+                      That doesn&rsquo;t look like an address yet — it should be 40 characters of
+                      hex, with or without the <code>0x</code>. Paste the receiving address from
+                      your wallet or exchange.
+                    </p>
+                  )}
+                  <button
+                    className="recover-btn go"
+                    onClick={() => void (clientSide ? sweepInBrowser() : sweep())}
+                    disabled={busy !== null || !canSubmit || !isAddr(to)}
+                  >
+                    {busy === "sweeping" ? "signing & sending (up to a minute)…" : "recover funds →"}
+                  </button>
+                </>
+              )}
+            </>
+          )}
+
+          {error && <p className="recover-err mono">{error}</p>}
+
+          <p className="recover-note">
+            Signed by your <b>owner key</b> (not the capped session key), so it works after a kill and
+            isn&apos;t bound by trade limits. Same engine as <span className="mono">merrymen recover</span>.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
