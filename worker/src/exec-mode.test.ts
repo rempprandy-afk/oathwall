@@ -273,9 +273,13 @@ test("BUT IT KEEPS WATCHING THE REAL ACCOUNT, or it can never come back", () => 
   assert.doesNotMatch(arm.slice(0, 600), /lastGasWei = 0n/, "a failed read must not become a zero");
 });
 
-test("a curve trade with no adapter leaves a row, not just an event", () => {
-  // Otherwise the decision has no trade to join and the public feed says "no
-  // trade came of it" — true, and silent about the one fact that explains it.
-  const src = readFileSync("worker/src/index.ts", "utf8");
-  assert.match(src, /reject_rule: "no-curve-adapter"/);
-});
+/**
+ * "a curve trade with no adapter leaves a row, not just an event" WAS HERE, and
+ * its rule outlived the venue: every refusal in the execute path must write a
+ * rejected TRADE row, not only an event. Otherwise the decision that led there
+ * has nothing to join and the public feed says "no trade came of it" — true,
+ * and silent about the one fact that explains it.
+ *
+ * budget-reservation.invariant.test.ts now carries that assertion for the
+ * retired-venue branch, and caught Phase 5 reintroducing the leak.
+ */

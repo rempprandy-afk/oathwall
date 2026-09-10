@@ -7,18 +7,7 @@ import {
   type GeckoWindow,
   type PoolFeed,
 } from "../../../worker/src/venues/geckoterminal";
-import { recentPonsLaunches } from "../../../worker/src/venues/pons";
-import {
-  readCurveActivity,
-  isActive,
-  MAX_ACTIVITY_BLOCKS,
-} from "../../../worker/src/venues/pons-activity";
-import { readTokenMeta } from "../../../worker/src/venues/pons-meta";
-import {
-  readCardFacts,
-  readBlockClock,
-  ageSecOf,
-} from "../../../worker/src/venues/pons-card";
+import { bnbChain } from "../../../packages/core/src/index";
 import { resolveConfig } from "../../../worker/src/settings";
 import { resolveLlm } from "../../../worker/src/llm";
 import { createMemecoinScout } from "../../../worker/src/strategist/memecoin-scout";
@@ -230,7 +219,7 @@ export interface ChainStatus {
    * one level up.
    */
   launchpad: boolean;
-  /** The launcher's description, logo and socials (pons-meta). */
+  /** The launcher's description, logo and socials (token-meta). */
   meta: boolean;
   /** Symbol, name and curve progress (pons-card). */
   facts: boolean;
@@ -393,7 +382,7 @@ async function rankUncached(
 
     let research: ReadonlyMap<string, ReturnType<typeof scoutFieldsFor>> | undefined;
     if (cfg.browserUrl && cfg.browserToken) {
-      const client = createPublicClient({ transport: http("https://rpc.mainnet.chain.robinhood.com") });
+      const client = createPublicClient({ chain: bnbChain, transport: http(bnbChain.rpcUrls.default.http[0]) });
       const found = await researchCoins(kept, {
         client: client as never,
         browser: { baseUrl: cfg.browserUrl, token: cfg.browserToken },
@@ -410,78 +399,30 @@ async function rankUncached(
   }
 }
 
+/**
+ * FRESH LAUNCHES — EMPTY ON BNB, AND THE THREE FLAGS SAY SO.
+ *
+ * This read the Pons launchpad directly off Robinhood Chain: a log sweep for
+ * launches, a second for curve activity, then three sequential reads for
+ * metadata, card facts and a block clock. All of it is gone with the chain
+ * (Phase 5), including the hardcoded `rpc.mainnet.chain.robinhood.com` client
+ * that made this the last place in the web app still talking to 4663.
+ *
+ * `ChainStatus` KEEPS ITS SHAPE and every flag stays FALSE, which is the honest
+ * answer rather than a convenient one. The comment this function carried is why:
+ * `true` had to mean "read it", so a failure reported three honest falses rather
+ * than three optimistic trues. There is nothing to read here now, so nothing
+ * may report that it read.
+ *
+ * The rules the launchpad rows were built under are worth keeping for §7.3:
+ * activity was counted by DISTINCT ADDRESSES rather than trade count (291
+ * trades from 25 addresses is a different thing from 223 from 176, and only one
+ * looks like people), and "this launcher published nothing" could only be
+ * claimed when the read SUCCEEDED — it was once `m ? m.bare : true`, which
+ * turned every unread coin into an accusation on the card.
+ */
 async function readFresh(): Promise<{ rows: FreshRow[]; chain: ChainStatus }> {
-  // `true` means "read it", so a total failure below reports three honest
-  // falses rather than three optimistic trues.
-  const chain: ChainStatus = { launchpad: false, meta: false, facts: false, clock: false };
-  try {
-    const client = createPublicClient({ transport: http("https://rpc.mainnet.chain.robinhood.com") });
-    const W = MAX_ACTIVITY_BLOCKS;
-    const [scan, activity] = await Promise.all([
-      recentPonsLaunches(client as never, W),
-      readCurveActivity(client as never, W),
-    ]);
-    // A null activity map means the node refused, which is a different fact
-    // from a quiet launchpad — showing nothing is right, inventing an empty
-    // tape for every launch is not.
-    if (scan.failed || !activity) return { rows: [], chain };
-    chain.launchpad = true;
-    const live = scan.launches.filter((l) => isActive(activity.get(l.curve.toLowerCase())));
-
-    // SEQUENTIAL, NOT Promise.all — and this is the one behavioural change here.
-    // These three used to fire as a burst immediately after two heavy log
-    // sweeps, and the whole burst is what the node refuses: all three come back
-    // empty together while the sweeps that preceded them succeeded. They cost
-    // ~700ms in total, so spacing them is nearly free, and the alternative
-    // (more retries) multiplies the burst that draws the refusal.
-    const meta = await readTokenMeta(client as never, live.map((l) => l.token));
-    chain.meta = meta.size > 0 || live.length === 0;
-    await sleep(120);
-    const facts = await readCardFacts(client as never, live);
-    chain.facts = facts.size > 0 || live.length === 0;
-    await sleep(120);
-    const clock = await readBlockClock(client as never);
-    chain.clock = clock !== null;
-
-    return {
-      chain,
-      rows: live
-        .map((l) => {
-          const a = activity.get(l.curve.toLowerCase())!;
-          const m = meta.get(l.token.toLowerCase());
-          const f = facts.get(l.token.toLowerCase());
-          return {
-            token: l.token,
-            curve: l.curve,
-            trades: a.buys + a.sells,
-            traders: a.traders,
-            description: m?.description ?? "",
-            twitter: m?.twitter ?? "",
-            telegram: m?.telegram ?? "",
-            website: m?.website ?? "",
-            // `bare` means "this launcher published NOTHING", which is a claim
-            // about the coin — so it may only be made when the read succeeded.
-            // It used to be `m ? m.bare : true`, which turned every unread coin
-            // into an accusation: the card said "Published nothing about
-            // itself" and "no socials" about coins that published plenty.
-            // readTokenMeta returns a MAP precisely so a caller can tell "read
-            // and empty" from "not read", and this threw that away.
-            bare: m ? m.bare : false,
-            symbol: f?.symbol ?? "",
-            name: f?.name ?? "",
-            logo: m?.logo ?? "",
-            ageSec: ageSecOf(clock, l.blockNumber),
-            progressBps: f?.progressBps ?? null,
-          };
-        })
-        // By distinct addresses, not trade count: 291 trades from 25 addresses is
-        // a different thing from 223 trades from 176, and only one of them looks
-        // like people.
-        .sort((x, y) => y.traders - x.traders),
-    };
-  } catch {
-    return { rows: [], chain };
-  }
+  return { rows: [], chain: { launchpad: false, meta: false, facts: false, clock: false } };
 }
 
 export interface Payload {

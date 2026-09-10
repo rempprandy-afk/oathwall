@@ -51,7 +51,7 @@ export interface Snapshot {
   pausedTokens: Set<string>;
   /** Chainlink staleness per symbol; stale = underlying market closed (nights/weekends). */
   staleFeeds: Set<string>;
-  sequencerUp: boolean;
+  chainLive: boolean;
   /**
    * USDG (6dp) still spendable today: the grant's daily cap minus what's already
    * gone. Zero means the budget is used up.

@@ -1,15 +1,24 @@
 /**
- * ERC-8056 (Scaled UI Amount) position accounting.
+ * Position accounting.
  *
- * Stock Token raw balances NEVER rebase — corporate actions (splits, stock
- * dividends) adjust uiMultiplier() instead. Every position valuation must go
- * through the multiplier: on a 2-for-1 split the multiplier doubles and the
- * reference price halves, so value is unchanged. Skipping the multiplier makes
- * a split look like a 50% crash and trips the drawdown breaker on nothing.
- *
- * UI shares  = rawBalance × uiMultiplier / 1e18
- * USD value  = UI shares × chainlinkPrice / 1e8
+ * USD value  = rawBalance × price / 10^tokenDecimals / 1e8
  * cash units = USD value × 10^CASH_DECIMALS
+ *
+ * ERC-8056 IS GONE, AND THE ARITHMETIC GOT MORE DANGEROUS, NOT LESS — see
+ * positionValueUsdg. This file used to implement Scaled UI Amount, the standard
+ * behind Robinhood Stock Tokens: raw balances never rebased, and a corporate
+ * action moved `uiMultiplier()` instead, so a 2-for-1 split doubled the
+ * multiplier while the reference price halved and value was unchanged. Every
+ * valuation had to pass through it or a split read as a 50% crash and tripped
+ * the drawdown breaker on nothing.
+ *
+ * No BNB token implements it. Corporate actions do not happen to WBNB, and a
+ * memecoin that exposed a `uiMultiplier()` selector would be an arbitrary
+ * contract scaling the owner's equity — which is why the old code refused to
+ * ask memecoins in the first place. The multiplier is therefore not "always
+ * 1.0 for now"; the concept has no referent on this chain, and carrying a term
+ * that can only ever be 1e18 through the most safety-critical division in the
+ * worker is how a reader stops seeing it.
  */
 
 import type { PublicClient } from "viem";
@@ -21,9 +30,7 @@ export interface Position {
   token: `0x${string}`;
   /** Raw ERC-20 balance in the token's own decimals — what transfer() moves. */
   rawBalance: bigint;
-  /** ERC-8056 multiplier, 1e18 = 1.0. Always 1e18 for non-ERC-8056 tokens. */
-  uiMultiplier: bigint;
-  /** ERC-20 decimals — 18 for stock tokens, whatever the owner declared otherwise. */
+  /** ERC-20 decimals — 18 across the BNB registry, whatever a discovered token declares. */
   decimals: number;
   /** USD price, 8dp. Stale means the feed stopped — never a closed market. */
   price8: bigint;
@@ -40,7 +47,7 @@ export interface Position {
 }
 
 /**
- * rawBalance(10^decimals) × uiMultiplier(1e18) × price8(1e8) → cash base units.
+ * rawBalance(10^decimals) × price8(1e8) → cash base units.
  * Single division so precision is lost exactly once.
  *
  * `decimals` defaults to 18 — every token in the BNB registry — but a discovered
@@ -48,33 +55,46 @@ export interface Position {
  * a factor of a billion. Equity feeds the drawdown breaker, so that is not a
  * display bug.
  *
- * ⚠ THE DENOMINATOR IS THE MOST DANGEROUS LINE IN THE MIGRATION, and it is
- * built rather than written down. It used to read `decimals + 20`, where 20 was
- * `18 (multiplier) + 8 (price dp) − 6 (USDG dp)` — three facts collapsed into
- * one number with only a comment tying it back to them. With 18-decimal cash
- * that constant is `+ 8`, and leaving it at `+ 20` misvalues every position by
- * 10^12.
+ * ⚠ THE MOST DANGEROUS LINE IN THE MIGRATION, still, and it changed shape twice.
+ * It began as `decimals + 20`, where 20 was `18 (multiplier) + 8 (price dp) − 6
+ * (USDG dp)` — three facts collapsed into one number with only a comment tying
+ * it back to them. Phase 2 assembled it from the named quantities instead,
+ * because at 18-decimal cash the constant is `+ 8` and leaving it at `+ 20`
+ * misvalues every position by 10^12.
  *
- * Getting it wrong is not a visible failure. Equity is what the drawdown
- * breaker reads: 10^12 too small freezes the agent permanently on a phantom
- * crash, and 10^12 too large means the breaker can never trip at all. Both look
- * like a working system from the outside.
+ * ⚠⚠ AND WHY THE SCALE MOVED TO THE NUMERATOR WHEN ERC-8056 WENT. Deleting the
+ * multiplier means deleting an 18 from BOTH sides, leaving
+ * `10 ** (decimals + PRICE_DP - CASH_DECIMALS)`. At 18 decimals that is 8 and
+ * everything looks fine — but the exponent is `decimals - 10`, so ANY token
+ * with fewer than 10 decimals makes it negative, and `10n ** -4n` does not
+ * quietly round: BigInt exponentiation THROWS on a negative exponent.
  *
- * So the exponent is now assembled from the three named quantities, and
- * CASH_DECIMALS is the only one that can move.
+ * That is a live case, not a hypothetical. USDC on many chains is 6, and the
+ * `decimals` parameter exists precisely because a discovered memecoin can be 6
+ * or 9 — the comment above says so. The multiplier's 18 was holding the
+ * exponent positive by accident, and removing it would have turned a valuation
+ * into an exception thrown inside the tick that reads equity.
+ *
+ * So the cash scale multiplies the numerator instead of shrinking the exponent.
+ * The denominator is now `10 ** (decimals + PRICE_DP)`, which cannot go
+ * negative for any real token, and it is still exactly one division.
+ *
+ * Getting any of this wrong is not a visible failure. Equity is what the
+ * drawdown breaker reads: too small freezes the agent permanently on a phantom
+ * crash, too large means the breaker can never trip at all. Both look like a
+ * working system from the outside.
  */
-const MULTIPLIER_DP = 18;
 const PRICE_DP = 8;
+const CASH_SCALE = 10n ** BigInt(CASH_DECIMALS);
 
 export function positionValueUsdg(args: {
   rawBalance: bigint;
-  uiMultiplier: bigint;
   price8: bigint;
   decimals?: number;
 }): bigint {
   const decimals = args.decimals ?? 18;
-  const DENOM = 10n ** BigInt(decimals + MULTIPLIER_DP + PRICE_DP - CASH_DECIMALS);
-  return (args.rawBalance * args.uiMultiplier * args.price8) / DENOM;
+  const DENOM = 10n ** BigInt(decimals + PRICE_DP);
+  return (args.rawBalance * args.price8 * CASH_SCALE) / DENOM;
 }
 
 export interface PositionsRead {
@@ -117,98 +137,30 @@ export interface PositionsRead {
  * IS held but can't be valued (feed/multiplier read failed) is reported in
  * `missingPrice` — never silently valued at zero.
  */
-/** 1.0 in ERC-8056's fixed-point convention. */
-export const UI_MULTIPLIER_ONE = 10n ** 18n;
-
 /**
- * Which multiplier a price source's unit implies.
+ * `UI_MULTIPLIER_ONE`, `valuationMultiplierFor` and `readMultipliers` USED TO BE
+ * HERE, and the reasoning in the last of them is worth keeping.
  *
- * A Chainlink feed quotes USD per ERC-8056 UI SHARE, so the multiplier converts
- * raw → shares before pricing. A pool quotes USD per WHOLE ERC-20 TOKEN, and a
- * broker quotes USD per SHARE AS THE BROKER COUNTS IT — in both cases the
- * market's own unit, which already reflects any split. Applying the multiplier
- * to those counts the split twice: after a 2-for-1 the position reads double,
- * the high-water mark ratchets to a peak that never happened, a performance fee
- * accrues on it, and the drawdown breaker trips when the phantom unwinds.
+ * `valuationMultiplierFor` was an exhaustive switch over `PriceQuote["source"]`
+ * deciding whose UNIT a price was quoted in: Chainlink quoted USD per ERC-8056
+ * UI share so the multiplier applied, while a pool, a curve, a broker and a v4
+ * pool all quoted the market's own unit, which already reflected any split.
+ * Applying the multiplier to those counted the split twice — the position read
+ * double, the high-water mark ratcheted to a peak that never happened, a
+ * performance fee accrued on it, and the drawdown breaker tripped when the
+ * phantom unwound.
  *
- * An exhaustive switch on purpose. This used to be `source === "pool" ? 1e18 :
- * uiMultiplier`, where every FUTURE source silently fell into the Chainlink arm
- * — which is exactly the wrong default for every source added since, "broker"
- * included. Now a new member of the union fails to compile until someone
- * decides its unit here, on this comment, deliberately.
+ * It was made exhaustive on purpose, replacing `source === "pool" ? 1e18 :
+ * uiMultiplier`, under which every FUTURE source fell into the Chainlink arm —
+ * the wrong default for every source added afterwards. That lesson outlives the
+ * multiplier: a new member of a price-source union should fail to compile until
+ * someone decides what it means, rather than inheriting whatever the `default`
+ * arm happened to do.
+ *
+ * `readMultipliers` existed for paper mode, which has no balances to read but
+ * still needed splits applied, and it failed CLOSED — a token whose multiplier
+ * could not be read landed in `unreadable` rather than defaulting to 1.0.
  */
-export function valuationMultiplierFor(source: PriceQuote["source"], uiMultiplier: bigint): bigint {
-  switch (source) {
-    case "chainlink":
-      return uiMultiplier;
-    case "pool":
-    case "broker":
-    // A Pons bonding curve quotes USD per whole ERC-20, exactly as a pool does.
-    // Curve tokens are plain ERC-20s with no ERC-8056 multiplier to apply — and
-    // if one ever grew a split, the curve's reserves would already reflect it,
-    // so applying a multiplier here would count it twice.
-    //
-    // Note this is the ONLY question this switch asks. It decides a UNIT, not
-    // whether the price can be trusted: a curve quote is a weaker kind of
-    // evidence than a pool quote, and that difference is enforced elsewhere —
-    // it stays inside the scout ceiling and out of the high-water mark.
-    case "curve":
-    // A Uniswap v4 pool quotes USD per whole ERC-20, exactly as v3 does — the
-    // VENUE changed, the unit did not. Graduated memecoins are plain ERC-20s
-    // with no ERC-8056 multiplier to apply. (That a v4 quote is weaker evidence
-    // than a v3 one — no oracle behind it — is enforced elsewhere, by keeping it
-    // inside the scout ceiling; it is not a question about units.)
-    case "v4":
-      return UI_MULTIPLIER_ONE;
-    default: {
-      const never: never = source;
-      throw new Error(`unhandled price source: ${String(never)}`);
-    }
-  }
-}
-
-/**
- * Just the multipliers, for callers with no on-chain balance to read.
- *
- * Paper mode needs these and can't get them from readPositions: it never queries
- * balances, because the book IS the ledger. But uiMultiplier is a property of the
- * TOKEN, not of any holding — it's just as real for a simulated position as a
- * funded one. Without it a stock split halves the paper book overnight and trips
- * the drawdown breaker on a corporate action that cost nobody anything.
- *
- * Fails closed exactly like readPositions: a token whose multiplier can't be read
- * lands in `unreadable` rather than defaulting to 1.0, because silently assuming
- * 1.0 after a split is the mis-pricing this whole file exists to prevent.
- */
-export async function readMultipliers(
-  client: PublicClient,
-  tokens: readonly TradableToken[],
-): Promise<{ multipliers: Map<string, bigint>; unreadable: string[] }> {
-  const multipliers = new Map<string, bigint>();
-  const unreadable: string[] = [];
-
-  // Same rule as readPositions: ERC-8056 is a Stock Token thing. Asking a
-  // memecoin would revert, and honouring whatever a random contract returned
-  // would let it scale the owner's equity.
-  const scaled = tokens.filter((t) => t.kind !== "memecoin");
-  for (const t of tokens) if (t.kind === "memecoin") multipliers.set(t.symbol, UI_MULTIPLIER_ONE);
-  if (scaled.length === 0) return { multipliers, unreadable };
-
-  type CallResult = { status: "success"; result: unknown } | { status: "failure"; error: unknown };
-  const results = (await client
-    .multicall({
-      contracts: scaled.map((t) => ({ address: t.address, abi: TOKEN_ABI, functionName: "uiMultiplier" })) as never,
-    })
-    .catch(() => null)) as CallResult[] | null;
-  if (!results) return { multipliers, unreadable: scaled.map((t) => t.symbol) };
-
-  scaled.forEach((t, i) => {
-    const r = results[i];
-    if (r?.status === "success" && typeof r.result === "bigint" && r.result > 0n) multipliers.set(t.symbol, r.result);
-    else unreadable.push(t.symbol);
-  });
-  return { multipliers, unreadable };
-}
 
 export async function readPositions(
   client: PublicClient,
@@ -216,36 +168,19 @@ export async function readPositions(
   tokens: readonly TradableToken[],
   prices: ReadonlyMap<string, PriceQuote>,
 ): Promise<PositionsRead> {
-  // ERC-8056 is a Stock Token thing. An owner-added memecoin has no
-  // uiMultiplier() at all, so asking would revert and get read as "held but
-  // unvaluable" — the transient gap that halts the tick forever. Worse, if some
-  // token DID expose the selector, honouring whatever it returned would let an
-  // arbitrary contract scale the owner's equity (and the drawdown breaker with
-  // it). So we don't ask, and we don't look: non-ERC-8056 tokens are 1.0, flat.
-  const isScaled = (t: TradableToken) => t.kind !== "memecoin";
-
-  // Index bookkeeping, because the contracts-per-token count now varies.
-  const slots: { token: TradableToken; balAt: number; multAt: number | null }[] = [];
-  const contracts: {
-    address: `0x${string}`;
-    abi: typeof TOKEN_ABI;
-    functionName: string;
-    args?: readonly unknown[];
-  }[] = [];
-  for (const t of tokens) {
-    const balAt = contracts.length;
-    contracts.push({ address: t.address, abi: TOKEN_ABI, functionName: "balanceOf", args: [account] });
-    let multAt: number | null = null;
-    if (isScaled(t)) {
-      multAt = contracts.length;
-      contracts.push({ address: t.address, abi: TOKEN_ABI, functionName: "uiMultiplier" });
-    }
-    slots.push({ token: t, balAt, multAt });
-  }
+  // ONE CALL PER TOKEN NOW. This used to be one or two — a `uiMultiplier()`
+  // read was appended for everything that was not a memecoin — and the index
+  // bookkeeping existed only to track which token contributed how many.
+  const contracts = tokens.map((t) => ({
+    address: t.address,
+    abi: TOKEN_ABI,
+    functionName: "balanceOf",
+    args: [account] as readonly unknown[],
+  }));
 
   // viem infers per-call result types from a literal tuple; this array is built
-  // at runtime (memecoins contribute one call, Stock Tokens two), so the shape is
-  // asserted here instead. Each entry is still checked for success below.
+  // at runtime, so the shape is asserted here instead. Each entry is still
+  // checked for success below.
   type CallResult = { status: "success"; result: unknown } | { status: "failure"; error: unknown };
   const results = (await client
     .multicall({ contracts: contracts as never })
@@ -257,23 +192,12 @@ export async function readPositions(
   const positions: Position[] = [];
   const missingPrice: string[] = [];
   const unpricedByDesign: string[] = [];
-  for (const { token: t, balAt, multAt } of slots) {
-    const bal = results[balAt];
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i]!;
+    const bal = results[i];
     if (bal?.status !== "success") continue; // balance unreadable → can't say it's held
     const rawBalance = bal.result as bigint;
     if (rawBalance === 0n) continue; // genuinely not held — not a coverage gap
-
-    // Held, but unvaluable: an unreadable multiplier mis-prices post-split. Fail
-    // closed — flag, don't drop. (Only ERC-8056 tokens have one to read.)
-    let uiMultiplier = 10n ** 18n;
-    if (multAt !== null) {
-      const mult = results[multAt];
-      if (mult?.status !== "success") {
-        missingPrice.push(t.symbol);
-        continue;
-      }
-      uiMultiplier = mult.result as bigint;
-    }
 
     const price = prices.get(t.symbol);
     if (!price || price.price8 <= 0n) {
@@ -286,52 +210,41 @@ export async function readPositions(
     }
 
     const decimals = t.decimals ?? 18;
-    const valuationMultiplier = valuationMultiplierFor(price.source, uiMultiplier);
     positions.push({
       symbol: t.symbol,
       token: t.address,
       rawBalance,
-      uiMultiplier,
       decimals,
       price8: price.price8,
       priceStale: price.stale,
       priceSource: price.source,
-      valueUsdg: positionValueUsdg({
-        rawBalance,
-        uiMultiplier: valuationMultiplier,
-        price8: price.price8,
-        decimals,
-      }),
+      valueUsdg: positionValueUsdg({ rawBalance, price8: price.price8, decimals }),
     });
   }
   return { positions, missingPrice, unpricedByDesign, readFailed: false };
 }
 
 /**
- * Positions valued off a bonding curve. None of them may ratchet a peak.
+ * `curveMarkedSymbols` and `mayRatchetHwm` USED TO BE HERE, and removing them
+ * changes no behaviour — which is the only reason it is safe.
  *
- * A NAMED RULE RATHER THAN AN INLINE FILTER, because it has to hold in three
- * places at once and got half-applied the first time: the live fee accrual, the
- * live in-memory peak the drawdown breaker divides by, and the persisted paper
- * peak. Guarding only the first two left the breaker measuring against a mark
- * no oracle stands behind — so a curve spike, then a revert, halted every
- * non-exit intent on a drawdown that never happened, for the whole process.
+ * The rule was: a position marked at a BONDING-CURVE price may not ratchet
+ * either high-water mark. Both marks are monotonic and persisted (`MAX(hwm_usdg,
+ * ?)` for the live one, with a performance fee written in the same breath) and
+ * nothing walks either back, while a curve mark had no oracle behind it, moved
+ * 1,546 bps at p99 over four minutes, and arrived DISCONTINUOUSLY — the tick a
+ * curve first cleared its guard, a holding jumped from carried-at-cost to
+ * carried-at-mark with no trade having happened.
  *
- * Why it exists at all: both high-water marks are monotonic and persisted
- * (`MAX(hwm_usdg, ?)` for the live one, with a performance fee written in the
- * same breath), and nothing walks either back. A curve mark has no oracle
- * behind it, moves 1,546 bps at p99 over four minutes, and arrives
- * DISCONTINUOUSLY — the tick a curve first clears its guard, the holding jumps
- * from carried-at-cost to carried-at-mark with no trade having happened.
+ * ⚠ IT ONLY EVER EXCLUDED `curve`. Every other source — pool, v4, broker, and
+ * Chainlink — ratcheted normally, which the tests asserted directly. With the
+ * curve pricer deleted the surviving sources are "chainlink" and "pool", both of
+ * which ratcheted before and ratchet now, so this is a deletion rather than a
+ * loosening. Had any remaining source been on the excluded side, the guard would
+ * have had to be re-pointed instead of removed.
  *
- * Skipping is conservative in both directions: a fee not charged, and a
- * drawdown measured from the last peak that a feed or a pool stood behind.
+ * WHAT WOULD BRING IT BACK: a price source with no oracle behind it. Four.meme
+ * curves (docs/bnb-migration-plan.md §7.3) are exactly that, and wiring them
+ * without restoring this rule would let a curve spike set a peak that a fee is
+ * charged on and a drawdown is measured from.
  */
-export function curveMarkedSymbols(positions: readonly Position[]): string[] {
-  return positions.filter((p) => p.priceSource === "curve").map((p) => p.symbol);
-}
-
-/** May this book's equity set a new high-water mark? */
-export function mayRatchetHwm(positions: readonly Position[]): boolean {
-  return curveMarkedSymbols(positions).length === 0;
-}

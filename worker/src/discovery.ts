@@ -30,10 +30,8 @@ import { CASH, CASH_DECIMALS, cashToNumber, type TradableToken } from "../../pac
 import { poolPriceUsable, readRoutedPrice } from "./venues/pool-price";
 import { readTokenStats } from "./venues/token-stats";
 import { recentPools, resolveBitquery, type BitqueryCreds, type NewPair } from "./venues/bitquery";
-import { readCurveReserves, recentPonsLaunches, type PonsLaunch } from "./venues/pons";
 import { screenPools, type GeckoPool, type PoolFeed, type ScreenLimits } from "./venues/geckoterminal";
 import type { MemecoinScout } from "./strategist/memecoin-scout";
-import { curveDepthFraction, curveGraduated, curvePrice, type CurveReserves } from "./venues/pons-price";
 import { scoutFieldsFor, type CoinResearch } from "./strategist/coin-research";
 
 const ERC20 = parseAbi([
@@ -211,206 +209,30 @@ export async function discoverPools(deps: DiscoveryDeps): Promise<Discovery[]> {
 }
 
 /**
- * How much of its own graduation threshold a curve must really have raised
- * before the owner hears about it.
+ * THE PONS LAUNCHPAD SCANNER LIVED HERE — `discoverPonsLaunches`,
+ * `ponsScanWindow`, `PONS_MIN_DEPTH_FRACTION`, `PONS_MAX_EVALUATE` and their
+ * result types — and Phase 5 removed all of it with the chain it read.
  *
- * MEASURED, and the single most consequential constant in this file. The
- * launchpad runs at ~475 launches/hour, so announcing everything is not a
- * feature, it is a denial of service against the owner's attention — and
- * against the events table, which has no pruning.
+ * Kept as a note because the shape is what a Four.meme replacement (§7.3) would
+ * need to reproduce, and two of its properties were learned the hard way:
  *
- * Against 60 curves sampled live: 78% hold EXACTLY ZERO real quote, and 1.7%
- * clear 5% of their threshold — about 6–8 an hour. Independently, a replay of
- * 249 curves' full trade history puts the base graduation rate at 0.96% while
- * curves that reach a quarter of their threshold graduate 18.2% of the time, so
- * this measure is genuinely predictive rather than merely selective.
+ * THE WINDOW WAS MEASURED FROM THE LAST SUCCESSFUL PASS, never the last
+ * attempt. An earlier version advanced its clock before the RPC call and
+ * returned early on failure, so the ~40 launches inside a failed window were
+ * read by no pass ever, and one transient 429 was enough to open that hole.
  *
- * Expressed as a FRACTION, never a dollar figure: 42.8% of launches are quoted
- * in Robinhood stock tokens and 2.3% in cbBTC, which this repo cannot price at
- * all, and the thresholds themselves range $7,737–$10,377 having been set at
- * different times and never repriced. A USD floor would silently exclude half
- * the launchpad for want of a feed.
+ * THE PER-PASS CAP WAS REPORTED, NOT ABSORBED. One sequential eth_call per
+ * launch is nothing at ~40 a pass, but after an outage the lookback widened to
+ * ~8.4 hours — about 4,000 launches, and therefore 4,000 sequential calls
+ * against a public RPC that already returned 429s under far less. The cap kept
+ * the most RECENT launches, because depth on a launchpad arrives at birth and
+ * decays, and the shortfall was returned as `skipped` rather than silently
+ * dropped.
+ *
+ * The screen itself was a DEPTH FRACTION rather than a dollar figure: 42.8% of
+ * launches were quoted in assets this repo could not price at all, so a USD
+ * floor would have silently excluded half the launchpad for want of a feed.
  */
-export const PONS_MIN_DEPTH_FRACTION = 0.05;
-
-/**
- * When the next launchpad pass is due, and how far back it must look.
- *
- * PURE, AND SEPARATE, because getting it wrong is invisible. The window is
- * measured from the last SUCCESSFUL pass, never from the last attempt — so a
- * refused scan simply widens the next one instead of leaving a hole. The
- * earlier version advanced its clock before the RPC call and returned early on
- * failure, which meant the ~40 launches inside a failed window were read by no
- * pass, ever, and a single transient 429 was enough to open one.
- *
- * The overlap is deliberate and one-directional: re-reading a launch is free
- * (the seen-set drops it), while missing one is permanent.
- */
-export function ponsScanWindow(opts: {
-  /** Unix seconds of the last pass that actually returned data; 0 if never. */
-  lastSuccessAt: number;
-  nowSec: number;
-  intervalSec: number;
-  blocksPerSec: bigint;
-  /** Seconds of deliberate overlap, to absorb block-time variance. */
-  overlapSec?: number;
-}): { due: boolean; elapsedSec: number; lookbackBlocks: bigint } {
-  const overlap = opts.overlapSec ?? 60;
-  const since = opts.lastSuccessAt === 0 ? opts.nowSec - opts.intervalSec : opts.lastSuccessAt;
-  const elapsedSec = Math.max(0, opts.nowSec - since);
-  return {
-    due: elapsedSec >= opts.intervalSec,
-    elapsedSec,
-    lookbackBlocks: BigInt(elapsedSec + overlap) * opts.blocksPerSec,
-  };
-}
-
-export interface PonsDiscoveryDeps {
-  client: PublicClient;
-  /** Bounded by the caller from elapsed wall-clock — see MAX_LOOKBACK_BLOCKS. */
-  lookbackBlocks: bigint;
-  seen: ReadonlySet<string>;
-  known: readonly TradableToken[];
-  /** USD price of native ETH, 8dp. Null when the worker could not price it. */
-  ethUsd8: bigint | null;
-  minDepthFraction?: number;
-  /** Cap on launches evaluated in one pass — see PONS_MAX_EVALUATE. */
-  maxEvaluate?: number;
-}
-
-/**
- * How many launches one pass will actually read reserves for.
- *
- * The filter costs one sequential eth_call per launch. A normal pass sees ~40,
- * which is nothing — but after an outage the lookback widens until it clamps at
- * ~8.4 hours, which is roughly 4,000 launches and therefore 4,000 sequential
- * calls against a public RPC that already returns 429s under far less. Bounded
- * so a catch-up pass cannot turn into a self-inflicted rate-limit, and the
- * shortfall is REPORTED rather than absorbed.
- *
- * The most RECENT launches are kept when the cap bites, because depth on this
- * launchpad arrives at birth and decays — an older launch is the less likely
- * of the two to still be worth anything.
- */
-export const PONS_MAX_EVALUATE = 400;
-
-export interface PonsScanResult {
-  found: Discovery[];
-  /** Launches read this pass, before filtering — the denominator for the log. */
-  scanned: number;
-  /** The node refused the query. `found` is then empty but MEANINGLESS. */
-  failed: boolean;
-  /** The lookback was clamped; launches older than the clamp were not seen. */
-  clamped: boolean;
-  /** Launches inside the window that the per-pass cap left unevaluated. */
-  skipped: number;
-}
-
-/**
- * One pass over the Pons launchpad.
- *
- * WHY THIS IS NOT A VARIANT OF discoverPools. That function asks Bitquery for
- * pool Initialize events and prices what it finds through the Uniswap guards.
- * A Pons launch has neither: there is no pool, and the guards structurally
- * refuse a curve (`no-twap`, before they even look at depth). Sharing the code
- * path would mean either weakening those guards or pretending they ran.
- *
- * COST SHAPE, because this runs against ~475 launches/hour. The filter needs
- * only ONE call per launch — getReserves() — because the depth fraction is a
- * ratio of raw quote units and needs no decimals and no price. Symbol, decimals
- * and any USD figure are read only for the handful that survive.
- */
-export async function discoverPonsLaunches(deps: PonsDiscoveryDeps): Promise<PonsScanResult> {
-  const scan = await recentPonsLaunches(deps.client, deps.lookbackBlocks);
-  if (scan.failed) return { found: [], scanned: 0, failed: true, clamped: scan.clamped, skipped: 0 };
-
-  const knownAddrs = new Set(deps.known.map((t) => t.address.toLowerCase()));
-  const minFraction = deps.minDepthFraction ?? PONS_MIN_DEPTH_FRACTION;
-  const cap = deps.maxEvaluate ?? PONS_MAX_EVALUATE;
-  // Newest first when the cap bites: depth arrives at birth and decays here.
-  const considered = scan.launches.length > cap ? scan.launches.slice(-cap) : scan.launches;
-  const skipped = scan.launches.length - considered.length;
-  const seenThisPass = new Set<string>();
-  const survivors: { launch: PonsLaunch; reserves: CurveReserves; fraction: number }[] = [];
-
-  for (const launch of considered) {
-    const key = launch.token.toLowerCase();
-    if (deps.seen.has(key) || knownAddrs.has(key) || seenThisPass.has(key)) continue;
-    seenThisPass.add(key);
-
-    // Decimals are placeholders here and that is exact, not sloppy: the depth
-    // fraction is realQuote/threshold, both in the same raw units, so it is
-    // independent of what those units are. Real decimals are read below, only
-    // for what survives.
-    const reserves = await readCurveReserves(deps.client, launch, { quote: 18, token: 18 });
-    if (!reserves) continue;
-    // A graduated curve resets — token side emptied, quote side back to the
-    // virtual seed — so it reads EXACTLY like a launch nobody bought. Announcing
-    // one as a new launch would be announcing a token whose market has already
-    // moved to a pool the ordinary discoverer handles.
-    if (curveGraduated(reserves)) continue;
-    const fraction = curveDepthFraction(reserves);
-    if (fraction === null || fraction < minFraction) continue;
-    survivors.push({ launch, reserves, fraction });
-  }
-
-  const found: Discovery[] = [];
-  for (const { launch, reserves, fraction } of survivors) {
-    // Identity from the CONTRACT, never from the log — same reasoning as
-    // discoverPools: a symbol is attacker-chosen text headed for a human.
-    let symbol = `${launch.token.slice(0, 10)}…`;
-    let decimals = 18;
-    try {
-      const [s, d] = await Promise.all([
-        deps.client.readContract({ address: launch.token, abi: ERC20, functionName: "symbol" }) as Promise<string>,
-        deps.client.readContract({ address: launch.token, abi: ERC20, functionName: "decimals" }) as Promise<number>,
-      ]);
-      if (typeof s === "string" && s.length > 0) symbol = sanitizeSymbol(s);
-      const dn = Number(d);
-      if (Number.isInteger(dn) && dn >= 0 && dn <= 36) decimals = dn;
-    } catch {
-      /* not a readable ERC-20; it still launched, so report it by address */
-    }
-
-    const quoteUsd8 = quoteUsdOf(launch.quoteToken, deps.ethUsd8);
-    let liquidityUsdg: bigint | null = null;
-    let reason = quoteUsd8 === null ? "no USD price for what this curve is quoted in" : undefined;
-    if (quoteUsd8 !== null) {
-      const priced = curvePrice({ ...reserves, quoteDecimals: quoteDecimalsOfKnown(launch.quoteToken), tokenDecimals: decimals }, quoteUsd8);
-      // 8dp → 6dp. Discovery.liquidityUsdg is raw USDG like every other depth
-      // figure in the worker; handing it an 8dp number reports 100x the real
-      // depth and would clear a $25,000 floor with $250.
-      if (priced) liquidityUsdg = priced.depthUsd8 / 100n;
-    }
-
-    found.push({
-      token: launch.token,
-      symbol,
-      decimals,
-      createdAt: 0, // the store stamps first_seen, as it does for discoverPools
-      liquidityUsdg,
-      // NEVER true for a curve. `priceable` means the owner's depth and
-      // divergence guards passed, and they cannot even run here — claiming it
-      // would report a confidence nothing established.
-      priceable: false,
-      reason: reason ?? `trades on a Pons curve at ${(fraction * 100).toFixed(1)}% of graduation`,
-      price8: null,
-      // Null, not a number. FDV gates spending, and discoverPools only sets it
-      // behind a PASSED guard for exactly that reason. A curve price is
-      // unguarded by construction, so deriving a spending gate from it would
-      // launder an unchecked number into a check.
-      fdvUsd: null,
-      curve: {
-        curve: launch.curve,
-        quoteToken: launch.quoteToken,
-        graduationThresholdRaw: launch.graduationThresholdRaw,
-        depthFraction: fraction,
-      },
-    });
-  }
-
-  return { found, scanned: scan.launches.length, failed: false, clamped: scan.clamped, skipped };
-}
 
 /**
  * USD price of a curve's quote asset, 8dp — or null when there isn't one.
@@ -476,6 +298,19 @@ export function describeDiscovery(d: Discovery): string {
 export { resolveBitquery };
 
 /** GeckoTerminal's venue slug for a Pons curve that has GRADUATED to a pool. */
+/**
+ * ⚠ ROBINHOOD CHAIN DEX SLUGS, KEPT ONLY AS A SHAPE. GeckoTerminal labels each
+ * pool with the dex it trades on, and on 4663 those two slugs distinguished a
+ * graduated launchpad coin from one still on its curve — a real difference,
+ * since a curve's reported reserve is mostly a virtual seed. Neither slug can
+ * appear in a BNB response, so `graduated` is now always false and
+ * describeTrending always says "trading".
+ *
+ * Left in place rather than deleted because the BNB launchpad (§7.3) will have
+ * its own pair of slugs and this is where they go. Nothing branches on them
+ * that would be WRONG in the meantime — a coin with a real pool is exactly what
+ * "trading" describes.
+ */
 export const PONS_GRADUATED_DEX = "pons-v2-dex";
 /** ...and for one still on its bonding curve. */
 export const PONS_CURVE_DEX = "pons-v2";

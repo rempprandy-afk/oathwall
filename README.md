@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="web/public/merrymenlogo.png" alt="merrymen — autonomous trading agents for Robinhood Chain" width="360" />
+  <img src="web/public/merrymenlogo.png" alt="merrymen — autonomous trading agents on BNB Chain" width="360" />
 </p>
 
 <p align="center">
@@ -12,17 +12,15 @@
 # merrymen
 
 **Trading agents you never have to trust.** merrymen is a self-hosted band of
-agents for Robinhood Chain: your keys never leave your machine, and the caps that
-matter most — **per-trade size, which assets, which contracts, and when the key
-dies** — are enforced by your account contract **on-chain**, not by promises.
-(The daily total, the drawdown breaker and the trades-per-day count are enforced
-by the worker, not the chain, so the chain-side ceiling is per-trade until the
-key expires. Said plainly because a project whose pitch is verification cannot
-round up — and this list was itself wrong until 2026-08-30, when ops/day turned
-out to rest on a policy contract that is not deployed on this chain.) Inside that wall your band works
-Sherwood 24/7 — trading Stock Tokens, farming yield, LPing — while you name your
-merryman, chat with it and steer it from Telegram (it can even run your PC), and
-watch every trade on a local dashboard.
+agents on BNB Chain: your keys never leave your machine, and the caps that
+matter most — **per-trade size, trades per day, which assets, which contracts,
+and when the key dies** — are enforced by your account contract **on-chain**,
+not by promises. (The daily *total* and the drawdown breaker are enforced by the
+worker rather than the chain. Said plainly because a project whose pitch is
+verification cannot round up.) Inside that wall your band trades the majors and
+the PancakeSwap longtail 24/7, while you name your merryman, chat with it and
+steer it from Telegram (it can even run your PC), and watch every trade on a
+local dashboard.
 
 **The five promises:** your keys, your caps · bounded worst case · every trade
 simulated first · fees only on profit above the high-water mark · an honest
@@ -117,8 +115,8 @@ Two limits, said out loud rather than discovered:
 3. **Create your agent wallet** at `/grant` — no wallet to connect; merrymen
    mints the keys, you back them up, pick **testnet** (practice) or **mainnet**
    (real funds), and set the caps the account contract itself enforces.
-4. **Fund it** — on **mainnet**, send ETH (gas) + USDG (capital) to the account
-   address. On **testnet**, gas from the faucet and nothing else: USDG sent there
+4. **Fund it** — on **mainnet**, send BNB (gas) + USDT (capital) to the account
+   address. On **testnet**, gas from the faucet and nothing else: cash sent there
    is never shown and never traded. The worker arms itself on its next tick, no
    restart.
 5. **(optional) Link Telegram** — chat with your merryman, give it a name, let it
@@ -129,7 +127,7 @@ your merryman's soul). The install is disposable; upgrades never touch your data
 
 **Ride in 2 minutes — paper mode.** Until you add a bundler key, your band trades
 in **paper mode**: approved intents fill at the *live* on-chain oracle prices
-(the Chainlink feeds Robinhood publishes for every stock token), recorded to the
+(the Chainlink feeds behind every basket token), recorded to the
 real ledger as `PAPER` trades. The whole loop — the strategist, chat `/buy`, P&L,
 pings, the journal — works with zero funds, zero faucet, zero Pimlico. Add a
 Pimlico key and the same wall signs for real. Upgrade any time with
@@ -189,31 +187,40 @@ Open `localhost:3100/grant`. There's nothing to connect — merrymen generates a
 fresh account, shows you the owner key to **back up** (lose it and the funds are
 gone), and lets you fund it. **Pick your ground:**
 
-- **testnet · 46630** — the sandbox, one click away and no longer the default. Free **gas** from the faucet, and
-  the grant, the caps, the policy checks, the live prices and the journal all run
-  for real. Two things don't: the token registry is mainnet-only, so **any USDG
-  you send to testnet reads as 0 and is never used**, and the trading venues
-  aren't deployed there, so swaps simulate and no-route by design. Send gas, not
-  capital — paper mode is already trading a simulated book at live prices.
-- **mainnet · 4663** (default) — **real funds.** Real USDG, real Stock Tokens, real
+- **testnet · 97** — the sandbox, one click away and not the default. Free **gas**
+  from the faucet, and the grant, the caps, the policy checks, the live prices
+  and the journal all run for real. What doesn't: the token registry is
+  mainnet-only, so **any cash you send to testnet reads as 0 and is never used**,
+  and the venue addresses on 97 have not been probed, so swaps simulate and
+  no-route by design. Send gas, not capital — paper mode is already trading a
+  simulated book at live prices.
+- **mainnet · 56** (default) — **real funds.** Real USDT, real tokens, real
   execution. The page makes you acknowledge it first: keys are generated and
   stored **in plain text on your machine** (TEE custody is on the roadmap), so
   treat the account like a hot wallet — your caps are the seatbelt, start small.
-  No faucet: send ETH (gas) + USDG (capital) from your own wallet or an exchange.
+  No faucet: send BNB (gas) + USDT (capital) from your own wallet or an exchange.
 
-Per-trade size, the asset and contract allowlists, a zero native-ETH limit and
-the key's expiry are enforced **by the account contract on every operation**.
-The daily total, the drawdown breaker and the trades-per-day count live in the
-worker — they tighten what the chain already allows, and a compromised worker
-could ignore them, which is why the chain-side ceiling is the honest number to
-plan against: **per-trade size, until the key expires**. The worker can tighten
-within the wall but can never widen it without a new signed grant.
+Per-trade size, **trades per day**, the asset and contract allowlists, a zero
+native-value limit and the key's expiry are enforced **by the account contract on
+every operation**. The daily *total* and the drawdown breaker live in the worker
+— they tighten what the chain already allows, and a compromised worker could
+ignore them. The worker can tighten within the wall but can never widen it
+without a new signed grant.
 
-Trades-per-day was on the on-chain list here until 2026-08-30. It rested on
-ZeroDev's rate-limit policy, and `eth_getCode` shows that contract has no code on
-Robinhood Chain — mainnet or testnet — while the timestamp and call policies both
-do. A policy pointing at an empty address is not a bound, so it was removed and
-this sentence corrected rather than left to flatter the design.
+**Trades-per-day came back to the on-chain list on 2026-09-09, and the story is
+worth keeping.** It was on this list until 2026-08-30, when `eth_getCode` showed
+ZeroDev's rate-limit policy had **no code at all** on Robinhood Chain — mainnet
+or testnet — while the timestamp and call policies both did. A policy pointing at
+an empty address is not a bound, so it was removed and the sentence corrected
+rather than left to flatter the design. On BNB that contract is deployed
+(re-probed at block 120,867,973), so the bound is real again.
+
+One correction inside the correction: the default singleton counts ops for the
+**life of the grant**, not per day, so wiring it under the name "trades per day"
+would have meant 48 *ever* rather than 48 a day — the agent going quiet on day
+one with nothing saying why. merrymen installs the **refilling** variant
+explicitly, and `worker/src/wall.test.ts` pins the interval at 86,400 so the
+lifetime one cannot come back by default.
 
 > **Going live is one key.** To sign real trades, paste a free [Pimlico](https://dashboard.pimlico.io)
 > API key in `/settings` — merrymen builds the bundler URL for your wallet's chain
@@ -286,17 +293,17 @@ There's an obvious **Chat on Telegram** button right on the dashboard (topbar +
 a card) so you don't have to hunt for it.
 
 Commands work bare; with an Anthropic key, plain English does too ("how are we
-doing?", "pause everything", "send 20 USDG to 0x…", "ping me when QQQ hits 600",
+doing?", "pause everything", "send 20 USDT to 0x…", "ping me when BTCB hits 80k",
 "why did you buy that?"). Voice notes work as well.
 
 | command | does |
 |---|---|
 | `/status` `/positions` `/pnl` `/trades` | read the live book |
 | `/report` · `/brag` · `/why` | daily campfire report · shareable scorecard · explain the last trade |
-| `/buy <SYM> <usdg>` `/sell <SYM> <usdg>` | trade (passes the policy wall) |
-| `/transfer <0x…> <usdg>` | send USDG out — **always asks you to `/confirm`** |
+| `/buy <SYM> <amount>` `/sell <SYM> <amount>` | trade (passes the policy wall) |
+| `/transfer <0x…> <amount>` | send cash out — **always asks you to `/confirm`** |
 | `/alert <SYM> > <price>` `/alerts` `/unalert <n>` | one-shot price alerts |
-| `/pause` `/resume` · `/strategy <name>` · `/cap <usdg>` | steer the worker (cap only tightens) |
+| `/pause` `/resume` · `/strategy <name>` · `/cap <amount>` | steer the worker (cap only tightens) |
 | `/name <name>` · `/soul` · `/remember <fact>` | name it, see who it is, teach it about you |
 | `/kill` | destroy the grant, stand the band down |
 | `/help` | the full list |
@@ -307,7 +314,7 @@ the breaker, or gas runs low; your price alerts; and a **daily campfire report**
 at the hour you pick.
 
 **Transfers are refused outright.** A wallet signed today registers no
-withdrawal address, so its call policy carries no USDG transfer permission at
+withdrawal address, so its call policy carries no cash transfer permission at
 all — the chain would refuse the send, and the worker refuses it first rather
 than paying gas to be told no. A prompt-injected "send everything to 0xevil"
 gets a flat no before anything is built. Money leaves through your owner key
@@ -379,8 +386,7 @@ is the headless fallback):
 
 | name | what it does |
 |---|---|
-| `steady-basket` (default) | DCA a weighted stock basket per tick; idle cash sweeps to the Morpho vault; pulls cash back when short |
-| `weekend-gap` | Enter each leg when its Chainlink feed goes stale (market close), exit when it refreshes (open) — a strategy class that only exists on-chain |
+| `steady-basket` (default) | DCA a weighted basket of majors per tick. The idle-cash sweep is **off**: BNB has no ERC-4626 venue, so the tick refuses out loud rather than parking silently |
 | `llm-strategist` | Claude proposes typed buy/sell/hold at decision windows; deterministic code validates and disposes — the model never sees an address or emits calldata. Needs an Anthropic key |
 | `even-keel` 🏹 | Keeps the basket at equal weight — trims winners, tops up laggards — to harvest mean reversion. **Merry Circle** (holder-only) |
 | `dip-hunter` 🏹 | Concentrates each tick on the basket token furthest below its rolling high. **Merry Circle** (holder-only) |
@@ -398,16 +404,16 @@ merrymen strategy new my-bot       # commented template in ~/.merrymen/strategie
 ```
 
 Default-export `{ name, tick(snapshot, ctx) }` — no imports needed; `ctx` injects
-the verified registry (`ctx.tokenBySymbol.QQQ`, `ctx.CASH.USDG`,
-`ctx.UNISWAP.swapRouter02`, `ctx.usdg(10)`). See
+the verified registry (`ctx.tokenBySymbol.BTCB`, `ctx.CASH.USD`,
+`ctx.PANCAKE.smartRouter`, `ctx.usdg(10)`). See
 [strategies/README.md](./strategies/README.md) and
 [strategies/example-dip-buyer.mjs](./strategies/example-dip-buyer.mjs).
 
 ### Adding your own tokens (memecoins)
 
-The built-in registry is the issuer-backed stock tokens — curated, Chainlink-priced.
-Anything else on Robinhood Chain you add yourself in `/settings`: paste the symbol,
-the contract address, and its decimals.
+The built-in registry is the majors — WBNB, BTCB, ETH, CAKE, USDC — curated and
+Chainlink-priced. Anything else on BNB Chain you add yourself in `/settings`:
+paste the symbol, the contract address, and its decimals.
 
 **How they're priced.** There's no Chainlink feed for a memecoin, so merrymen reads
 the Uniswap v3 pool — but a spot price on a thin pool is worth nothing: anyone with
@@ -423,10 +429,9 @@ your P&L and your drawdown breaker. So:
   now, the token stays *unpriced* and merrymen says why. Your agent keeps trading
   — you can always sell out — but equity, P&L and the breaker pause rather than
   running on a number nobody should trust.
-- **Most memecoins here price through WETH.** About three quarters of the chain's
-  pools quote against WETH rather than USDG, so the route is usually two hops. Its
-  depth is the *shallower* leg — a deep WETH/USDG pool doesn't make a $3k memecoin
-  pool safe.
+- **Most longtail tokens price through WBNB.** Most BNB pools quote against WBNB
+  rather than the cash stable, so the route is usually two hops. Its depth is the
+  *shallower* leg — a deep WBNB/USDT pool doesn't make a $3k memecoin pool safe.
 
 Anything valued this way is marked **pool px** in the dashboard and in `/status`,
 because it isn't the same quality of claim as a Chainlink feed and shouldn't look
@@ -436,7 +441,7 @@ Three explicit steps, and each one means something different:
 
 1. **Add it** in `/settings` — "know about this." Your agent reads the balance,
    prices it, and shows it in your book. It does not trade it.
-2. **Select it in the basket** — "trade this." Same act as picking a stock.
+2. **Select it in the basket** — "trade this." Same act as picking a major.
 3. **Re-sign at `/grant`** — the tradable list is baked into the session key you
    signed, so widening it takes a signature. That's the wall doing its job, not a
    bug. Free, instant, same wallet, same address, same funds, same caps.
@@ -444,8 +449,8 @@ Three explicit steps, and each one means something different:
 Until step 3, `/settings`, `/grant` and the event feed all say plainly which
 tokens your key can't sell — you never find out from a reverted trade.
 
-Most memecoins here have no direct USDG pool, so swaps route through WETH
-automatically (`USDG → WETH → TOKEN`). The router holds the middle leg, so this
+Most longtail tokens have no direct cash pool, so swaps route through WBNB
+automatically (`USDT → WBNB → TOKEN`). The router holds the middle leg, so this
 needs no extra approval and no extra re-sign.
 
 ### Keep it running
@@ -470,7 +475,7 @@ The desktop app has the same thing as a tray toggle.
 
 ### Never a position you can't exit
 
-Buying spends USDG, and every grant can approve USDG generically. **Selling needs
+Buying spends cash, and every grant can approve cash generically. **Selling needs
 a per-token approval sealed into your signature.** So a token with a live pool but
 no approval buys fine and can never be sold — the exit reverts, with your money
 inside it.
@@ -491,7 +496,7 @@ npx tsx scripts/probe-tradability.mts
 ## $MERRYMEN — the Merry Circle
 
 merrymen is **free and open to everyone**, whether you hold the token or not. Holding
-**$MERRYMEN** (on Robinhood Chain — [the token page](https://merrymen.dev/token)) just adds
+**$MERRYMEN** ([the token page](https://merrymen.dev/token)) just adds
 holder perks — it buys *access*, never the product. **Utility only: no price, no returns, no
 buyback/burn.**
 
@@ -543,7 +548,7 @@ npm run typecheck && npm test
 ```
 
 ### Configuration
-The dashboard `/settings` is the source of truth (Anthropic/Rialto/Telegram keys,
+The dashboard `/settings` is the source of truth (Anthropic/Telegram keys,
 bundler + RPC URLs, strategy + every trading knob, the Telegram + PC-control
 toggles and allowlists). Saved to `~/.merrymen/settings.json`; secrets are masked
 to their last 4 and never echo back to the browser. Precedence:
@@ -554,18 +559,18 @@ to their last 4 and never echo back to the browser. Precedence:
 | `MERRYMEN_HOST` | `127.0.0.1` | dashboard bind host; set `0.0.0.0` for trusted-LAN access |
 | `MERRYMEN_BUNDLER_API_KEY` | — | Pimlico API key; the bundler URL is built for your grant's chain automatically |
 | `MERRYMEN_BUNDLER_URL` | — | advanced: full 4337 bundler RPC (overrides the key); without either, execution is stubbed |
-| `MERRYMEN_SWAP_VENUE` | `uniswap` | `uniswap` = full quote→swap via SwapRouter02; `rialto` = approval-only until API onboarding |
+| `MERRYMEN_SWAP_VENUE` | `pancakeswap` | the only venue on this chain; a stale `rialto` is refused at execution rather than silently rerouted |
 | `MERRYMEN_SLIPPAGE_BPS` | `100` | max slippage vs the QuoterV2 simulation |
 | `MERRYMEN_GRANT_FILE` | `~/.merrymen/grant.json` | grant handoff written by the web app |
 | `MERRYMEN_STRATEGY` | `steady-basket` | strategy name (see table above) |
 | `MERRYMEN_PERF_FEE_BPS` | `1000` | performance fee on profit above the high-water mark (accrual-only) |
 | `MERRYMEN_BREAKER_ADDRESS` | — | deployed BreakerRegistry; a tripped breaker halts all intents |
-| `MERRYMEN_RIALTO_API_KEY` | — | Rialto integrator key; enables the full quote→swap leg |
 | `ANTHROPIC_API_KEY` | — | LLM strategist driver + Telegram natural-language chat + vision |
 | `MERRYMEN_TELEGRAM_BOT_TOKEN` | — | @BotFather token; enables the Telegram bridge (all other Telegram + PC-control settings live in `/settings`) |
 
 `npm test` covers the policy mirror, strategies, venue math (slippage, quote
-selection, calldata), the ERC-8056 invariant that a stock split is not a crash,
+selection, calldata), the cash-decimals invariant that a position's value scales
+by its own token's decimals and not the cash unit's,
 and the Telegram + PC-control safety layer (allowlist enforcement, path-traversal
 rejection, capability gating, confirm-park, prompt-injection → no-op).
 

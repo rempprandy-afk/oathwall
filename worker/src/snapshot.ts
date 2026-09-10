@@ -1,7 +1,7 @@
 /**
  * Real on-chain reads for the tick loop.
  *
- * Market safety data (pause states, feed staleness, sequencer health) always
+ * Market safety data (pause states, feed staleness, chain liveness) always
  * comes from MAINNET — that's where the tokens and feeds live. Account balances
  * come from whichever chain the grant was issued on (testnet during the demo).
  */
@@ -11,7 +11,6 @@ import { chainRead } from "./rpc-meter";
 import {
   CASH,
   CHAINLINK_ABI,
-  MORPHO,
   TOKEN_ABI,
   TRADABLE_TOKENS,
   bnbChain,
@@ -54,7 +53,7 @@ export interface MarketSafety {
    * feedless tokens, which is why each entry carries its own `source`.
    */
   prices: Map<string, PriceQuote>;
-  sequencerUp: boolean;
+  chainLive: boolean;
   /** Chain height, or null when the block could not be read. Null is not zero. */
   blockNumber: bigint | null;
   /**
@@ -149,13 +148,24 @@ export async function readMarketSafety(): Promise<MarketSafety> {
     if (answer > 0n) prices.set(t.symbol, { price8: answer, stale, source: "chainlink" });
   });
 
-  // Sequencer heuristic until the Chainlink sequencer-uptime feed address is
-  // confirmed for 4663: a healthy sequencer produces blocks continuously.
+  // IS THE CHAIN — OR OUR VIEW OF IT — STILL MOVING? A healthy chain produces
+  // blocks continuously, so a head older than two minutes means either the
+  // chain stalled or the RPC is serving a stale view. Either way, trading
+  // against it is trading against a market that has moved.
   //
-  // AN UNREAD BLOCK IS NOT A DOWN SEQUENCER. Reporting `false` here would have
-  // the tick announce "sequencer DOWN — all trading paused" to every owner on
-  // the strength of our own 429, so the unreadable flag carries it instead.
-  const sequencerUp = block === null ? false : now - Number(block.timestamp) < 120;
+  // WAS `chainLive`, AND THE RENAME IS NOT COSMETIC. The name described an L2
+  // sequencer-uptime feed that was never actually read: the implementation has
+  // always been this timestamp comparison, and the old comment said so — it was
+  // a heuristic "until the Chainlink sequencer-uptime feed address is confirmed
+  // for 4663". BNB is an L1 and has no sequencer, so docs/bnb-migration-plan.md
+  // §3 listed this for deletion. Deleting it would have removed the ONLY thing
+  // stopping a tick from trading on a stale block — every strategy's first line
+  // is this check — for a name that was wrong on the old chain too.
+  //
+  // AN UNREAD BLOCK IS NOT A DEAD CHAIN. Reporting `false` here would have the
+  // tick announce "chain stalled — all trading paused" to every owner on the
+  // strength of our own 429, so the unreadable flag carries it instead.
+  const chainLive = block === null ? false : now - Number(block.timestamp) < 120;
 
   // Unreadable when the block did not answer, or when the pause state is
   // entirely unknown, or when NO feed answered at all. A handful of missing
@@ -166,7 +176,7 @@ export async function readMarketSafety(): Promise<MarketSafety> {
     pausedTokens,
     staleFeeds,
     prices,
-    sequencerUp,
+    chainLive,
     blockNumber: block === null ? null : block.number,
     unread,
     unreadable,
@@ -208,43 +218,33 @@ export async function readAccountBalances(
     .multicall({
       contracts: [
         { address: CASH.USD as `0x${string}`, abi: ERC20_READS, functionName: "balanceOf", args: [account] },
-        { address: MORPHO.steakhouseUsdgVault as `0x${string}`, abi: VAULT_READS, functionName: "balanceOf", args: [account] },
       ],
     })
     .catch(() => null);
 
   // A reverted call and a dead RPC are both "we don't know", and neither is a
-  // zero balance. USDG genuinely isn't deployed on some chains — but that reads
+  // zero balance. Cash genuinely isn't deployed on some chains — but that reads
   // as a SUCCESSFUL call returning 0, which is why absence has to be signalled
   // separately rather than inferred from the number.
   let cashUsdg = 0n;
   if (results?.[0]?.status === "success") cashUsdg = results[0].result as bigint;
   else unread.push("cash");
 
-  let shares = 0n;
-  let sharesKnown = false;
-  if (results?.[1]?.status === "success") {
-    shares = results[1].result as bigint;
-    sharesKnown = true;
-  } else {
-    unread.push("vault");
-  }
-
-  let vaultUsdg = 0n;
-  if (sharesKnown && shares > 0n) {
-    const assets = await client
-      .readContract({
-        address: MORPHO.steakhouseUsdgVault as `0x${string}`,
-        abi: VAULT_READS,
-        functionName: "convertToAssets",
-        args: [shares],
-      })
-      .catch(() => null);
-    // Holding shares we can't convert is the worst case to zero: it silently
-    // erases the whole vault leg from equity.
-    if (assets === null) unread.push("vault");
-    else vaultUsdg = assets as bigint;
-  }
+  /**
+   * THE VAULT LEG IS ALWAYS ZERO, and the field is kept rather than removed.
+   *
+   * A second multicall entry used to read the owner's Morpho share balance and
+   * a follow-up `convertToAssets` turned it into cash — carefully, because
+   * holding shares that cannot be converted is the worst case to treat as zero:
+   * it silently erases the whole leg from equity, which the drawdown breaker
+   * reads. There is no ERC-4626 venue on BNB (YIELD in protocols.ts), so there
+   * are no shares to read.
+   *
+   * `vaultUsdg` stays in the Snapshot because equity, the strategies and the
+   * dashboard all destructure it, and a zero here is now a FACT rather than a
+   * failed read — which is exactly the distinction `unread` exists to make.
+   */
+  const vaultUsdg = 0n;
 
   return { ethWei, cashUsdg, vaultUsdg, unread };
 }

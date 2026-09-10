@@ -1,10 +1,7 @@
 import {
   CASH,
-  MORPHO,
-  RIALTO,
   TRADABLE_TOKENS,
   PANCAKE,
-  UNISWAP,
   grantHasTransfer,
   grantHasV4,
   grantV4Adapter,
@@ -37,27 +34,21 @@ export function limitsFromGrant(
     perTradeUsdg: cashUnits(grant.caps.perTradeUsdg),
     dailyUsdg: cashUnits(grant.caps.dailyUsdg),
     allowedTargets: [
-      // RIALTO IS NOT HERE, and its absence is the fix.
+      // THIS LIST IS THE MIRROR OF THE WALL, and Phase 5 shrank both.
       //
-      // It used to be listed for every grant, while the wall only ever emits
-      // that permission under `allowRialto` — which no signer sets, so no grant
-      // this repo can produce carries it. That is the mirror LOOSER than the
-      // chain, the one direction this file exists to prevent: the worker
-      // believed it could route through Rialto, built the UserOp, and the chain
-      // refused it. Gas spent to be told no, by a revert that names nothing.
+      // Rialto used to be listed here for every grant while the wall only ever
+      // emitted that permission under `allowRialto`, which no signer set — the
+      // mirror LOOSER than the chain, the one direction this file exists to
+      // prevent: the worker believed it could route through Rialto, built the
+      // UserOp, and the chain refused it. Gas spent to be told no, by a revert
+      // that names nothing. The Morpho vault and the Permit2/UniversalRouter
+      // pair have now gone the same way, with their venues.
       //
-      // Deliberately not replaced with a marker check. There is no marker,
-      // because there is no capability to mark; inventing one would be
-      // scaffolding for a route nothing grants. If Rialto is ever enabled it
-      // gets a marker then, the way GRANT_V4_ADAPTER and GRANT_PONS_ADAPTER
-      // did — permission and marker minted together, never one without the
-      // other.
+      // What is left is what the wall actually grants. Anything added back here
+      // needs a permission minted in the same commit — the GRANT_V4_ADAPTER
+      // lesson: permission and marker together, never one without the other.
       PANCAKE.smartRouter as `0x${string}`,
-      MORPHO.steakhouseUsdgVault as `0x${string}`,
       CASH.USD as `0x${string}`,
-      ...(grantHasV4(grant)
-        ? [UNISWAP.permit2 as `0x${string}`, UNISWAP.universalRouter as `0x${string}`]
-        : []),
       // THE V4 ADAPTER, MIRRORED — and mirrored from the GRANT, not from
       // settings. grantV4Adapter returns the address the swapExactIn
       // permission was actually sealed against (marker AND address, or null),

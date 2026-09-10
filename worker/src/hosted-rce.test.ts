@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { buildStrategy, type StrategyBuildOpts } from "./strategies/registry";
 import { mergeSettings } from "./settings";
-import { UNISWAP, type MerrymenSettings } from "../../packages/core/src/index";
+import { PANCAKE, type MerrymenSettings } from "../../packages/core/src/index";
 import { cashUnits } from "../../packages/core/src/index";
 
 afterEach(() => {
@@ -23,7 +23,7 @@ afterEach(() => {
 });
 
 const opts = (onNote?: StrategyBuildOpts["onNote"]): StrategyBuildOpts => ({
-  swapRouter: UNISWAP.swapRouter02 as `0x${string}`,
+  swapRouter: PANCAKE.smartRouter as `0x${string}`,
   usdg6: cashUnits,
   basketSymbols: ["AAPL"],
   buyPerTickUsdg: 5,

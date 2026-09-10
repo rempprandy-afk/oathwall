@@ -36,25 +36,6 @@ export interface StrategistDecision {
 export interface LlmStrategistConfig {
   driver: ProposalDriver;
   universe: StrategistUniverse;
-  /**
-   * The curve legs available RIGHT NOW, re-read each decision.
-   *
-   * A function rather than a field because `universe` is built once at
-   * strategy construction while a curve leg carries this tick's RESERVES —
-   * the input a slippage floor is derived from. Freezing them at startup
-   * would size every future trade against a curve as it looked when the
-   * worker booted, on a venue whose p99 move over four minutes is 1,546 bps.
-   *
-   * Optional: absent means no curve venue, which is exactly how every
-   * existing caller behaves.
-   */
-  curveLegsNow?: () => {
-    legs: ReadonlyMap<string, import("./proposals").CurveLeg>;
-    tokens: ReadonlyMap<string, `0x${string}`>;
-    slippageBps: number;
-    /** How far one buy may move the curve, bps. Travels with the legs. */
-    maxImpactBps: number;
-  } | null;
   /** Minimum ms between model calls — decisions are windows, ticks are not. */
   decisionIntervalMs: number;
   /** Injectable clock for tests. */
@@ -107,15 +88,13 @@ function buildSignals(snap: Snapshot, universe: StrategistUniverse, at: Date): S
   // were derived from `universe.legs` alone, while curve legs live in a
   // separate map — so a bonding-curve memecoin was never offered to the model
   // and its price was filtered out of the prompt. Supplying `curveLegsNow` was
-  // therefore still inert: the converter could finally build a curve trade, and
-  // nothing ever asked for one.
-  //
-  // The two maps stay SEPARATE downstream, deliberately. `proposalsToIntents`
-  // checks `curveLegs` before `legs`, and a curve token placed in `legs` would
-  // be routed to the swap router — an operation against a pool that does not
-  // exist. This union is for what the model may SAY, not for how a trade is
-  // built.
-  const tradable = new Set([...universe.legs.keys(), ...(universe.curveTokens?.keys() ?? [])]);
+  // ONE MAP NOW. This used to union `legs` with `curveTokens`, which stayed
+  // SEPARATE downstream on purpose: `proposalsToIntents` checked `curveLegs`
+  // first, and a curve token placed in `legs` would have been routed to the
+  // swap router — an operation against a pool that did not exist. The union was
+  // for what the model may SAY, not for how a trade is built. With no curve
+  // venue there is one source of tradable symbols again.
+  const tradable = new Set(universe.legs.keys());
   return {
     cashUsdg: cashToNumber(snap.cashUsdg),
     vaultUsdg: cashToNumber(snap.vaultUsdg),
@@ -166,7 +145,7 @@ export function makeLlmStrategist(cfg: LlmStrategistConfig): Strategy {
   return {
     name,
     async tick(snap: Snapshot): Promise<TradeIntent[]> {
-      if (!snap.sequencerUp) return [];
+      if (!snap.chainLive) return [];
       const t = now();
       if (lastDecisionAt !== null && t - lastDecisionAt < cfg.decisionIntervalMs) return [];
       lastDecisionAt = t;
@@ -186,30 +165,19 @@ export function makeLlmStrategist(cfg: LlmStrategistConfig): Strategy {
       //   cap is in the signature. `min()` can only ever TIGHTEN, so this needs
       //   no re-signing and cannot raise what anybody may spend.
       //
-      //   THE CURVE LEGS. `buildSignals` derives `tradableSymbols` and `prices`
-      //   from `universe.legs`, so a curve symbol merged in afterwards was
-      //   never offered to the model at all — the proposal it could not have
-      //   made was then dropped as "not in the tradable universe".
-      //
-      // Merged per window rather than at construction because the reserves are
-      // this tick's; see the curve note on curveLegsNow.
-      const curve = cfg.curveLegsNow?.() ?? null;
+      // A CURVE UNIVERSE USED TO BE MERGED IN HERE, per window rather than at
+      // construction, because the reserves it carried were this tick's. The
+      // trap it fixed is worth remembering for the next venue: `buildSignals`
+      // derives `tradableSymbols` and `prices` from `universe.legs`, so a
+      // symbol merged in AFTERWARDS was never offered to the model at all — and
+      // the proposal it could not have made was then dropped as "not in the
+      // tradable universe".
       const universeNow: StrategistUniverse = {
         ...cfg.universe,
         maxPerActionUsdg:
           cfg.universe.maxPerActionUsdg < snap.perTradeCapUsdg
             ? cfg.universe.maxPerActionUsdg
             : snap.perTradeCapUsdg,
-        ...(curve
-          ? {
-              curveLegs: curve.legs,
-              curveTokens: curve.tokens,
-              slippageBps: curve.slippageBps,
-              // The same ceiling both swap branches and the chat producer use.
-              // Absent means unchecked, so it travels with the legs or not at all.
-              maxImpactBps: curve.maxImpactBps,
-            }
-          : {}),
       };
 
       const signals = buildSignals(snap, universeNow, new Date(t));

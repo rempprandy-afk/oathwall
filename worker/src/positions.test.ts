@@ -1,18 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { PublicClient } from "viem";
-import {
-  UI_MULTIPLIER_ONE,
-  curveMarkedSymbols,
-  mayRatchetHwm,
-  positionValueUsdg,
-  readPositions,
-  valuationMultiplierFor,
-  type Position,
-} from "./positions";
+import { positionValueUsdg, readPositions, type Position } from "./positions";
 import { cashUnits, type PriceQuote, type TradableToken } from "../../packages/core/src/index";
 
-const ONE = 10n ** 18n; // 1.0 in both raw-balance (18dp) and multiplier terms
+const ONE = 10n ** 18n; // 1.0 in raw-balance (18dp) terms
 const usd = (v: number) => BigInt(Math.round(v * 1e8)); // Chainlink 8dp
 
 /**
@@ -37,7 +29,7 @@ const usd = (v: number) => BigInt(Math.round(v * 1e8)); // Chainlink 8dp
  */
 describe("positionValueUsdg — the magnitude, stated in full", () => {
   it("one token at $250 is 250 × 10^18 base units, written out", () => {
-    const v = positionValueUsdg({ rawBalance: ONE, uiMultiplier: ONE, price8: usd(250) });
+    const v = positionValueUsdg({ rawBalance: ONE, price8: usd(250) });
     assert.equal(v, 250_000_000_000_000_000_000n);
   });
 
@@ -45,76 +37,53 @@ describe("positionValueUsdg — the magnitude, stated in full", () => {
     // If these two ever disagree, one of the denominator or CASH_DECIMALS moved
     // without the other — which is the whole failure this pair exists to catch.
     assert.equal(
-      positionValueUsdg({ rawBalance: ONE, uiMultiplier: ONE, price8: usd(250) }),
+      positionValueUsdg({ rawBalance: ONE, price8: usd(250) }),
       cashUnits(250),
     );
   });
 });
 
-describe("positionValueUsdg (ERC-8056)", () => {
-  it("values a whole share at multiplier 1.0", () => {
-    const v = positionValueUsdg({ rawBalance: ONE, uiMultiplier: ONE, price8: usd(250) });
-    assert.equal(v, cashUnits(250));
+describe("positionValueUsdg", () => {
+  it("values a whole token", () => {
+    assert.equal(positionValueUsdg({ rawBalance: ONE, price8: usd(250) }), cashUnits(250));
   });
 
   it("values fractional holdings", () => {
-    // 0.5 shares × 1.0 × $100 = 50
-    const v = positionValueUsdg({ rawBalance: ONE / 2n, uiMultiplier: ONE, price8: usd(100) });
-    assert.equal(v, cashUnits(50));
-  });
-
-  it("a 2-for-1 split is NOT a crash: multiplier doubles, price halves, value unchanged", () => {
-    const before = positionValueUsdg({ rawBalance: ONE, uiMultiplier: ONE, price8: usd(500) });
-    const after = positionValueUsdg({ rawBalance: ONE, uiMultiplier: 2n * ONE, price8: usd(250) });
-    assert.equal(before, after);
-    assert.equal(after, cashUnits(500));
-  });
-
-  it("ignoring the multiplier WOULD have looked like a 50% crash (the bug this prevents)", () => {
-    const naiveAfterSplit = positionValueUsdg({ rawBalance: ONE, uiMultiplier: ONE, price8: usd(250) });
-    assert.equal(naiveAfterSplit, cashUnits(250)); // half of the true 500
-  });
-
-  it("a 10% stock dividend scales value by the multiplier", () => {
-    const v = positionValueUsdg({
-      rawBalance: ONE,
-      uiMultiplier: (11n * ONE) / 10n,
-      price8: usd(100),
-    });
-    assert.equal(v, cashUnits(110));
+    assert.equal(positionValueUsdg({ rawBalance: ONE / 2n, price8: usd(100) }), cashUnits(50));
   });
 
   it("zero balance is zero value", () => {
-    assert.equal(positionValueUsdg({ rawBalance: 0n, uiMultiplier: ONE, price8: usd(999) }), 0n);
+    assert.equal(positionValueUsdg({ rawBalance: 0n, price8: usd(999) }), 0n);
   });
 
   it("keeps precision on realistic dust (0.0342092 WBNB @ $575.31)", () => {
     const raw = 34_209_200_024_468_519n; // ~0.0342 in 18dp
-    const v = positionValueUsdg({ rawBalance: raw, uiMultiplier: ONE, price8: usd(575.31) });
+    const v = positionValueUsdg({ rawBalance: raw, price8: usd(575.31) });
     // 0.034209200024468519 × 575.31 = 19.680894866076983665, and 18dp cash
     // carries the whole tail. The old 6dp unit floored the same holding at
     // 19.680894 — the twelve digits after it had nowhere to go.
     assert.equal(v, 19_680_894_866_076_983_665n);
   });
+
+  /**
+   * THE ERC-8056 SPLIT TESTS USED TO SIT HERE and went with the standard. They
+   * asserted that a 2-for-1 split was not a crash — the multiplier doubled
+   * while the price halved, so value was unchanged — and that ignoring the
+   * multiplier would have read as a 50% drop straight into the drawdown
+   * breaker. No BNB token has a multiplier, so there is nothing left to double.
+   *
+   * The hazard that REPLACED them is the negative exponent, covered by the
+   * low-decimal cases in the next describe: removing the multiplier took an
+   * 18 out of the denominator, and the exponent `decimals + 8 - 18` goes
+   * negative below ten decimals, where BigInt `**` throws rather than rounds.
+   */
 });
 
-/**
- * Everything in the BNB registry is 18dp; a discovered memecoin is whatever its
- * author chose. The asset model divides by 10^decimals, so assuming 18 for a 6dp
- * coin undervalues the position by a factor of a trillion — and equity feeds the
- * drawdown breaker, so that is not a display bug, it's a phantom wipeout.
- *
- * Note that the TOKEN's decimals and the CASH decimals are independent, and this
- * block is about the first. They happened to be different numbers on Robinhood
- * Chain (18dp tokens, 6dp cash) and happen to be the same one on BNB, which is
- * exactly the condition under which a bug that conflates them hides.
- */
 describe("positionValueUsdg — a token's decimals are its own, not the cash unit's", () => {
   it("values a 6dp token correctly", () => {
     // 1 whole token at 6dp = 1_000_000 raw, at $2 → $2
     const v = positionValueUsdg({
       rawBalance: 1_000_000n,
-      uiMultiplier: ONE,
       price8: usd(2),
       decimals: 6,
     });
@@ -124,7 +93,6 @@ describe("positionValueUsdg — a token's decimals are its own, not the cash uni
   it("values a 9dp token correctly", () => {
     const v = positionValueUsdg({
       rawBalance: 1_000_000_000n,
-      uiMultiplier: ONE,
       price8: usd(0.5),
       decimals: 9,
     });
@@ -132,12 +100,12 @@ describe("positionValueUsdg — a token's decimals are its own, not the cash uni
   });
 
   it("values a 0dp token correctly — no fractional units at all", () => {
-    const v = positionValueUsdg({ rawBalance: 3n, uiMultiplier: ONE, price8: usd(7), decimals: 0 });
+    const v = positionValueUsdg({ rawBalance: 3n, price8: usd(7), decimals: 0 });
     assert.equal(v, cashUnits(21));
   });
 
   it("assuming 18 for a 6dp holding still wipes it out (the bug this prevents)", () => {
-    const naive = positionValueUsdg({ rawBalance: 1_000_000n, uiMultiplier: ONE, price8: usd(2) });
+    const naive = positionValueUsdg({ rawBalance: 1_000_000n, price8: usd(2) });
     // A real $2 position reads as 2e-12 of a dollar — not the zero it produced
     // under 6dp cash, but just as fatal to equity, and now it does not even have
     // the decency to be exactly zero.
@@ -145,8 +113,8 @@ describe("positionValueUsdg — a token's decimals are its own, not the cash uni
   });
 
   it("omitting decimals still means 18, so every registry call is unchanged", () => {
-    const implicit = positionValueUsdg({ rawBalance: ONE, uiMultiplier: ONE, price8: usd(250) });
-    const explicit = positionValueUsdg({ rawBalance: ONE, uiMultiplier: ONE, price8: usd(250), decimals: 18 });
+    const implicit = positionValueUsdg({ rawBalance: ONE, price8: usd(250) });
+    const explicit = positionValueUsdg({ rawBalance: ONE, price8: usd(250), decimals: 18 });
     assert.equal(implicit, explicit);
     assert.equal(implicit, cashUnits(250));
   });
@@ -188,12 +156,6 @@ describe("readPositions — a held holding is never silently valued at zero", ()
     assert.deepEqual(r.missingPrice, ["AAPL"]);
   });
 
-  it("a HELD token whose multiplier read reverts is flagged, not mispriced at 1.0", async () => {
-    const prices = new Map([["AAPL", px(200)]]);
-    const r = await readPositions(client([good(5n * ONE), bad()]), ACCT, [AAPL], prices);
-    assert.deepEqual(r.positions, []);
-    assert.deepEqual(r.missingPrice, ["AAPL"]);
-  });
 
   it("a zero-balance token is not held — absent from both lists (not a coverage gap)", async () => {
     const prices = new Map([["AAPL", px(200)]]);
@@ -304,29 +266,16 @@ describe("readPositions — memecoins are not ERC-8056", () => {
   };
   const SIXDP: TradableToken = { ...CATE, symbol: "SIXDP", address: "0x00000000000000000000000000000000000000e5", decimals: 6 };
 
-  it("reads ONE call for a memecoin, not two — the multiplier is never requested", async () => {
-    // Only a balance is mocked. Under the old two-call layout this would have
-    // read the next token's balance as CATE's multiplier.
+  it("reads ONE call per token — balances only", async () => {
+    // The layout used to vary: a memecoin contributed one call and everything
+    // else two, and getting the index bookkeeping wrong read the NEXT token's
+    // balance as this one's multiplier. One call each, so there is no layout.
     const prices = new Map([["CATE", px(2)]]);
     const r = await readPositions(client([good(5n * ONE)]), ACCT, [CATE], prices);
     assert.equal(r.positions.length, 1);
-    assert.equal(r.positions[0]?.uiMultiplier, ONE, "assumed 1.0, not read from the token");
     assert.deepEqual(r.missingPrice, []);
   });
 
-  it("keeps stock and memecoin call layouts straight when mixed", async () => {
-    // AAPL contributes balance + multiplier; CATE contributes balance only.
-    const prices = new Map([["AAPL", px(200)], ["CATE", px(2)]]);
-    const r = await readPositions(
-      client([good(ONE), good(ONE), good(3n * ONE)]),
-      ACCT,
-      [AAPL, CATE],
-      prices,
-    );
-    assert.deepEqual(r.positions.map((p) => p.symbol), ["AAPL", "CATE"]);
-    assert.equal(r.positions[0]?.valueUsdg, cashUnits(200));
-    assert.equal(r.positions[1]?.valueUsdg, cashUnits(6), "3 CATE × $2");
-  });
 
   it("values a 6dp memecoin off its own decimals, not 18", async () => {
     const prices = new Map([["SIXDP", px(2)]]);
@@ -352,65 +301,19 @@ describe("readPositions — memecoins are not ERC-8056", () => {
 });
 
 /**
- * Chainlink quotes USD per ERC-8056 UI SHARE; a Uniswap pool quotes USD per
- * WHOLE ERC-20 TOKEN, which already reflects any split — the market repriced.
- * Multiplying a pool price by uiMultiplier therefore counts the split twice.
+ * TWO DESCRIBES USED TO SIT HERE, and both died with ERC-8056.
+ *
+ * The first asserted that a POOL price is quoted per raw token and must NOT be
+ * multiplied by the ERC-8056 multiplier, because the pool has already repriced
+ * the raw token — double-counting a 2-for-1 reported $4,000 on a $2,000 holding
+ * and ratcheted a peak that never happened. The second (`valuationMultiplierFor`)
+ * asserted the same rule for every price source in an exhaustive switch, after
+ * the original `source === "pool" ? 1e18 : uiMultiplier` silently routed every
+ * newly-added source into the Chainlink arm.
+ *
+ * Every price on this chain is now per raw token, which is what those tests
+ * were protecting; there is no second unit to confuse it with.
  */
-describe("readPositions — a pool price is per raw token, so the multiplier must not apply", () => {
-  const SPLIT = 2n * 10n ** 18n; // uiMultiplier after a 2-for-1
-
-  it("applies the multiplier to a Chainlink price", () => {
-    // 100 raw × 2.0 shares/raw × $10/share = $2,000
-    const r = positionValueUsdg({ rawBalance: 100n * ONE, uiMultiplier: SPLIT, price8: usd(10) });
-    assert.equal(r, cashUnits(2_000));
-  });
-
-  it("does NOT apply it to a pool price — the pool already repriced the raw token", async () => {
-    // Same holding, priced from a pool at $20 per RAW token = $2,000 true.
-    const prices = new Map([["AAPL", { price8: usd(20), stale: false, source: "pool" as const }]]);
-    const r = await readPositions(
-      client([good(100n * ONE), good(SPLIT)]),
-      ACCT,
-      [AAPL],
-      prices,
-    );
-    assert.equal(
-      r.positions[0]?.valueUsdg,
-      cashUnits(2_000),
-      "double-counting the split would report $4,000 — a peak that never happened",
-    );
-  });
-
-  it("still REPORTS the real multiplier, it just doesn't value with it", async () => {
-    const prices = new Map([["AAPL", { price8: usd(20), stale: false, source: "pool" as const }]]);
-    const r = await readPositions(client([good(ONE), good(SPLIT)]), ACCT, [AAPL], prices);
-    assert.equal(r.positions[0]?.uiMultiplier, SPLIT, "the fact is preserved for display");
-  });
-});
-
-describe("valuationMultiplierFor — the unit each price source implies", () => {
-  const SPLIT = 2n * 10n ** 18n; // uiMultiplier after a 2-for-1
-
-  it("chainlink applies the ERC-8056 multiplier; pool and broker do not", () => {
-    assert.equal(valuationMultiplierFor("chainlink", SPLIT), SPLIT);
-    assert.equal(valuationMultiplierFor("pool", SPLIT), ONE);
-    assert.equal(valuationMultiplierFor("broker", SPLIT), ONE);
-  });
-
-  it("a broker quote after a 2-for-1 split must NOT double-count (the hazard the old ternary had)", () => {
-    // Broker share counts are already split-adjusted and the broker price is per
-    // that share. The pre-refactor code (`source === "pool" ? 1e18 : uiMultiplier`)
-    // dropped every non-pool source into the Chainlink arm — so a broker quote
-    // would have inherited the multiplier and read 2x after a split, ratcheting
-    // a phantom high-water mark and eventually tripping the breaker.
-    const value = positionValueUsdg({
-      rawBalance: ONE, // 1 share as the broker counts it
-      uiMultiplier: valuationMultiplierFor("broker", SPLIT), // SPLIT=2.0 must be ignored
-      price8: usd(250), // post-split per-share price
-    });
-    assert.equal(value, cashUnits(250), "$250, not the double-counted $500");
-  });
-});
 
 /**
  * No curve mark may set a high-water mark.
@@ -422,35 +325,16 @@ describe("valuationMultiplierFor — the unit each price source implies", () => 
  * process — and because the inflated peak was never persisted, nothing but a
  * restart cleared it. Naming the rule is what makes it testable.
  */
-describe("mayRatchetHwm", () => {
-  const pos = (symbol: string, source: PriceQuote["source"]): Position => ({
-    symbol,
-    token: `0x${"1".repeat(40)}`,
-    rawBalance: 10n ** 18n,
-    uiMultiplier: UI_MULTIPLIER_ONE,
-    decimals: 18,
-    price8: 100_000_000n,
-    priceStale: false,
-    priceSource: source,
-    valueUsdg: 1_000_000n,
-  });
-
-  it("allows a book with no curve marks in it", () => {
-    assert.equal(mayRatchetHwm([]), true);
-    assert.equal(mayRatchetHwm([pos("NVDA", "chainlink"), pos("CATE", "pool")]), true);
-  });
-
-  it("refuses as soon as ONE holding is valued off a curve", () => {
-    // Not proportional and not per-position: equity is a single total, so one
-    // unoracled mark inside it makes the whole figure unfit to set a peak.
-    assert.equal(mayRatchetHwm([pos("NVDA", "chainlink"), pos("PONSY", "curve")]), false);
-  });
-
-  it("names which holdings caused it, for the log", () => {
-    assert.deepEqual(curveMarkedSymbols([pos("A", "pool"), pos("B", "curve"), pos("C", "curve")]), ["B", "C"]);
-  });
-
-  it("treats a broker price as ordinary — it has a venue behind it", () => {
-    assert.equal(mayRatchetHwm([pos("AAPL", "broker")]), true);
-  });
-});
+/**
+ * `mayRatchetHwm` AND `curveMarkedSymbols` WERE TESTED HERE, and the assertions
+ * are the reason removing them was safe rather than a loosening.
+ *
+ * They asserted exactly this: `mayRatchetHwm([])` is true, `[chainlink, pool]`
+ * is true, `[broker]` is true, and ONLY a `curve`-marked position made it
+ * false. So the guard excluded one source and permitted every other, and with
+ * the curve pricer deleted the two surviving sources are both on the permitted
+ * side — the behaviour is unchanged by the deletion.
+ *
+ * See the note where the functions used to live in positions.ts for what would
+ * require bringing them back.
+ */

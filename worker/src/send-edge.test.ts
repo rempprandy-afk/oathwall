@@ -157,13 +157,25 @@ test("an operation that WENT OUT is never booked as a failure beside itself", ()
 test("DELIVERY IS CHECKED WHEREVER A TOKEN WAS ACQUIRED, not only where the decode worked", () => {
   // It used to sit three gates deep: inside `if (fillPair)`, inside
   // `if (measured)`, inside `if (side === "buy")`. `fillPair` is assigned only
-  // in the Uniswap branch, under `sellIsUsdg !== buyIsUsdg`, under `if (symbol)`
-  // — so curve trades, Rialto swaps and stock-to-stock swaps got no delivery
-  // check at all. Curve is the venue where a token is minted by whoever wants it
-  // minted, and it was the one lane with nothing watching.
+  // in the swap branch, under `sellIsUsdg !== buyIsUsdg`, under `if (symbol)` —
+  // so curve trades, Rialto swaps and stock-to-stock swaps got no delivery
+  // check at all. Curve was the venue where a token is minted by whoever wants
+  // it minted, and it was the one lane with nothing watching.
+  //
+  // Those venues are gone (Phase 5), so the gate now names one kind. What it
+  // must NOT go back to is deriving the acquired token from `fillPair`: the
+  // question is "did this operation acquire an ERC-20", and that has one
+  // precondition, not three.
   const gate = INDEX.indexOf("const acquired: { token:");
   assert.ok(gate > 0, "the acquisition gate must exist");
-  assert.match(INDEX.slice(gate, gate + 700), /intent\.kind === "curve-trade"/, "curve must be covered");
+  const body = INDEX.slice(gate, gate + 700);
+  assert.match(body, /intent\.kind === "swap"/, "the swap lane must be covered");
+  // The CONDITION only — everything before the ternary's `?`. `fillPair` is
+  // still fine on the value side, where it supplies a display label and falls
+  // back to the address; what must never come back is DECIDING whether to check
+  // delivery from a decoded fill, which is how this ended up three gates deep.
+  const condition = body.slice(0, body.indexOf("?"));
+  assert.doesNotMatch(condition, /fillPair|measured/, "the gate must not depend on a decoded fill");
 
   // And it must run BEFORE the decode. `measured` is a receipt decode, and this
   // check exists precisely because receipt logs are contract-authored: a token

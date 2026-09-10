@@ -193,7 +193,7 @@ describe("the unpriceable exit, once it can actually be reached", () => {
       prices: new Map(),
       pausedTokens: new Set<string>(),
       staleFeeds: new Set<string>(),
-      sequencerUp: true,
+      chainLive: true,
       spendHeadroomUsdg: 1_000_000_000n,
       perTradeCapUsdg: 100_000_000n,
       ...over,

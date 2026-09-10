@@ -32,7 +32,7 @@ export interface EvenKeelConfig {
 const clamp = (v: bigint, hi: bigint) => (v > hi ? hi : v);
 
 export function evenKeelTick(cfg: EvenKeelConfig, snap: Snapshot): Tick {
-  if (!snap.sequencerUp) return { intents: [], why: [] };
+  if (!snap.chainLive) return { intents: [], why: [] };
 
   const tradable = cfg.legs.filter(
     (l) => !snap.pausedTokens.has(l.token.toLowerCase()) && !snap.staleFeeds.has(l.symbol),

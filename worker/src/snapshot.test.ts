@@ -54,29 +54,28 @@ describe("readAccountBalances — an unknown is never a zero", () => {
     assert.deepEqual(b.unread, []);
   });
 
-  it("a totally failed multicall reports BOTH balances unread, not zero", async () => {
+  it("a totally failed multicall reports the cash balance unread, not zero", async () => {
+    // "BOTH balances" once — the vault leg was the second. There is no ERC-4626
+    // venue on BNB, so the vault figure is a constant zero and cannot be unread.
     const b = await readAccountBalances(client({ eth: 1n, multi: "throw" }), ACCT);
-    assert.deepEqual(b.unread, ["cash", "vault"]);
-  });
-
-  it("a reverted cash call is unread even though the vault answered", async () => {
-    const b = await readAccountBalances(client({ multi: [bad(), good(0n)] }), ACCT);
     assert.deepEqual(b.unread, ["cash"]);
   });
 
-  it("holding shares we cannot convert marks the vault unread — the worst zero of the three", async () => {
-    // Shares read fine, so the old code took the convertToAssets catch(() => 0n)
-    // and silently erased the entire vault leg from equity.
-    const b = await readAccountBalances(
-      client({ multi: [good(usdg(10)), good(999n)], convert: "throw" }),
-      ACCT,
-    );
-    assert.equal(b.cashUsdg, usdg(10));
-    assert.deepEqual(b.unread, ["vault"]);
+  it("a reverted cash call is unread", async () => {
+    const b = await readAccountBalances(client({ multi: [bad()] }), ACCT);
+    assert.deepEqual(b.unread, ["cash"]);
   });
 
-  it("zero shares needs no conversion and is a real answer, not a gap", async () => {
-    const b = await readAccountBalances(client({ multi: [good(usdg(10)), good(0n)] }), ACCT);
+  /**
+   * THE VAULT LEG'S THREE CASES WERE HERE, and the sharpest one is worth
+   * keeping in words: shares that READ FINE but could not be CONVERTED. The
+   * original code took a `convertToAssets` `.catch(() => 0n)` and silently
+   * erased the whole vault leg from equity — the worst of the three zeros,
+   * because it was the one that looked like an answer. Nothing on BNB can be
+   * parked, so `vaultUsdg` is a constant zero and there is no read to fail.
+   */
+  it("the vault figure is a constant zero, and never a gap", async () => {
+    const b = await readAccountBalances(client({ multi: [good(usdg(10))] }), ACCT);
     assert.equal(b.vaultUsdg, 0n);
     assert.deepEqual(b.unread, []);
   });

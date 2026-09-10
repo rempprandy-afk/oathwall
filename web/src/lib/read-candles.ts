@@ -182,7 +182,7 @@ async function fetchCandles(
 ): Promise<CandleRead> {
   const { timeframe, aggregate, seconds, label } = SPEC[window];
   const url =
-    `https://api.geckoterminal.com/api/v2/networks/robinhood/pools/${poolId}/ohlcv/${timeframe}` +
+    `https://api.geckoterminal.com/api/v2/networks/bsc/pools/${poolId}/ohlcv/${timeframe}` +
     // `token` is sent as well as checked below. A mis-resolved address comes
     // back as a 400 enumerating the allowed values, which is a far better
     // failure than a plausible chart of the wrong asset.

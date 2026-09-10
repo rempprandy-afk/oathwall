@@ -1172,10 +1172,10 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
               label="mainnet RPC override"
               hint="Optional. The public RPC rate-limits at 1-minute ticks; a free Alchemy/QuickNode endpoint is smoother."
             >
-              <input type="url" placeholder={urlPlaceholder("rpcMainnet", "default: rpc.mainnet.chain.robinhood.com")} value={draft.rpcMainnet ?? ""} onChange={set("rpcMainnet")} />
+              <input type="url" placeholder={urlPlaceholder("rpcMainnet", "default: bsc-dataseed.bnbchain.org")} value={draft.rpcMainnet ?? ""} onChange={set("rpcMainnet")} />
             </Field>
             <Field label="testnet RPC override" hint="Optional.">
-              <input type="url" placeholder={urlPlaceholder("rpcTestnet", "default: rpc.testnet.chain.robinhood.com")} value={draft.rpcTestnet ?? ""} onChange={set("rpcTestnet")} />
+              <input type="url" placeholder={urlPlaceholder("rpcTestnet", "default: bsc-testnet-dataseed.bnbchain.org")} value={draft.rpcTestnet ?? ""} onChange={set("rpcTestnet")} />
             </Field>
             <Field
               label="bundler URL override"

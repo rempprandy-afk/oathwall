@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { PANCAKE, RIALTO, type GrantCaps } from "../../packages/core/src/index";
+import { PANCAKE, type GrantCaps } from "../../packages/core/src/index";
 import { buildCallPermissions } from "../../packages/core/src/wall";
 
 /**
@@ -57,18 +57,15 @@ test("the probe approves the router this install will actually use", () => {
   );
 });
 
-test("a grant this repo can sign does NOT carry the Rialto router — which is why the old probe always violated the wall", () => {
-  // Not a source scan: the actual wall, from the actual builder, with the
-  // options both signers actually pass (neither passes allowRialto).
+test("a grant this repo can sign carries the PancakeSwap router and nothing like Rialto", () => {
+  // Not a source scan: the actual wall, from the actual builder. Rialto used to
+  // be reachable behind an opt-in that no signer passed, which is why the old
+  // selftest probe always violated the wall; Phase 5 removed the venue and the
+  // opt-in with it, so its absence is now structural rather than a default.
   const SELF = "0x00000000000000000000000000000000000000a1" as const;
   const CAPS: GrantCaps = { perTradeUsdg: 50, dailyUsdg: 500, expiryDays: 14, maxDrawdownPct: 10, maxOpsPerDay: 48 };
   const perms = buildCallPermissions(CAPS, SELF) as unknown as { target: string; functionName?: string }[];
   const targets = perms.map((p) => p.target.toLowerCase());
-  assert.equal(
-    targets.includes(RIALTO.routerSnapshot.toLowerCase()),
-    false,
-    "Rialto is opt-in and no signer opts in — so approving it could only ever be refused",
-  );
   assert.equal(
     targets.includes(PANCAKE.smartRouter.toLowerCase()),
     true,

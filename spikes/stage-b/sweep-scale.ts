@@ -84,7 +84,7 @@ async function main() {
   const t2 = Date.now();
   const ms2 = await readMarketSafety();
   console.log(`HTTP requests ${wireCount() - b2} · wall-clock ${Date.now() - t2}ms`);
-  console.log(`sequencerUp=${ms2.sequencerUp} unreadable=${ms2.unreadable} block=${ms2.blockNumber} prices=${Object.keys(ms2.prices ?? {}).length} unread=${(ms2.unread ?? []).length}`);
+  console.log(`chainLive=${ms2.chainLive} unreadable=${ms2.unreadable} block=${ms2.blockNumber} prices=${Object.keys(ms2.prices ?? {}).length} unread=${(ms2.unread ?? []).length}`);
 
   console.log("");
   console.log(budgetReport());

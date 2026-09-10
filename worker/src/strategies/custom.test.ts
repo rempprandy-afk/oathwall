@@ -24,7 +24,7 @@ function snap(): Snapshot {
     prices: new Map(),
     pausedTokens: new Set(),
     staleFeeds: new Set(),
-    sequencerUp: true,
+    chainLive: true,
     // Wide open by default: these fixtures predate cap-aware sizing, so the
     // headroom must not clamp them. Clamping is pinned in its own test.
     spendHeadroomUsdg: 1_000_000_000_000n,
@@ -135,7 +135,7 @@ describe("makeCustomStrategy — hot-loaded, crash-isolated", () => {
     // Rewrite the file with a real intent and force a different mtime.
     writeFileSync(
       file,
-      `export default { tick: () => [{ kind: "vault-deposit", target: "${ROUTER}", amountUsdg: 7n }] }`,
+      `export default { tick: () => [{ kind: "swap", target: "${ROUTER}", sellToken: "${USDG}", buyToken: "${AAPL}", sellAmountRaw: 7n, notionalUsdg: 7n }] }`,
     );
     const future = new Date(Date.now() + 5_000);
     const { utimesSync } = await import("node:fs");
@@ -143,6 +143,51 @@ describe("makeCustomStrategy — hot-loaded, crash-isolated", () => {
 
     const intents = await run(s, snap());
     assert.equal(intents.length, 1);
-    assert.equal(intents[0]!.kind, "vault-deposit");
+    assert.equal(intents[0]!.kind, "swap");
+  });
+});
+
+/**
+ * A USER STRATEGY IS THE ONE CALLER THAT CANNOT BE MIGRATED WITH THE REPO.
+ *
+ * These files live in ~/.merrymen/strategies, are dynamically imported, and are
+ * never typechecked — so a rename that every builtin follows silently changes
+ * what a user's file reads. Both cases below were written for the old chain and
+ * must fail LOUDLY rather than quietly doing nothing.
+ */
+describe("strategies written before the BNB move", () => {
+  it("still sees snap.sequencerUp — and is told once to switch", async () => {
+    const dir = tempDir();
+    writeFileSync(
+      path.join(dir, "legacy.mjs"),
+      `export default { tick: (snap) => {
+         if (!snap.sequencerUp) return [];
+         return [{ kind: "swap", target: "${ROUTER}", sellToken: "${USDG}", buyToken: "${AAPL}", sellAmountRaw: 5n, notionalUsdg: 5n }];
+       } }`,
+    );
+    const notes: string[] = [];
+    const s = makeCustomStrategy("legacy", { dir, onNote: (_l, m) => notes.push(m) });
+
+    // THE POINT: it still trades. Without the shim `snap.sequencerUp` is
+    // undefined, the guard returns [], and the agent goes quiet forever with
+    // nothing in the activity feed to explain it.
+    const intents = await run(s, snap());
+    assert.equal(intents.length, 1, "an old strategy keeps trading");
+
+    await run(s, snap());
+    await run(s, snap());
+    const warnings = notes.filter((n) => /sequencerUp/.test(n));
+    assert.equal(warnings.length, 1, "warned once, not once per tick");
+    assert.match(warnings[0]!, /chainLive/, "the warning names the new field");
+  });
+
+  it("has its vault intents refused by NAME, not by address", async () => {
+    // The reason has to say the venue is gone. Left to fall through, this
+    // reaches the policy's target allowlist and is refused with a sentence
+    // about an address — true, and useless to someone whose strategy parked
+    // idle cash on the old chain every day.
+    const { intent, reason } = validateIntent({ kind: "vault-deposit", target: ROUTER, amountUsdg: 7n });
+    assert.equal(intent, null);
+    assert.match(reason!, /no vault on BNB Chain/);
   });
 });

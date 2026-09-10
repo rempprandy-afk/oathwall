@@ -142,7 +142,6 @@ test("EVERY VENUE READ GOES THROUGH THE BOUND", () => {
     "./venues/geckoterminal.ts",
     "./venues/bitquery.ts",
     "./venues/research.ts",
-    "./venues/rialto.ts",
   ];
   for (const lane of lanes) {
     const src = at(lane);

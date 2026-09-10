@@ -62,11 +62,8 @@ import {
 } from "@zerodev/permissions/policies";
 import {
   CASH,
-  MORPHO,
-  RIALTO,
   TRADABLE_TOKENS,
   TRADEABLE_SYMBOLS,
-  UNISWAP,
   UNISWAP_SWAP_ROUTER_ABI,
   PERMIT2_ABI,
   UNIVERSAL_ROUTER_ABI,
@@ -92,7 +89,7 @@ import { findInjectedProvider, requestAccount } from "./wallet";
 export type { GrantCaps, StoredGrant };
 
 /** Testnet gas faucet — where users top up the account's native balance. */
-export const FAUCET_URL = "https://faucet.testnet.chain.robinhood.com";
+export const FAUCET_URL = "https://www.bnbchain.org/en/testnet-faucet";
 
 const VAULT_ABI = parseAbi([
   "function deposit(uint256 assets, address receiver) returns (uint256)",
@@ -261,7 +258,7 @@ async function mintGrant(
 ): Promise<MintedGrant> {
   // Testnet is the sandbox; mainnet (4663) is real funds — the UI gates that
   // choice behind an explicit consent step. Note: the call-policy addresses
-  // below (UNISWAP/RIALTO/MORPHO/USDG) are MAINNET deployments — the wall is
+  // below are MAINNET deployments — the wall is
   // real on mainnet and inert on testnet, where those contracts don't exist
   // and swaps no-route by design.
   const chain = chainForId(chainId);
@@ -340,19 +337,17 @@ async function mintGrant(
   // THE WALL now lives in packages/core/src/wall.ts, so the phone app signs the
   // IDENTICAL permission set rather than a second copy that could drift from this
   // one with nothing failing when it did. worker/src/wall.test.ts pins its shape.
-  // Uniswap v4 is OFF — see WallOptions.allowUniswapV4. This flag and the
-  // GRANT_V4 marker below MUST move together: the marker is what the worker
-  // reads to decide whether to route through v4, and until now it claimed a
-  // capability the wall granted regardless of it. Deriving both from one
-  // constant is what stops them drifting apart again.
-  const allowUniswapV4: boolean = false;
+  // THE ADAPTER OPT-INS ARE GONE FROM THE WALL (Phase 5), so nothing is passed
+  // for them here. The lockstep rule they existed to enforce is still the rule:
+  // a grant FEATURE marker is what the worker reads to decide whether to route
+  // somewhere, and a marker minted without the matching permission claims a
+  // capability the wall does not grant. That is why the markers below are also
+  // no longer minted — marker and wall move together, or the mirror is looser
+  // than the chain.
   const { policies, now, expiresAt } = buildWallPolicies({
     caps,
     smartAccount: sudoOnlyAccount.address,
     extraTokens,
-    allowUniswapV4,
-    v4AdapterAddress,
-    ponsAdapterAddress,
   });
 
   const permissionValidator = await toPermissionValidator(publicClient, {
@@ -428,12 +423,7 @@ async function mintGrant(
     // address rides with it because the marker alone is a claim, not evidence.
     grantFeatures: [
       TRADEABLE_V2,
-      ...(allowUniswapV4 ? [GRANT_V4] : []),
-      ...(v4AdapterAddress ? [GRANT_V4_ADAPTER] : []),
-      ...(ponsAdapterAddress ? [GRANT_PONS_ADAPTER] : []),
     ],
-    ...(v4AdapterAddress ? { v4AdapterAddress: v4AdapterAddress.toLowerCase() } : {}),
-    ...(ponsAdapterAddress ? { ponsAdapterAddress: ponsAdapterAddress.toLowerCase() } : {}),
     // What this signature ACTUALLY covers — the worker compares it against the
     // owner's configured tokens and says so when they've drifted apart.
     // Same filter the wall itself applied, so what we RECORD as covered and what

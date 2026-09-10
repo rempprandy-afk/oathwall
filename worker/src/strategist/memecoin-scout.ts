@@ -35,7 +35,7 @@
 import { llmToolCall, type LlmCreds } from "../llm";
 import type { GeckoPool } from "../venues/geckoterminal";
 import type { ScoutSiteFields } from "./coin-research";
-import { sanitizeMeta } from "../venues/pons-meta";
+import { sanitizeMeta } from "../venues/token-meta";
 
 /**
  * One candidate as the MODEL sees it — a label and numbers, no address.
@@ -70,7 +70,6 @@ export interface ScoutCandidate {
   siteTextLength: number | null;
   siteOutboundDomains: number | null;
   siteHypeWords: number | null;
-  publishedNothing: boolean | null;
 }
 
 /** What the model returns about one candidate. */
@@ -148,7 +147,6 @@ export function toScoutCandidates(
       siteTextLength: null,
       siteOutboundDomains: null,
       siteHypeWords: null,
-      publishedNothing: null,
     }),
   }));
 }
@@ -181,7 +179,6 @@ What is worth weight:
 The site fields are what the coin's OWN WEBSITE said when one was published and visited.
 They are weak evidence and easy to fake, so weigh them as colour rather than proof — but the
 absence of any effort is itself informative:
-- publishedNothing true means the launcher filled in no description and no socials at all.
   That is the shape an abandoned template has, and most of them are.
 - siteReachable false means a site was published and did not answer. That is worse than
   never publishing one, because someone meant it to be there.

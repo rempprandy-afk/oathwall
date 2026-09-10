@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { runBacktest } from "./backtest";
 import { buildStrategy, legsForUniverse } from "./strategies/registry";
 import { loadBarsFile } from "../../cli/backtest-bars";
-import { CASH, MORPHO, cashToNumber, cashUnits } from "../../packages/core/src/index";
+import { CASH, cashToNumber, cashUnits } from "../../packages/core/src/index";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const [name, ...rest] = process.argv.slice(2);
@@ -65,7 +65,7 @@ const result = await runBacktest(
     limits: {
       perTradeUsdg: cashUnits(500),
       dailyUsdg: cashUnits(500),
-      allowedTargets: [swapRouter, MORPHO.steakhouseUsdgVault as `0x${string}`],
+      allowedTargets: [swapRouter],
       allowedAssets: [CASH.USD as `0x${string}`, ...legs.values()],
       maxOpsPerDay: 500,
       maxDrawdownBps: 2000,

@@ -1,6 +1,6 @@
 # BNB Chain migration plan
 
-**Status:** Phases 1–4 landed · **Drafted:** 2026-09-08 · **Updated:** 2026-09-08
+**Status:** Phases 1–5 landed · **Drafted:** 2026-09-08 · **Updated:** 2026-09-09
 **Decision:** merrymen moves off Robinhood Chain (4663/46630) to BNB Chain (56).
 Robinhood Chain is dropped entirely — not kept as a second chain.
 
@@ -11,11 +11,12 @@ Robinhood Chain is dropped entirely — not kept as a second chain.
 | — · test debt (§6) | ✅ landed | `the tests stop describing a chain…` |
 | 3 · PancakeSwap adapter | ✅ landed | `the venue is PancakeSwap…` |
 | 4 · strategies + paper | ✅ landed | `the strategy that only worked…` |
-| 5 · strip + tighten | ⬜ not started | — |
+| 5 · strip + tighten | ✅ landed | `the venues that only existed on 4663…` |
 | 6 · surfaces | ⬜ not started | — |
 
-**Suite:** 2,919 pass / 3 fail. The three are `worker/src/telegram/agent.test.ts`
+**Suite:** 2,609 pass / 3 fail. The three are `worker/src/telegram/agent.test.ts`
 and fail identically on `main` — a files-root path refusal unrelated to this work.
+The total fell from 2,922 because Phase 5 deleted the code ~300 of them covered.
 
 **Live probes, all green** (re-runnable, read-only):
 
@@ -24,6 +25,58 @@ npx tsx scripts/probe-bnb-substrate.mts        # 21 addresses, 6 tokens, 6 feeds
 npx tsx scripts/probe-pancake-tradability.mts  # round trips, both directions
 npx tsx scripts/probe-paper-run.mts            # paper fills at live feeds
 ```
+
+### What Phase 5 removed, and the four things it found
+
+**~12,000 lines net.** The venue lanes with no deployment on BNB: Pons (curve
+pricing, launch scanning, the self-trade adapter), Rialto, the Robinhood
+brokerage rail and its MCP client, Morpho, and — decided during the phase rather
+than in this plan — the **Uniswap v4 lane**. That last one was not on the §3
+list, but Phase 5's exit criterion is "no reference to Robinhood Chain outside
+git history" and `DEAD_ON_BNB.UNISWAP` held twelve 4663 addresses that
+`uniswap-v4.ts`, `v4-keys.ts` and `v4-price.ts` still read. PancakeSwap's own v4
+is a different protocol at different addresses; wiring it is new work.
+
+ERC-8056 went with the Stock Tokens, and `PriceQuote["source"]` narrowed from
+five members to two.
+
+**Four things this phase found that the plan did not predict:**
+
+1. **`sequencerUp` was never a sequencer check.** It is `now - block.timestamp <
+   120` — chain liveness — and it is the first line of every strategy. The plan
+   said delete it (BNB is an L1). Deleting it would have removed the only thing
+   stopping a tick trading against a stale RPC view, so it was **renamed**,
+   not removed.
+2. **Removing the ERC-8056 multiplier nearly introduced a throw.** The valuation
+   denominator loses an 18 from both sides, leaving `10 ** (decimals + 8 - 18)`
+   — negative for any token under ten decimals, and BigInt `**` THROWS on a
+   negative exponent rather than rounding. The multiplier's 18 had been holding
+   it positive by accident. The cash scale moved to the numerator instead.
+3. **Two live Robinhood Chain RPCs were still the DEFAULT**, bypassing the Phase
+   1 registry: `cli/bin.mjs` and `orchestrator.ts` each carried their own
+   hardcoded `rpc.mainnet.chain.robinhood.com`. An operator who set no
+   `MERRYMEN_RPC_MAINNET` had the reconciler reading 4663. `GECKO_NETWORK` was
+   still `"robinhood"` too — and GeckoTerminal answers an unknown network with a
+   404 HTML page, so a stale slug is indistinguishable from a quiet market.
+   `contracts/hardhat.config.ts` had been renamed to `bnbTestnet` while keeping
+   the 46630 URL and chain id underneath.
+4. **A rename does not stop at the typechecked tree.** `sequencerUp` →
+   `chainLive` compiled clean and passed 2,600 tests, and then the paper probe
+   proposed zero intents: `scripts/probe-paper-run.mts` builds its own snapshot
+   behind an `as unknown as Snapshot` cast, so the stale field name was invisible
+   to `tsc`. The same rename would have silently stopped every strategy in
+   `~/.merrymen/strategies` — dynamically imported, never typechecked, and both
+   the shipped example and the `merrymen strategy new` scaffold opened with
+   `if (!snap.sequencerUp) return [];`. A user's agent would have gone quiet
+   forever with nothing in the activity feed. The old name is now a warn-once
+   getter on the snapshot user code receives, and `strategies/README.md` carries
+   a was/now table for the other four breaking changes.
+5. **The suite caught two regressions this phase introduced.** The retired-venue
+   branch released its budget reservation without writing a trade row — the exact
+   leak `budget-reservation.invariant.test.ts` pins by name. And deleting the
+   Rialto arm took the approval-only execution leg with it, which is what
+   `--selftest` sends: a same-token swap fell through to the unhandled-kind
+   throw.
 
 ### Decisions taken (were §7)
 
@@ -279,19 +332,42 @@ dissimilar backends (Uniswap vs Rialto vs Pons proves it).
   on-ramp; if it breaks, the whole 2-minute onboarding story breaks).
 - **Exit:** a paper-mode run produces sane fills against live BNB feeds.
 
-### Phase 5 — strip + tighten
-- Delete `venues/pons*`, `rialto.ts`, `robinhood-*`, ERC-8056 multiplier math,
-  sequencer-uptime checks.
-- Wire `RateLimitPolicy` — move ops/day onto the chain-enforced list.
-- **Rewrite the README's honesty section.** The five promises, the caps table
-  and the 2026-08-30 correction paragraph all state chain-specific facts that
-  become false. A project whose pitch is verification cannot ship a stale
-  claims list — this is not documentation cleanup, it is part of the feature.
-- **Exit:** no reference to Robinhood Chain outside git history.
+### Phase 5 — strip + tighten ✅
+- ✅ Deleted `venues/pons*`, `rialto.ts`, `robinhood-*`, ERC-8056 multiplier
+  math, the Uniswap v4 lane, Morpho, and the `DEAD_ON_BNB` block.
+- ✅ `sequencerUp` → `chainLive`, RENAMED rather than deleted — see finding 1.
+- ✅ **`RateLimitPolicy` wired**, and ops/day is on the chain-enforced list
+  again. ⚠ The default singleton (`0xf63d…C86873`, 1,739 b on BNB) decrements a
+  **lifetime** counter, so wiring it under the name `maxOpsPerDay` would have
+  meant `count` ops per GRANT — 48 ever, not 48 a day, with the agent going
+  quiet on day one. merrymen installs the **with-reset** variant
+  (`0x6a06…cca9b`, 5,282 b, probed at block 120,867,973) with `policyAddress`
+  passed explicitly, and `wall.test.ts` pins `interval: 86_400`.
+- ✅ README honesty section rewritten. The caps paragraph SHRANK: trades-per-day
+  moved back onto the on-chain list, with the 2026-08-30 correction kept as
+  history and the lifetime-vs-refill trap stated.
+- ✅ The wall's approved-spender list went from six to **one**.
+- ✅ `GECKO_NETWORK` re-pointed `"robinhood"` → `"bsc"`, and the last live
+  Robinhood RPC defaults removed from `cli/bin.mjs`, `orchestrator.ts` and
+  `contracts/hardhat.config.ts`.
+- ✅ The user-strategy surface migrated with a compatibility shim rather than a
+  break: the example, the scaffold and `strategies/README.md`.
+- **Exit:** met for `worker/`, `packages/`, `cli/`, `contracts/`, `strategies/`.
+  `web/src` terminal screens, `site/` and `mobile/` still carry Robinhood
+  equity-quote lanes and copy — that is Phase 6, below.
+
+**What is NOT done and is not a Phase 6 item.** Three intent kinds —
+`vault-deposit`, `vault-withdraw`, `curve-trade` — plus `equity-order` are now
+UNPRODUCIBLE but remain in `policy.ts`'s union and its consumers (`paper.ts`,
+`backtest.ts`, `gas-audit.ts`). Nothing can emit them, so the branches are dead
+code with a live type — the shape this phase exists to remove. Removing them
+touches the security-critical policy file and deserves its own commit.
 
 ### Phase 6 — surfaces
-- `web/src` — 9 `.tsx` files name USDG or stocks.
-- `mobile/src` — 8 files reference USDG / chain ids.
+- `web/src/terminal` — the equity-quote lane (`quotes.ts`, `live.ts`'s
+  `robinhoodFallback`, `Token.tsx`) still fetches Robinhood stock prices and
+  Blockscout/CDN logos. `market.ts` and `venue.ts` name those hosts.
+- `web/src` — files naming USDG or stocks; `mobile/src` — USDG / chain ids.
 - `site/` marketing copy, `docs/`, the grant screen's chain acknowledgement.
 - **Exit:** no user-visible string promises tokenized equities.
 
@@ -344,7 +420,11 @@ This is a pre-mainnet blocker, not a migration step, and deserves its own doc.
 ## 9 · Rollback
 
 Every phase is a separate commit on a branch off `main`. Phases 1–4 are additive
-or corrective and revert cleanly. **Phase 5 is the point of no return** — once
-Pons, Rialto and the stock registry are deleted, going back means a revert, not
-a toggle. Do not start Phase 5 until a paper-mode run on BNB has been watched
-end to end.
+or corrective and revert cleanly.
+
+**Phase 5 was the point of no return, and it has been crossed.** Pons, Rialto,
+the Uniswap v4 lane and the stock registry are deleted; going back is a revert,
+not a toggle. The gate this section set — a paper-mode run on BNB watched end to
+end — was satisfied before the strip began (`probe-paper-run.mts`, three fills at
+live feeds, equity holding within $0.25 of the starting book) and re-run green
+afterwards through the rewritten venue path.

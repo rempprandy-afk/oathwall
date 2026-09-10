@@ -34,7 +34,6 @@ describe("runBacktest — real strategies, real policy, synthetic prices", () =>
       buyPerTickUsdg: U(25),
       idleFloorUsdg: U(50),
       swapRouter: ROUTER,
-      vault: VAULT,
       yieldVenue: "erc4626",
       usdg: USDG,
     };
@@ -66,7 +65,6 @@ describe("runBacktest — real strategies, real policy, synthetic prices", () =>
       buyPerTickUsdg: U(25),
       idleFloorUsdg: U(1_000),
       swapRouter: ROUTER,
-      vault: VAULT,
       yieldVenue: "erc4626",
       usdg: USDG,
     };
@@ -93,7 +91,6 @@ describe("runBacktest — real strategies, real policy, synthetic prices", () =>
       buyPerTickUsdg: U(100), // above the 50 per-trade cap
       idleFloorUsdg: U(10_000),
       swapRouter: ROUTER,
-      vault: VAULT,
       yieldVenue: "erc4626",
       usdg: USDG,
     };
@@ -117,7 +114,6 @@ describe("runBacktest — real strategies, real policy, synthetic prices", () =>
       buyPerTickUsdg: U(100),
       idleFloorUsdg: U(10_000),
       swapRouter: ROUTER,
-      vault: VAULT,
       yieldVenue: "erc4626",
       usdg: USDG,
     };
@@ -135,34 +131,4 @@ describe("runBacktest — real strategies, real policy, synthetic prices", () =>
     assert.deepEqual(r.rejectedEvents, [{ tSec: 1234, rule: "per-trade-cap" }]);
   });
 
-  it("vault APY accrues over time", async () => {
-    const noop = { name: "noop", tick: () => [] };
-    // Seed vault by starting with a deposit strategy? Simpler: deposit via basket sweep.
-    const cfg: SteadyBasketConfig = {
-      legs: [],
-      buyPerTickUsdg: U(1_000_000), // never buys
-      idleFloorUsdg: 0n, // sweep everything
-      swapRouter: ROUTER,
-      vault: VAULT,
-      yieldVenue: "erc4626",
-      usdg: USDG,
-    };
-    const yearBars: Bar[] = [
-      { tSec: 0, prices: new Map() },
-      { tSec: 365 * 86_400, prices: new Map() },
-    ];
-    const r = await runBacktest(
-      {
-        strategy: { name: "sweep", tick: (s) => steadyBasketTick(cfg, s) },
-        limits: limits({ perTradeUsdg: U(10_000), dailyUsdg: U(100_000) }),
-        legs: LEGS,
-        initialCashUsdg: U(1_000),
-        vaultApyBps: 700, // 7%
-      },
-      yearBars,
-    );
-    void noop;
-    // 1000 deposited at t=0, one year at 7% simple → ~1070
-    assert.equal(r.finalEquityUsdg, U(1_070));
-  });
 });

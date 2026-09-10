@@ -13,7 +13,6 @@ import { homePaths, merrymenHome } from "@merrymen/home";
 import { createPublicClient, http, parseAbi } from "viem";
 import {
   CASH,
-  MORPHO,
   accountsMatch,
   carriesOwnerKey,
   chainForId,
@@ -351,7 +350,6 @@ export async function GET(req: Request) {
       .multicall({
         contracts: [
           { address: CASH.USD as `0x${string}`, abi: BALANCE_ABI, functionName: "balanceOf", args: [grant.smartAccount] },
-          { address: MORPHO.steakhouseUsdgVault as `0x${string}`, abi: BALANCE_ABI, functionName: "balanceOf", args: [grant.smartAccount] },
         ],
       })
       .catch(() => null),
@@ -423,7 +421,8 @@ export async function GET(req: Request) {
     balances: {
       ethWei: ethWei.toString(),
       cashUsdg: (tokenReads?.[0]?.status === "success" ? (tokenReads[0].result as bigint) : 0n).toString(),
-      vaultUsdg: (tokenReads?.[1]?.status === "success" ? (tokenReads[1].result as bigint) : 0n).toString(),
+      // No ERC-4626 venue on BNB, so nothing can be parked — see YIELD in protocols.ts.
+      vaultUsdg: "0",
     },
     workerAliveAt,
     mode,

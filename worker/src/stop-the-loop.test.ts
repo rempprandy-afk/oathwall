@@ -206,8 +206,8 @@ describe("A4 — an unreadable market is not a stale feed", () => {
     assert.ok(guardAt < armedAt, "and must do so before any trading work");
   });
 
-  it("an unread block is not a DOWN sequencer claim in the ledger", () => {
-    // "sequencer DOWN — all trading paused" is an event every owner reads.
+  it("an unread block is not a STALLED chain claim in the ledger", () => {
+    // "chain stalled — all trading paused" is an event every owner reads.
     // Emitting it on the strength of our own 429 would be the same error one
     // level up.
     const code = strip(at("./snapshot.ts"));

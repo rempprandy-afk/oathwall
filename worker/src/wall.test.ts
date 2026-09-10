@@ -6,14 +6,10 @@ import test from "node:test";
 import {
   CASH,
   cashUnits,
-  MORPHO,
-  RIALTO,
   TRADABLE_TOKENS,
   TRADEABLE_SYMBOLS,
   PANCAKE,
-  UNISWAP,
   UNISWAP_SWAP_ROUTER_ABI,
-  PONS_SELFTRADE_ABI, V4SELFSWAP_ABI,
   allowedSpenders,
   buildCallPermissions,
   buildWallPolicies,
@@ -60,73 +56,46 @@ const perms = () => buildCallPermissions(CAPS, SELF) as unknown as Perm[];
 const find = (target: string, fn?: string) =>
   perms().filter((p) => p.target.toLowerCase() === target.toLowerCase() && (fn === undefined || p.functionName === fn));
 
-test("the default spenders exclude Rialto and Permit2, and universalRouter is never one", () => {
-  // Rialto is opt-in: an approved spender can pull whatever it was approved
-  // for, and the stock approvals carry no amount condition, so listing an
-  // unused router is a standing licence over every share the agent holds.
+test("the approval spender list is exactly one router", () => {
+  // AN APPROVED SPENDER IS NEVER FREE: it can pull whatever it was approved
+  // for, and the sell-side approvals carry no amount condition, so any unused
+  // router in this list is a standing licence over every token the agent holds.
+  // That is why the list used to be full of opt-ins and is now empty of them —
+  // Rialto, the Morpho vault, Permit2 and two self-swap adapters all left with
+  // their venues in Phase 5.
   const s = allowedSpenders().map((a) => a.toLowerCase());
-  assert.deepEqual(s, [PANCAKE.smartRouter.toLowerCase(), MORPHO.steakhouseUsdgVault.toLowerCase()]);
-  assert.equal(
-    allowedSpenders(true)[0]!.toLowerCase(),
-    RIALTO.routerSnapshot.toLowerCase(),
-    "opting in adds Rialto, and only then",
-  );
-  // Permit2 is exactly the standing licence the comment above describes, and it
-  // used to be here unconditionally. It only earns its place alongside the v4
-  // CALL permissions, so it rides the same opt-in.
-  assert.equal(s.includes(UNISWAP.permit2.toLowerCase()), false, "Permit2 is not a default spender");
-  assert.equal(
-    allowedSpenders(false, true).map((a) => a.toLowerCase()).includes(UNISWAP.permit2.toLowerCase()),
-    true,
-    "opting into v4 adds Permit2, and only then",
-  );
-  // v4 never pulls tokens directly — Permit2 does, on the router's behalf. Approving
-  // the router itself would skip even that indirection.
-  assert.equal(
-    allowedSpenders(true, true).map((a) => a.toLowerCase()).includes(UNISWAP.universalRouter.toLowerCase()),
-    false,
-    "the UniversalRouter must never be an approved spender, on any setting",
-  );
+  assert.deepEqual(s, [PANCAKE.smartRouter.toLowerCase()]);
 });
 
-test("the v4 drain path is absent by default and arrives only as a set", () => {
-  // THE REGRESSION THIS PINS. These two permissions were granted
-  // unconditionally while Permit2 was an unconditional spender and the stock
-  // approvals carry no amount condition. That chain — approve(stock, permit2,
-  // unbounded) -> permit2.approve(stock, universalRouter, max, max) ->
-  // execute(<opaque inputs naming any recipient>) — moved the entire non-USDG
-  // book anywhere, in one UserOp, past a wall the front page says the chain
-  // enforces. The execute permission's own comment claimed Permit2 was "only
-  // ever granted one trade's worth, expiring"; that described what the worker
-  // encodes, not what the policy allows.
-  assert.equal(find(UNISWAP.permit2).length, 0, "no Permit2 permission by default");
-  assert.equal(find(UNISWAP.universalRouter).length, 0, "no UniversalRouter permission by default");
-
-  const v4 = buildCallPermissions(CAPS, SELF, { allowUniswapV4: true }) as unknown as Perm[];
-  const p2 = v4.filter((p) => p.target.toLowerCase() === UNISWAP.permit2.toLowerCase());
-  const ur = v4.filter((p) => p.target.toLowerCase() === UNISWAP.universalRouter.toLowerCase());
-  assert.equal(p2.length, 1, "opting in adds the Permit2 approve");
-  assert.equal(ur.length, 1, "opting in adds the UniversalRouter execute");
-  // And they must arrive TOGETHER with the spender, because each alone is inert
-  // and granting them piecemeal is how this became a hole in the first place.
-  assert.equal(
-    allowedSpenders(false, true).map((a) => a.toLowerCase()).includes(UNISWAP.permit2.toLowerCase()),
-    true,
-    "the call permission and the spender entry are one decision",
-  );
-  // Still true when opted in: the router's calldata is opaque, so this really is
-  // "call anything on this contract" — which is why it is not the default.
-  assert.equal(ur[0]!.args, undefined, "execute stays unconstrainable — that is the point of making it opt-in");
-});
+/**
+ * THE v4 DRAIN PATH WAS PINNED HERE, and the regression it recorded is the
+ * reason WallOptions has no opt-ins left.
+ *
+ * Permit2's approve and the UniversalRouter's execute were granted
+ * UNCONDITIONALLY while Permit2 was an unconditional approved spender and the
+ * sell-side approvals carried no amount condition. That chain — approve(token,
+ * permit2, unbounded) → permit2.approve(token, universalRouter, max, max) →
+ * execute(<opaque inputs naming any recipient>) — moved the entire non-cash
+ * book anywhere, in one UserOp, past a wall the front page says the chain
+ * enforces. The execute permission's own comment claimed Permit2 was "only ever
+ * granted one trade's worth, expiring"; that described what the worker encodes,
+ * not what the policy allows.
+ *
+ * The lesson that outlives it: each of the three was inert alone and a drain
+ * together, so they had to arrive as ONE decision. Any future venue whose
+ * calldata a call policy cannot read inherits the same requirement.
+ */
 
 test("USDG approve is capped at ONE TRADE and restricted to the allowed spenders", () => {
   const [p] = find(CASH.USD, "approve");
   assert.ok(p, "USDG approve permission must exist");
   const [spender, amount] = p.args as [{ condition: number; value: string[] }, { condition: number; value: bigint }];
-  // Two by default — the swap router and the vault. Rialto and Permit2 are each
-  // opt-in, and every entry here is a standing licence, so the list growing
-  // silently is exactly the regression this asserts against.
-  assert.equal(spender.value.length, 2, "the two default spenders — Rialto and Permit2 are opt-in");
+  // ONE. It was two (the swap router and the Morpho vault) and could reach six
+  // with the opt-ins. Every entry here is a standing licence over everything
+  // the sell-side approvals cover, so the list growing silently is exactly the
+  // regression this asserts against — and it is the direction that matters,
+  // which is why the number is pinned rather than bounded.
+  assert.equal(spender.value.length, 1, "one spender: the PancakeSwap SmartRouter");
   // The cap is per TRADE, not per day. Using dailyUsdg here would let one approval
   // authorise ten trades' worth.
   assert.equal(amount.value, usdg(CAPS.perTradeUsdg));
@@ -170,43 +139,7 @@ test("every tradeable stock token can be approved, so nothing can be bought but 
   }
 });
 
-test("Permit2, WHEN opted into, may only ever grant an allowance to the UniversalRouter", () => {
-  const optedIn = buildCallPermissions(CAPS, SELF, { allowUniswapV4: true }) as unknown as Perm[];
-  const p = optedIn.find(
-    (x) => x.target.toLowerCase() === UNISWAP.permit2.toLowerCase() && x.functionName === "approve",
-  );
-  assert.ok(p, "permit2 approve permission must exist once opted in");
-  const args = p.args as [null, { condition: number; value: string }, null, null];
-  // Without this EQUAL condition, this single permission would let the session key
-  // hand ANY spender an allowance on ANY token — strictly more power than trading.
-  assert.equal(args[1].value.toLowerCase(), UNISWAP.universalRouter.toLowerCase());
-});
 
-test("the vault deposit is capped, the withdrawal is not — but BOTH land in our own account", () => {
-  const [dep] = find(MORPHO.steakhouseUsdgVault, "deposit");
-  const [wd] = find(MORPHO.steakhouseUsdgVault, "withdraw");
-  assert.ok(dep && wd);
-
-  // deposit(assets, receiver): size capped at the daily limit...
-  assert.equal((dep.args as [{ value: bigint }, unknown])[0].value, usdg(CAPS.dailyUsdg));
-  // ...and the SHARES come to us. Unpinned, the agent could spend the owner's
-  // USDG and mint the vault position to someone else.
-  assert.deepEqual((dep.args as [unknown, { condition: number; value: string }])[1], {
-    condition: ParamCondition.EQUAL,
-    value: SELF,
-  });
-
-  // withdraw(assets, receiver, owner): size deliberately unbounded — money
-  // coming home is not a risk. But this test used to assert `wd.args ===
-  // undefined` ON PURPOSE, with a comment about money coming home, while the
-  // policy let the session key send the entire vault position ANYWHERE in one
-  // uncapped call. The comment described the intent; the policy permitted the
-  // opposite. "Coming home" is now enforced rather than assumed.
-  const wdArgs = wd.args as [null, { condition: number; value: string }, null];
-  assert.equal(wdArgs[0], null, "size stays unbounded");
-  assert.deepEqual(wdArgs[1], { condition: ParamCondition.EQUAL, value: SELF });
-  assert.equal(wdArgs[2], null, "owner is unconstrained — it can only be us anyway");
-});
 
 test("MULTI-HOP IS GONE, and the packed path is why it cannot come back", () => {
   // It used to be granted with `args: [null, null, self]` — recipient pinned at
@@ -242,33 +175,28 @@ test("MULTI-HOP IS GONE, and the packed path is why it cannot come back", () => 
 });
 
 
-test("the router is narrowed to ONE entrypoint, and Rialto is absent by default", () => {
-  // ONE, not two. `exactInput` (multi-hop) was dropped: its packed `path` hides
-  // the output token and cannot be constrained at the pinned policy version,
-  // which made it the loosest door once exactInputSingle pinned both legs.
+test("the wall names ONE router and ONE selector on it", () => {
+  // ONE selector, not two. `exactInput` (multi-hop) was dropped: its packed
+  // `path` hides the output token and cannot be constrained at the pinned
+  // policy version, which made it the loosest door once exactInputSingle pinned
+  // both legs.
   assert.equal(find(PANCAKE.smartRouter, "exactInputSingle").length, 1);
   assert.equal(find(PANCAKE.smartRouter, "exactInput").length, 0);
   assert.equal(find(PANCAKE.smartRouter).length, 1, "and nothing else on that router");
-  // The UniversalRouter is absent entirely by default — see the v4 test above.
-  // When opted in it is narrowed to `execute` and no further, because there is
-  // no further: its arguments are opaque bytes.
-  assert.equal(find(UNISWAP.universalRouter).length, 0);
-  const v4 = buildCallPermissions(CAPS, SELF, { allowUniswapV4: true }) as unknown as Perm[];
-  assert.equal(
-    v4.filter((p) => p.target.toLowerCase() === UNISWAP.universalRouter.toLowerCase() && p.functionName === "execute")
-      .length,
-    1,
-  );
-  // Rialto's calldata comes from a quote API, so there is no shape to
-  // constrain — the permission is effectively "call anything on this
-  // contract". It needs an integrator key to work at all, so the default wall
-  // simply doesn't carry it.
-  assert.equal(find(RIALTO.routerSnapshot).length, 0);
 
-  const optedIn = buildCallPermissions(CAPS, SELF, { allowRialto: true }) as unknown as Perm[];
-  const rialto = optedIn.find((p) => p.target.toLowerCase() === RIALTO.routerSnapshot.toLowerCase());
-  assert.ok(rialto, "opting in adds it");
-  assert.equal(rialto.functionName, undefined, "still unconstrainable — that is the point of making it opt-in");
+  // ONE target, too. A Rialto meta-router, a Morpho vault, Permit2 and the
+  // UniversalRouter all used to be reachable — three of them behind opt-ins and
+  // the vault by default. Every remaining permission targets the router, the
+  // cash token, or nothing.
+  const targets = new Set(perms().map((p) => p.target.toLowerCase()));
+  const expected = new Set([
+    PANCAKE.smartRouter.toLowerCase(),
+    (CASH.USD as string).toLowerCase(),
+    ...TRADABLE_TOKENS.filter((t) => (TRADEABLE_SYMBOLS as readonly string[]).includes(t.symbol)).map((t) =>
+      t.address.toLowerCase(),
+    ),
+  ]);
+  for (const t of targets) assert.ok(expected.has(t), `unexpected wall target ${t}`);
 });
 
 test("owner-added tokens are validated and de-duplicated before becoming policy", () => {
@@ -285,44 +213,63 @@ test("owner-added tokens are validated and de-duplicated before becoming policy"
 
 test("the wall carries exactly the expected permission set — no more, no less", () => {
   const list = perms();
-  const stockCount = TRADABLE_TOKENS.filter((t) => (TRADEABLE_SYMBOLS as readonly string[]).includes(t.symbol)).length;
-  // DEFAULT wall: 1 USDG approve + N stock approves + swapRouter02 ×1
-  // (exactInputSingle only) + vault deposit + vault withdraw. No USDG transfer,
-  // no Rialto and no v4 — all three are opt-in. The count dropped from
-  // stockCount + 6 when Permit2 and the UniversalRouter stopped being granted
-  // unconditionally, rose to +6 when multi-hop was granted rather than
-  // quoted-and-reverted, and fell to +4 when multi-hop was dropped again —
-  // its packed path could not be constrained, which made it the widest door
-  // left once exactInputSingle pinned both token legs.
-  assert.equal(list.length, stockCount + 4, "an unexpected permission count means something was added or lost");
-  // ...and each opt-in adds exactly the entries it should, never more.
+  const tokenCount = TRADABLE_TOKENS.filter((t) => (TRADEABLE_SYMBOLS as readonly string[]).includes(t.symbol)).length;
+  // DEFAULT wall: 1 cash approve + N token approves + exactInputSingle. No cash
+  // transfer — the one remaining opt-in.
+  //
+  // THE COUNT'S HISTORY IS THE POINT. It was tokenCount + 6 when Permit2 and
+  // the UniversalRouter were granted unconditionally, +6 again when multi-hop
+  // was granted rather than quoted-and-reverted, +4 when multi-hop was dropped
+  // (its packed path could not be constrained), and is +2 now that Phase 5 took
+  // the Morpho deposit and withdraw with the vault. Every step down was a door
+  // closing.
+  assert.equal(list.length, tokenCount + 2, "an unexpected permission count means something was added or lost");
+  // ...and the one remaining opt-in adds exactly one entry, never more.
   const withXfer = buildCallPermissions(CAPS, SELF, { withdrawalAddresses: [SELF] });
-  const withRialto = buildCallPermissions(CAPS, SELF, { allowRialto: true });
-  const withV4 = buildCallPermissions(CAPS, SELF, { allowUniswapV4: true });
   assert.equal(withXfer.length, list.length + 1);
-  assert.equal(withRialto.length, list.length + 1);
-  assert.equal(withV4.length, list.length + 2, "v4 is a PAIR — Permit2 approve plus UniversalRouter execute");
   // Nothing may authorise sending native value.
   for (const p of list) assert.equal(p.valueLimit, 0n, `${p.target} must not be allowed to move native ETH`);
 });
 
-test("the wall carries a hard expiry and a call policy — and NO rate limit", () => {
+test("the wall carries a hard expiry, an ON-CHAIN rate limit, and a call policy", () => {
   const now = 1_800_000_000;
   const { policies, expiresAt } = buildWallPolicies({ caps: CAPS, smartAccount: SELF, now });
   assert.equal(expiresAt, now + CAPS.expiryDays * 86_400);
 
-  // TWO, not three. This asserted three while the middle one was a pointer into
-  // empty space, and the count passing was part of why nobody looked: a test
-  // can only check that a policy was CONSTRUCTED, never that the contract it
-  // names exists. eth_getCode on 2026-08-30 returned 0 bytes for
-  // RATE_LIMIT_POLICY_CONTRACT on mainnet 4663 AND testnet 46630, while the
-  // timestamp and call policies both carry real bytecode.
+  // THREE, AND THE MIDDLE ONE IS THE PHASE 5 CHANGE. This asserted three for a
+  // long time while the middle policy was a pointer into empty space, then two
+  // after that was found, and now three again for a real reason.
   //
-  // So maxOpsPerDay is enforced by the WORKER only, alongside the daily total
-  // and the drawdown breaker, and the on-chain ceiling is per-trade until
-  // expiry. WALL_POLICY_CONTRACTS + the arm-time probe are what make a future
-  // undeployed singleton a refusal instead of a mystery.
-  assert.equal(policies.length, 2, "expiry + call policy; the rate limit is gone because it was never there");
+  // The history matters more than the number: a test can only check that a
+  // policy was CONSTRUCTED, never that the contract it names exists — which is
+  // exactly why the count passing was part of why nobody looked. eth_getCode on
+  // 2026-08-30 returned 0 bytes for the rate-limit singleton on 4663 AND 46630
+  // while the timestamp and call policies carried real bytecode. On BNB it is
+  // 5,282 bytes (re-probed 2026-09-09), so ops/day is a chain-enforced bound
+  // again rather than a worker-side promise.
+  //
+  // WALL_POLICY_CONTRACTS plus the arm-time probe remain what turn a future
+  // undeployed singleton into a refusal instead of a mystery. This assertion
+  // cannot do that job and is not trying to.
+  assert.equal(policies.length, 3, "expiry + rate limit + call policy");
+
+  const rate = policies.find((p) => p.policyParams?.type === "rate-limit");
+  assert.ok(rate, "the rate limit is installed");
+  // The union over every policy shape does not narrow on `type`, so the fields
+  // are read through one asserted view rather than four casts.
+  const rl = rate.policyParams as unknown as { count: number; interval: number; policyAddress: string };
+  assert.equal(rl.count, CAPS.maxOpsPerDay);
+  // A DAY, and this is the assertion that stops the lifetime variant coming
+  // back. The default singleton decrements a lifetime counter with no refill,
+  // so wiring it under the name maxOpsPerDay would mean `count` ops per GRANT —
+  // 48 ever rather than 48 a day, with the agent going quiet on day one and
+  // nothing saying why.
+  assert.equal(rl.interval, 86_400, "per DAY — never a lifetime counter");
+  assert.equal(
+    rl.policyAddress.toLowerCase(),
+    "0x6a06358e6b283921deceabe7e8a3741d506cca9b",
+    "the WITH-RESET singleton, passed explicitly — the library default is the lifetime one",
+  );
 });
 
 test("the session key may EXECUTE but may not SIGN (the ERC-1271 hole)", () => {
@@ -428,227 +375,9 @@ test("the swap recipient is pinned to our own account, at the RIGHT calldata off
   assert.equal(BigInt(wordAt(2)), 3000n, "word 2 is the fee tier");
 });
 
-test("the V4 ADAPTER opt-in: one permission, both legs pinned to the owner's asset list, at proven offsets", () => {
-  const ADAPTER = "0x00000000000000000000000000000000000000d4" as const;
-  const CUSTOM = { symbol: "WIF", address: "0x00000000000000000000000000000000000000e7", decimals: 9 } as const;
 
-  // Absent by default — the closed position, like every opt-in here.
-  assert.equal(find(ADAPTER).length, 0, "no adapter permission without the opt-in");
 
-  const withAdapter = buildCallPermissions(CAPS, SELF, {
-    v4AdapterAddress: ADAPTER,
-    extraTokens: [CUSTOM],
-  }) as unknown as Perm[];
-  const mine = withAdapter.filter((p) => p.target.toLowerCase() === ADAPTER);
-  assert.equal(mine.length, 1, "exactly one call permission on the adapter");
-  const [swap] = mine;
-  assert.equal(swap!.functionName, "swapExactIn");
-  assert.equal(swap!.valueLimit, 0n);
 
-  // The adapter joined the SPENDER set, so the existing approves can name it —
-  // zero new approve entries. Check the USDG approve's ONE_OF actually grew.
-  const usdgApprove = withAdapter.find(
-    (p) => p.target.toLowerCase() === CASH.USD.toLowerCase() && p.functionName === "approve",
-  )!;
-  const spenderCond = (usdgApprove.args as { value: string[] }[])[0]!;
-  assert.ok(
-    spenderCond.value.map((a) => a.toLowerCase()).includes(ADAPTER),
-    "the adapter must be an allowed spender, or it can never pull tokenIn",
-  );
-
-  // BOTH LEGS PINNED — the strictness v3 never had. tokenIn and tokenOut are
-  // ONE_OF over USDG + tradeable stocks + the owner's extras, derived in the
-  // same call as the approve targets so the two sets cannot drift. This is
-  // what turns "a stolen key swaps the bankroll into a token it minted for
-  // gas" into "both legs must be assets the OWNER named".
-  const args = swap!.args as (null | { condition: number; value: string | string[] })[];
-  assert.equal(args.length, 8, "eight declared args, eight policy slots — all static, no pointer words");
-  for (const i of [0, 1] as const) {
-    const cond = args[i] as { condition: number; value: string[] };
-    assert.equal(cond.condition, ParamCondition.ONE_OF, `arg ${i} must be pinned`);
-    const set = cond.value.map((a) => a.toLowerCase());
-    assert.ok(set.includes(CASH.USD.toLowerCase()), "cash is an asset");
-    assert.ok(set.includes(CUSTOM.address.toLowerCase()), "the owner's own token is an asset");
-    assert.ok(!set.includes("0x00000000000000000000000000000000000000ff"), "an unnamed token is not");
-  }
-  for (const i of [2, 3, 4, 5, 6, 7]) assert.equal(args[i], null, `arg ${i} stays unconstrained — see wall.ts for why each`);
-
-  // AND PROVE THE OFFSETS against viem's encoder, not against the reasoning.
-  // All eight params are static, so this is the one signature where the flat
-  // args[i] -> word i mapping is EXACT — but that is precisely the claim that
-  // must fail loudly if the contract's signature ever changes shape.
-  const calldata = encodeFunctionData({
-    abi: V4SELFSWAP_ABI,
-    functionName: "swapExactIn",
-    args: [
-      CASH.USD as `0x${string}`,
-      CUSTOM.address as `0x${string}`,
-      3000,
-      60,
-      "0x00000000000000000000000000000000000000aa",
-      1_000_000n,
-      999n,
-      1_800_000_000n,
-    ],
-  });
-  const body = calldata.slice(10);
-  const word = (i: number) => `0x${body.slice(i * 64, (i + 1) * 64)}`;
-  assert.equal(word(0).toLowerCase(), pad(CASH.USD as `0x${string}`, { size: 32 }).toLowerCase(), "word 0 = tokenIn");
-  assert.equal(word(1).toLowerCase(), pad(CUSTOM.address as `0x${string}`, { size: 32 }).toLowerCase(), "word 1 = tokenOut");
-  assert.equal(
-    word(4).toLowerCase(),
-    pad("0x00000000000000000000000000000000000000aa", { size: 32 }).toLowerCase(),
-    "word 4 = hooks",
-  );
-  assert.equal(BigInt(word(5)), 1_000_000n, "word 5 = amountIn");
-  assert.equal(BigInt(word(6)), 999n, "word 6 = minAmountOut");
-  assert.equal(BigInt(word(7)), 1_800_000_000n, "word 7 = deadline");
-});
-
-test("the adapter opt-in is INDEPENDENT of the legacy v4 route, and a junk address throws", () => {
-  const ADAPTER = "0x00000000000000000000000000000000000000d4" as const;
-  const base = perms().length;
-
-  // Adapter alone: +1 permission (its call), no Permit2, no UniversalRouter.
-  const adapterOnly = buildCallPermissions(CAPS, SELF, { v4AdapterAddress: ADAPTER }) as unknown as Perm[];
-  assert.equal(adapterOnly.length, base + 1);
-  assert.equal(
-    adapterOnly.filter((p) => p.target.toLowerCase() === UNISWAP.universalRouter.toLowerCase()).length,
-    0,
-    "the adapter route does not smuggle the UniversalRouter back in",
-  );
-
-  // Legacy flag alone: unchanged from before the adapter existed (+3).
-  const legacy = buildCallPermissions(CAPS, SELF, { allowUniswapV4: true }) as unknown as Perm[];
-  assert.equal(legacy.length, base + 2, "the legacy Permit2+UniversalRouter set is untouched");
-
-  // Both: strictly additive, no interference.
-  const both = buildCallPermissions(CAPS, SELF, {
-    v4AdapterAddress: ADAPTER,
-    allowUniswapV4: true,
-  }) as unknown as Perm[];
-  assert.equal(both.length, base + 3);
-
-  // A malformed address must throw at build time — a permission whose target
-  // is garbage is a route that looks granted and can never match, sealed into
-  // a signature nobody can amend.
-  for (const bad of ["0x1234", "not-an-address", ""]) {
-    assert.throws(
-      () => buildCallPermissions(CAPS, SELF, { v4AdapterAddress: bad as never }),
-      /not an address/,
-      `"${bad}" must be refused before it becomes policy`,
-    );
-  }
-});
-
-test("the PONS ADAPTER opt-in: one permission, both asset legs pinned, curve deliberately not, at proven offsets", () => {
-  const PONS = "0x00000000000000000000000000000000000000d5" as const;
-  const CUSTOM = { symbol: "WIF", address: "0x00000000000000000000000000000000000000e7", decimals: 9 } as const;
-
-  // Absent by default — the closed position, like every opt-in here.
-  assert.equal(find(PONS).length, 0, "no Pons permission without the opt-in");
-
-  const withPons = buildCallPermissions(CAPS, SELF, {
-    ponsAdapterAddress: PONS,
-    extraTokens: [CUSTOM],
-  }) as unknown as Perm[];
-  const mine = withPons.filter((p) => p.target.toLowerCase() === PONS);
-  assert.equal(mine.length, 1, "exactly one call permission on the adapter");
-  const [trade] = mine;
-  assert.equal(trade!.functionName, "tradeExactIn");
-  // NOT covered by the default-wall loop above, which only walks perms() — an
-  // opt-in permission needs its own assertion or the invariant has a hole.
-  // Load-bearing here specifically: the adapter is non-payable, which is the
-  // whole reason native-quoted curves are out of reach.
-  assert.equal(trade!.valueLimit, 0n, "granting Pons must not become the first permission that moves native ETH");
-
-  // The adapter joined the SPENDER set, so the existing approves can name it —
-  // zero new approve entries, exactly as the v4 adapter did.
-  const usdgApprove = withPons.find(
-    (p) => p.target.toLowerCase() === CASH.USD.toLowerCase() && p.functionName === "approve",
-  )!;
-  const spenderCond = (usdgApprove.args as { value: string[] }[])[0]!;
-  assert.ok(
-    spenderCond.value.map((a) => a.toLowerCase()).includes(PONS),
-    "the adapter must be an allowed spender, or it can never pull assetIn",
-  );
-
-  const args = trade!.args as (null | { condition: number; value: string | string[] })[];
-  assert.equal(args.length, 6, "six declared args, six policy slots — all static, no pointer words");
-
-  // THE CURVE IS UNPINNED, AND THAT IS THE DESIGN. A buy goes to a per-token
-  // address (~475 new ones an hour), so any ONE_OF over word 0 is stale
-  // tomorrow or unbounded today. Asserted rather than left to a reader's
-  // assumption: if someone later "tightens" this, the test says why not to.
-  assert.equal(args[0], null, "the curve cannot be pinned — see wall.ts");
-
-  // BOTH ASSET LEGS PINNED, from the same list the approves cover, so the
-  // trade set and the approve set cannot drift inside one grant.
-  for (const i of [1, 2] as const) {
-    const cond = args[i] as { condition: number; value: string[] };
-    assert.equal(cond.condition, ParamCondition.ONE_OF, `arg ${i} must be pinned`);
-    const set = cond.value.map((a) => a.toLowerCase());
-    assert.ok(set.includes(CASH.USD.toLowerCase()), "cash is an asset");
-    assert.ok(set.includes(CUSTOM.address.toLowerCase()), "the owner's own token is an asset");
-    assert.ok(!set.includes("0x00000000000000000000000000000000000000ff"), "an unnamed token is not");
-  }
-  for (const i of [3, 4, 5]) assert.equal(args[i], null, `arg ${i} stays unconstrained — see wall.ts for why each`);
-
-  // AND PROVE THE OFFSETS against viem's encoder, not against the reasoning.
-  // There is no ABI arity check in the policy layer: a wrong-length args array
-  // builds rules over garbage silently, and this is the only thing that catches
-  // it. All six params are static, so the flat args[i] -> word i mapping is
-  // exact — which is the claim that must fail loudly if the contract's
-  // signature ever grows a struct or a `bytes`.
-  const calldata = encodeFunctionData({
-    abi: PONS_SELFTRADE_ABI,
-    functionName: "tradeExactIn",
-    args: [
-      "0x00000000000000000000000000000000000000cc",
-      CASH.USD as `0x${string}`,
-      CUSTOM.address as `0x${string}`,
-      1_000_000n,
-      999n,
-      1_800_000_000n,
-    ],
-  });
-  const body = calldata.slice(10);
-  const word = (i: number) => `0x${body.slice(i * 64, (i + 1) * 64)}`;
-  assert.equal(
-    word(0).toLowerCase(),
-    pad("0x00000000000000000000000000000000000000cc", { size: 32 }).toLowerCase(),
-    "word 0 = curve",
-  );
-  assert.equal(word(1).toLowerCase(), pad(CASH.USD as `0x${string}`, { size: 32 }).toLowerCase(), "word 1 = assetIn");
-  assert.equal(word(2).toLowerCase(), pad(CUSTOM.address as `0x${string}`, { size: 32 }).toLowerCase(), "word 2 = assetOut");
-  assert.equal(BigInt(word(3)), 1_000_000n, "word 3 = amountIn");
-  assert.equal(BigInt(word(4)), 999n, "word 4 = minAmountOut");
-  assert.equal(BigInt(word(5)), 1_800_000_000n, "word 5 = deadline");
-});
-
-test("the Pons opt-in is INDEPENDENT of the v4 adapter, and a junk address throws", () => {
-  const PONS = "0x00000000000000000000000000000000000000d5" as const;
-  const V4 = "0x00000000000000000000000000000000000000d4" as const;
-  const base = perms().length;
-
-  // Each alone adds exactly its own call permission, and neither implies the
-  // other. Two venues, two risks, two decisions — one flag granting both would
-  // make the owner's only choice all-or-nothing.
-  assert.equal(buildCallPermissions(CAPS, SELF, { ponsAdapterAddress: PONS }).length, base + 1);
-  assert.equal(buildCallPermissions(CAPS, SELF, { v4AdapterAddress: V4 }).length, base + 1);
-  assert.equal(
-    buildCallPermissions(CAPS, SELF, { ponsAdapterAddress: PONS, v4AdapterAddress: V4 }).length,
-    base + 2,
-    "both opt-ins are additive, not overlapping",
-  );
-
-  // A malformed address must throw rather than be sealed into a signature: a
-  // policy that can never match is a bricked route that looks granted.
-  assert.throws(
-    () => buildCallPermissions(CAPS, SELF, { ponsAdapterAddress: "0xnope" as never }),
-    /ponsAdapterAddress is not an address/,
-  );
-});
 
 /**
  * EVERY ADAPTER REACHES THE CHAIN — the assertion that was missing.
@@ -672,50 +401,6 @@ test("the Pons opt-in is INDEPENDENT of the v4 adapter, and a junk address throw
  *
  * So this asserts the WRAPPER, for both adapters, forever.
  */
-test("buildWallPolicies forwards EVERY adapter into the call policy", () => {
-  const V4 = "0x00000000000000000000000000000000000000d4" as const;
-  const PONS = "0x00000000000000000000000000000000000000d5" as const;
-
-  const call = (opts: Parameters<typeof buildWallPolicies>[0]) => {
-    const { policies } = buildWallPolicies(opts);
-    // The call policy is the LAST, and its permissions live under policyParams
-    // — the zerodev policy object exposes only getPolicyData/getPolicyInfoInBytes
-    // /policyParams, so reading `.permissions` off the top level silently yields
-    // an empty list and this test would pass for the wrong reason.
-    //
-    // Indexed from the end deliberately. This read `policies[2]` until the
-    // rate-limit policy was removed, and a positional index into a list whose
-    // length is itself under test is a second thing to remember to change.
-    const p = policies[policies.length - 1] as unknown as { policyParams?: { permissions?: { target: string }[] } };
-    const perms = p.policyParams?.permissions ?? [];
-    assert.ok(perms.length > 0, "the call policy must expose its permissions, or this test proves nothing");
-    return perms.map((x) => x.target.toLowerCase());
-  };
-
-  const bare = call({ caps: CAPS, smartAccount: SELF });
-  assert.ok(!bare.includes(V4), "no adapter asked for, none granted");
-  assert.ok(!bare.includes(PONS), "no adapter asked for, none granted");
-
-  // Each one alone must reach the permission list.
-  assert.ok(
-    call({ caps: CAPS, smartAccount: SELF, v4AdapterAddress: V4 }).includes(V4),
-    "v4AdapterAddress must survive buildWallPolicies",
-  );
-  assert.ok(
-    call({ caps: CAPS, smartAccount: SELF, ponsAdapterAddress: PONS }).includes(PONS),
-    "ponsAdapterAddress must survive buildWallPolicies — it did not, and the grant still carried the marker",
-  );
-
-  // And together, because forwarding one is what made the other's absence invisible.
-  const both = call({ caps: CAPS, smartAccount: SELF, v4AdapterAddress: V4, ponsAdapterAddress: PONS });
-  assert.ok(both.includes(V4) && both.includes(PONS), "both adapters must reach the chain");
-
-  // The wrapper must agree with the function it wraps — no path may be looser.
-  const direct = buildCallPermissions(CAPS, SELF, { v4AdapterAddress: V4, ponsAdapterAddress: PONS }).map((p) =>
-    p.target.toLowerCase(),
-  );
-  assert.deepEqual(both, direct, "buildWallPolicies must mirror buildCallPermissions exactly");
-});
 
 test("the swap's pinned asset set IS the approve set — they cannot drift", () => {
   // THE INVARIANT BEHIND 1.1. Pinning `tokenIn`/`tokenOut` is only worth

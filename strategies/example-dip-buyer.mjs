@@ -13,25 +13,34 @@
  *   session-key wall. Your code cannot exceed the caps the user signed.
  *
  * No imports needed — `ctx` injects the verified registry:
- *   ctx.tokenBySymbol.QQQ          token address by symbol
- *   ctx.CASH.USDG                  the cash leg
- *   ctx.UNISWAP.swapRouter02       swap router (or ctx.RIALTO.routerSnapshot)
- *   ctx.MORPHO.steakhouseUsdgVault the yield vault
- *   ctx.usdg(25)                   25 → 25_000_000n (USDG is 6dp)
+ *   ctx.tokenBySymbol.BTCB         token address by symbol
+ *   ctx.CASH.USD                   the cash leg (USDT on BNB Chain)
+ *   ctx.PANCAKE.smartRouter        the swap router — the only venue on this chain
+ *   ctx.usdg(25)                   $25 → 25n * 10n ** 18n (cash is 18dp)
  *
  * snapshot fields:
- *   cashUsdg, vaultUsdg            bigint, USDG 6dp
- *   holdings                       Map<symbol, { token, rawBalance(18dp), valueUsdg(6dp), priceStale }>
+ *   cashUsdg                       bigint, cash in 18dp base units (the name predates USDT)
+ *   holdings                       Map<symbol, { token, rawBalance, valueUsdg(18dp), priceStale }>
  *   prices                         Map<symbol, { price8(8dp USD), stale }>
- *   pausedTokens, staleFeeds       Set — stale is EXPECTED nights/weekends (24/5 feeds, 24/7 tokens)
- *   sequencerUp                    boolean — respect it
+ *   pausedTokens, staleFeeds       Set — crypto feeds run 24/7, so stale means a FAULT, never a weekend
+ *   chainLive                      boolean — false when the newest block is >2 min old. Respect it.
+ *
+ * WRITTEN BEFORE THE BNB MOVE? Five things changed under you:
+ *   - `snap.sequencerUp` is now `snap.chainLive`. The old name still works for
+ *     now, so an existing strategy does not go silent — but switch.
+ *   - `ctx.CASH.USDG` is `ctx.CASH.USD`.
+ *   - `ctx.UNISWAP`, `ctx.RIALTO` and `ctx.MORPHO` are gone. Use
+ *     `ctx.PANCAKE.smartRouter`.
+ *   - There is no vault, so `vault-deposit` / `vault-withdraw` intents are refused.
+ *   - `ctx.usdg()` returns 18dp, not 6dp. Any literal like `25_000_000n` you
+ *     wrote by hand now means $0.000000000025.
  *
  * Edits hot-reload on the next tick. A thrown error or malformed intent just
  * skips the tick with the reason in the activity feed — you can't crash the
  * worker, and you can't exceed the wall.
  */
 
-const WATCHED = "QQQ"; // the stock with real Uniswap v3 liquidity today
+const WATCHED = "BTCB"; // a major: Chainlink-fed, deep PancakeSwap v3 pools at every tier
 const DIP_BPS = 200n; // buy 2% under the slow reference price
 const state = { referencePrice8: 0n }; // survives between ticks (not restarts)
 
@@ -44,7 +53,7 @@ export default {
    * @returns {Array}      intents; [] = do nothing this tick
    */
   tick(snap, ctx) {
-    if (!snap.sequencerUp) return [];
+    if (!snap.chainLive) return [];
 
     const token = ctx.tokenBySymbol[WATCHED];
     if (!token || snap.pausedTokens.has(token.toLowerCase())) return [];
@@ -58,7 +67,7 @@ export default {
         ? price.price8
         : (state.referencePrice8 * 95n + price.price8 * 5n) / 100n;
 
-    const clip = ctx.usdg(10); // 10 USDG per buy
+    const clip = ctx.usdg(10); // $10 per buy
     const dipLine = (state.referencePrice8 * (10000n - DIP_BPS)) / 10000n;
     if (price.price8 >= dipLine) return []; // not a dip
     if (snap.cashUsdg < clip) return []; // can't afford the clip
@@ -66,21 +75,19 @@ export default {
     return [
       {
         kind: "swap",
-        target: ctx.UNISWAP.swapRouter02,
-        sellToken: ctx.CASH.USDG, // buying: sell USDG…
-        buyToken: token, // …for the stock token
-        sellAmountRaw: clip, // raw units of sellToken (USDG = 6dp)
+        target: ctx.PANCAKE.smartRouter,
+        sellToken: ctx.CASH.USD, // buying: sell cash…
+        buyToken: token, // …for the token
+        sellAmountRaw: clip, // raw units of sellToken (cash = 18dp)
         notionalUsdg: clip, // what the policy caps judge
       },
     ];
 
     // Other intents you can return:
-    //   sell everything:  { kind: "swap", target: ctx.UNISWAP.swapRouter02,
-    //                       sellToken: token, buyToken: ctx.CASH.USDG,
+    //   sell everything:  { kind: "swap", target: ctx.PANCAKE.smartRouter,
+    //                       sellToken: token, buyToken: ctx.CASH.USD,
     //                       sellAmountRaw: snap.holdings.get(WATCHED).rawBalance,
     //                       notionalUsdg: snap.holdings.get(WATCHED).valueUsdg }
-    //   park cash:        { kind: "vault-deposit",  target: ctx.MORPHO.steakhouseUsdgVault, amountUsdg: ctx.usdg(50) }
-    //   pull cash:        { kind: "vault-withdraw", target: ctx.MORPHO.steakhouseUsdgVault, amountUsdg: ctx.usdg(50) }
     // tick may be async (return a Promise) if you fetch external signals.
   },
 };

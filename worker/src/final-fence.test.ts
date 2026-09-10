@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { encodeFunctionData, erc20Abi } from "viem";
 import test from "node:test";
-import { PANCAKE, UNISWAP, UNISWAP_SWAP_ROUTER_ABI } from "../../packages/core/src/index";
+import { PANCAKE, UNISWAP_SWAP_ROUTER_ABI } from "../../packages/core/src/index";
 import { checkV3SwapCalls, type FenceCall } from "./final-fence";
 import { buildTradeCalls, encodePath } from "./venues/pancake";
 

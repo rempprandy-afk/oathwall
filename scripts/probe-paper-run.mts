@@ -92,7 +92,7 @@ async function main() {
     prices: new Map([...price8.entries()]),
     staleFeeds: new Set([...price8.entries()].filter(([, p]) => p.stale).map(([s]) => s)),
     pausedTokens: new Set(),
-    sequencerUp: true,
+    chainLive: true,
   } as unknown as Snapshot;
 
   const tick = steadyBasketTick(cfg, snap);

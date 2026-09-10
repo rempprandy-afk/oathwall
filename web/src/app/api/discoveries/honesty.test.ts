@@ -40,14 +40,19 @@ const CARDS = readFileSync(new URL("../../../components/TokenCards.tsx", import.
 const PAGE = readFileSync(new URL("../../(app)/tokens/TokensClient.tsx", import.meta.url), "utf8");
 
 describe("an unread coin is not accused of silence", () => {
-  it("`bare` defaults to FALSE when the metadata read failed", () => {
-    // `m ? m.bare : true` is the exact shape of the bug: no metadata read
-    // becomes a positive assertion that the launcher published nothing.
+  it("no unread coin can be accused, because nothing is read at all", () => {
+    // `m ? m.bare : true` was the exact shape of the bug: no metadata read
+    // became a positive assertion that the launcher published nothing, and the
+    // card said "Published nothing about itself" about coins that published
+    // plenty. Phase 5 removed the reader with the launchpad, so the row builder
+    // is gone too — what this now pins is that nothing reintroduces the
+    // accusation while there is still nothing behind it.
     assert.ok(
-      !/bare:\s*m\s*\?\s*m\.bare\s*:\s*true/.test(ROUTE),
+      !/bare:\s*\w+\s*\?\s*\w+\.bare\s*:\s*true/.test(ROUTE),
       "a missing metadata read must never assert that the coin published nothing",
     );
-    assert.match(ROUTE, /bare:\s*m\s*\?\s*m\.bare\s*:\s*false/);
+    // The CARD still renders `bare`, and its three-state rule is asserted below.
+    assert.match(ROUTE, /rows: \[\]/, "fresh rows are empty, not fabricated");
   });
 
   it("the card only says 'published nothing' when the read actually succeeded", () => {
@@ -81,13 +86,16 @@ describe("a wave failure is reported once, not per coin", () => {
     assert.match(ROUTE, /clock:\s*boolean/);
   });
 
-  it("each of the three reads is tracked SEPARATELY", () => {
-    // ageSec comes from the clock, a third call that fails on its own — a row
-    // can have meta and facts and still have no age, so one boolean would be
-    // wrong about which fields are actually missing.
-    assert.match(ROUTE, /chain\.meta = /);
-    assert.match(ROUTE, /chain\.facts = /);
-    assert.match(ROUTE, /chain\.clock = /);
+  it("the three reads stay SEPARATE flags, and all report false", () => {
+    // ageSec came from the clock, a third call that failed on its own — a row
+    // could have meta and facts and still have no age, so one boolean would be
+    // wrong about which fields were actually missing. The reads are gone; the
+    // four flags stay, and every one must report FALSE rather than an
+    // optimistic true, because `true` has always meant "I read it".
+    assert.match(ROUTE, /launchpad:\s*false/);
+    assert.match(ROUTE, /meta:\s*false/);
+    assert.match(ROUTE, /facts:\s*false/);
+    assert.match(ROUTE, /clock:\s*false/);
   });
 
   it("the console renders the gap once, above the grid", () => {
@@ -107,14 +115,15 @@ describe("a wave failure is reported once, not per coin", () => {
 });
 
 describe("a degraded read is not cached like a good one", () => {
-  it("the enrichment reads are sequential, not a burst", () => {
-    // The burst is what the node refuses. All three used to run in one
-    // Promise.all straight after two heavy log sweeps.
-    assert.ok(
-      !/Promise\.all\(\[\s*readTokenMeta/.test(ROUTE),
-      "the three enrichment reads must not fire as one burst",
-    );
-    assert.match(ROUTE, /await readTokenMeta[\s\S]{0,400}?await sleep\([\s\S]{0,200}?await readCardFacts/);
+  it("no enrichment burst can come back, because the reads are gone", () => {
+    // THE BURST IS WHAT THE NODE REFUSED. All three enrichment reads once ran
+    // in one Promise.all straight after two heavy log sweeps, and the whole
+    // burst came back empty together while the sweeps that preceded it
+    // succeeded. Spacing them cost ~700ms and fixed it; more retries would have
+    // multiplied the burst that drew the refusal. Worth reproducing for any
+    // replacement launchpad reader (§7.3).
+    assert.ok(!/Promise\.all\(\[\s*readTokenMeta/.test(ROUTE), "no enrichment burst");
+    assert.ok(!/readTokenMeta|readCardFacts|readBlockClock/.test(ROUTE), "the reads are gone entirely");
   });
 
   it("a degraded render gets a short life, a whole one the full TTL", () => {
@@ -163,9 +172,12 @@ describe("a degraded read is not cached like a good one", () => {
  * good the day the chain gets busy.
  */
 describe("a launchpad that could not be read is not reported as quiet", () => {
-  it("the route tracks the launchpad read separately from the enrichment", () => {
+  it("the launchpad flag stays separate from the enrichment flags", () => {
+    // A failed SWEEP and a failed ENRICHMENT are different facts, and the page
+    // renders them differently — so one boolean would have been wrong about
+    // which. The distinction survives the reader.
     assert.match(ROUTE, /launchpad:\s*boolean/);
-    assert.match(ROUTE, /chain\.launchpad = true;/);
+    assert.ok(!/chain\.launchpad = true/.test(ROUTE), "nothing may claim it read the launchpad");
   });
 
   it("the page distinguishes unreadable from quiet, and checks the flag first", () => {

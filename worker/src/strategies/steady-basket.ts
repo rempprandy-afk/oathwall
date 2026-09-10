@@ -1,7 +1,8 @@
 /**
  * Steady Basket — Phase 1's deterministic strategy. No LLM anywhere.
- * DCA a fixed USDG amount into a weighted stock-token basket on a schedule,
- * park idle USDG in the Morpho Steakhouse vault between buys.
+ * DCA a fixed cash amount into a weighted basket on a schedule. It used to park
+ * idle cash in an ERC-4626 vault between buys; BNB has no venue of that shape,
+ * so idle cash stays idle and the tick says so (see `yieldVenue`).
  *
  * A Strategy NEVER executes anything. It reads a snapshot and returns intents;
  * the runner pushes each intent through checkPolicy → simulate → execute.
@@ -22,7 +23,7 @@ export interface BasketLeg {
 export interface SteadyBasketConfig {
   legs: BasketLeg[];
   buyPerTickUsdg: bigint;
-  /** Idle cash above this floor gets deposited to the vault. */
+  /** Cash kept liquid. Above it, the idle sweep WOULD have run — see yieldVenue. */
   idleFloorUsdg: bigint;
   /**
    * The idle-yield venue, or null when the chain has none.
@@ -39,26 +40,22 @@ export interface SteadyBasketConfig {
    * idle cash is visibly idle.
    */
   yieldVenue: "erc4626" | null;
-  /** Venue-agnostic: Rialto meta-router or Uniswap SwapRouter02, runner's pick. */
+  /**
+   * The router buys execute through. ONE venue on this chain, where it was once
+   * the runner's pick between Rialto and Uniswap.
+   */
   swapRouter: `0x${string}`;
-  vault: `0x${string}`;
   usdg: `0x${string}`;
 }
 
 export function steadyBasketTick(cfg: SteadyBasketConfig, snap: Snapshot): Tick {
-  if (!snap.sequencerUp) return { intents: [], why: [] };
+  if (!snap.chainLive) return { intents: [], why: [] };
 
-  // Cash can't cover a buy but the vault can: pull enough back to fund the next
-  // tick's buy plus the liquidity floor. Withdraw-only tick — buys resume next
-  // tick once the cash has actually landed.
-  if (snap.cashUsdg < cfg.buyPerTickUsdg && snap.vaultUsdg > 0n) {
-    const need = cfg.buyPerTickUsdg + cfg.idleFloorUsdg - snap.cashUsdg;
-    const amountUsdg = need > snap.vaultUsdg ? snap.vaultUsdg : need;
-    return {
-      intents: [{ kind: "vault-withdraw", target: cfg.vault, amountUsdg }],
-      why: [{ code: "unpark", usdgRaw: amountUsdg, needRaw: need }],
-    };
-  }
+  // AN UNPARK BRANCH USED TO OPEN THIS TICK: cash short of a buy while the
+  // vault held some, so pull back enough to fund the next buy plus the floor.
+  // It is gone with the vault. There is no ERC-4626 venue on BNB, so nothing
+  // can be parked, so nothing can need unparking — and the wall no longer
+  // carries a withdraw permission to make the intent executable if it did.
 
   const intents: TradeIntent[] = [];
   // Positionally paired with `intents` — see Tick. Pushed together, always.
@@ -110,33 +107,16 @@ export function steadyBasketTick(cfg: SteadyBasketConfig, snap: Snapshot): Tick 
     cfg.yieldVenue === null && idleAfterBuys > cfg.idleFloorUsdg
       ? ({ code: "no-yield-venue", usdgRaw: idleAfterBuys - cfg.idleFloorUsdg, floorRaw: cfg.idleFloorUsdg } as Why)
       : undefined;
-  if (cfg.yieldVenue !== null && idleAfterBuys > cfg.idleFloorUsdg) {
-    const excess = idleAfterBuys - cfg.idleFloorUsdg;
-    // Size the sweep to what the wall will actually take. A deposit is capped at
-    // the DAILY limit (policy.ts), and this tick's buys have already eaten into
-    // today's budget — so proposing the whole excess on a small grant meant the
-    // deposit was rejected every single tick, forever, while the cash never moved.
-    // Sweep what fits now; the rest goes next tick. Nothing here loosens a cap:
-    // the proposal only ever shrinks.
-    const spentOnBuys = intents.reduce(
-      (sum, i) => sum + (i.kind === "swap" ? i.notionalUsdg : 0n),
-      0n,
-    );
-    const headroom = snap.spendHeadroomUsdg - spentOnBuys;
-    const amountUsdg = excess < headroom ? excess : headroom;
-    if (amountUsdg > 0n) {
-      intents.push({ kind: "vault-deposit", target: cfg.vault, amountUsdg });
-      // `clamped` when the daily budget cut the sweep short. Saying 'parked the
-      // idle cash' while parking part of it would leave the sentence and the
-      // balance disagreeing in front of the owner.
-      why.push({
-        code: "park",
-        usdgRaw: amountUsdg,
-        floorRaw: cfg.idleFloorUsdg,
-        clamped: amountUsdg < excess,
-      });
-    }
-  }
+  // THE DEPOSIT BRANCH IS GONE WITH THE VENUE, and `yieldVenue` is kept as a
+  // null rather than deleted so `noYield` above can still refuse OUT LOUD.
+  //
+  // What it did, for whoever wires Venus or its successor: it sized the sweep
+  // to the DAILY cap minus this tick's buys, because proposing the whole excess
+  // on a small grant had the deposit rejected every tick forever while the cash
+  // never moved. The proposal only ever shrank — sizing to headroom loosens
+  // nothing — and a sweep clamped by the budget said `clamped`, because saying
+  // "parked the idle cash" while parking part of it leaves the sentence and the
+  // balance disagreeing in front of the owner.
 
   // NOTHING BOUGHT, AND THE FEEDS ARE WHY.
   //

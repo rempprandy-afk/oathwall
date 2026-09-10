@@ -6,6 +6,7 @@ import {
   buildCallPermissions,
   CASH,
   GRANT_TRANSFER,
+  TRADABLE_TOKENS,
   WITHDRAWAL_ALLOWLIST_LANDED_AT,
   cashUnits,
   type StoredGrant,
@@ -95,19 +96,24 @@ test("a pre-allowlist grant still works — absent must not be read as legacy", 
   assert.equal(verdict.ok, true, "a legacy grant keeps the capability its signature actually carries");
 });
 
-test("swaps and vault moves are untouched by any of this", () => {
-  // Narrowing the transfer path must not narrow the trading path with it.
+test("swaps are untouched by any of this", () => {
+  // Narrowing the transfer path must not narrow the trading path with it. This
+  // used to assert the same about a vault deposit, using allowedTargets[2] —
+  // the Morpho vault, which Phase 5 removed along with the intent kind.
   const limits = limitsFromGrant(grantWith(["tradeable-v2"]));
   const verdict = checkPolicy(
     {
-      kind: "vault-deposit",
-      target: limits.allowedTargets[2]!,
-      amountUsdg: cashUnits(10),
+      kind: "swap",
+      target: limits.allowedTargets[0]!,
+      sellToken: CASH.USD as `0x${string}`,
+      buyToken: TRADABLE_TOKENS[0]!.address as `0x${string}`,
+      sellAmountRaw: cashUnits(10),
+      notionalUsdg: cashUnits(10),
     } as never,
     limits,
     CALM,
   );
-  assert.equal(verdict.ok, true, "parking cash is not a withdrawal");
+  assert.equal(verdict.ok, true, "trading is not a withdrawal");
 });
 
 test("a STALE marker is not a permission — the Aug 2..26 generation is refused too", () => {

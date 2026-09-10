@@ -210,7 +210,7 @@ export function makeTrencher(deps: TrencherDeps): Strategy {
       const nowSec = Math.floor(Date.now() / 1000);
       const intents: TradeIntent[] = [];
       const why: (Why | null)[] = [];
-      if (!snap.sequencerUp) return { intents, why };
+      if (!snap.chainLive) return { intents, why };
 
       // ── exits first, always ────────────────────────────────────────────
       const openNow = await deps.open();

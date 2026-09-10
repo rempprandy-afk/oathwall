@@ -11,9 +11,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { decodeAbiParameters, decodeFunctionData, erc20Abi } from "viem";
-import { PANCAKE, UNISWAP, UNISWAP_SWAP_ROUTER_ABI, UNIVERSAL_ROUTER_ABI } from "../../../packages/core/src/index";
+import { PANCAKE, UNISWAP_SWAP_ROUTER_ABI } from "../../../packages/core/src/index";
 import { buildSwapCall, buildTradeCalls, encodePath, minOutWithSlippage, pickBestQuote, type Quote } from "./pancake";
-import { makePoolKey } from "./uniswap-v4";
 
 const USDG = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as const;
 const WETH = "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73" as const;
@@ -124,14 +123,15 @@ describe("pickBestQuote across route shapes", () => {
 /**
  * buildTradeCalls — the single place a quote becomes calldata.
  *
- * v3 approves the router directly; v4 approves Permit2, which then grants the
- * router a bounded expiring allowance. Two different approval targets and two
- * different routers, chosen by the quote. Building them separately at the call
- * site is how you approve one router and swap through another, or execute a v3
- * path against a minOut computed on a v4 pool.
+ * ONE VENUE SINCE PHASE 5, so these assert the v3 shape alone. There used to be
+ * a second half: v4 approved Permit2 (never the router), executed on the
+ * UniversalRouter, and with a grant-sealed adapter collapsed to two calls with
+ * Permit2 nowhere. What those tests really defended is still defended below —
+ * the calldata is built from the QUOTE, so the route that was priced is the
+ * route that runs, and a minOut computed on one pool can never execute against
+ * another.
  */
 describe("buildTradeCalls — the priced route is the executed route", () => {
-  const V4KEY = makePoolKey(USDG, CATE, 3000, 60);
   const base = {
     tokenIn: USDG,
     tokenOut: CATE,
@@ -154,66 +154,6 @@ describe("buildTradeCalls — the priced route is the executed route", () => {
     assert.equal(calls[1]!.to.toLowerCase(), (PANCAKE.smartRouter as string).toLowerCase());
   });
 
-  it("v4: approves PERMIT2 — never the router — and executes on UniversalRouter", () => {
-    const calls = buildTradeCalls({ ...base, quote: q({ v4: { key: V4KEY } }) });
-    assert.equal(calls.length, 3);
-    const approve = decodeFunctionData({ abi: erc20Abi, data: calls[0]!.data });
-    const spender = (approve.args as readonly [string, bigint])[0].toLowerCase();
-    assert.equal(spender, (UNISWAP.permit2 as string).toLowerCase());
-    assert.notEqual(spender, (UNISWAP.universalRouter as string).toLowerCase(), "the router is approved for nothing");
-    assert.equal(calls[1]!.to.toLowerCase(), (UNISWAP.permit2 as string).toLowerCase());
-    assert.equal(calls[2]!.to.toLowerCase(), (UNISWAP.universalRouter as string).toLowerCase());
-  });
-
-  it("a v4 quote never produces a v3 call, and vice versa", () => {
-    const v3 = buildTradeCalls({ ...base, quote: q() });
-    const v4 = buildTradeCalls({ ...base, quote: q({ v4: { key: V4KEY } }) });
-    const targets = (cs: { to: string }[]) => cs.map((c) => c.to.toLowerCase());
-    assert.equal(targets(v3).includes((UNISWAP.universalRouter as string).toLowerCase()), false);
-    assert.equal(targets(v4).includes((PANCAKE.smartRouter as string).toLowerCase()), false);
-  });
-
-  it("v4 WITH an adapter: two calls, through the adapter, Permit2 nowhere", () => {
-    // The dispatch rule the whole grant model rides on: the sealed adapter is
-    // passed only when the grant carries one, and then the v4 route stops
-    // touching Permit2 and the UniversalRouter entirely.
-    const ADAPTER = "0x00000000000000000000000000000000000000d4" as const;
-    const calls = buildTradeCalls({ ...base, quote: q({ v4: { key: V4KEY } }), v4Adapter: ADAPTER });
-    assert.equal(calls.length, 2);
-    const approve = decodeFunctionData({ abi: erc20Abi, data: calls[0]!.data });
-    assert.equal((approve.args as readonly [string, bigint])[0].toLowerCase(), ADAPTER);
-    assert.equal(calls[1]!.to.toLowerCase(), ADAPTER);
-    const targets = calls.map((c) => c.to.toLowerCase());
-    assert.equal(targets.includes((UNISWAP.permit2 as string).toLowerCase()), false, "no Permit2");
-    assert.equal(targets.includes((UNISWAP.universalRouter as string).toLowerCase()), false, "no UniversalRouter");
-  });
-
-  it("no adapter: the legacy 3-call route, byte-identical to before the adapter existed", () => {
-    // Pre-adapter GRANT_V4 grants must keep working unchanged.
-    const witho = buildTradeCalls({ ...base, quote: q({ v4: { key: V4KEY } }) });
-    assert.equal(witho.length, 3);
-    assert.equal(witho[2]!.to.toLowerCase(), (UNISWAP.universalRouter as string).toLowerCase());
-  });
-
-  it("a v3 quote ignores the adapter entirely", () => {
-    const ADAPTER = "0x00000000000000000000000000000000000000d4" as const;
-    const calls = buildTradeCalls({ ...base, quote: q(), v4Adapter: ADAPTER });
-    assert.equal(calls.map((c) => c.to.toLowerCase()).includes(ADAPTER), false, "the adapter is a v4 fact");
-    assert.equal(calls[1]!.to.toLowerCase(), (PANCAKE.smartRouter as string).toLowerCase());
-  });
-
-
-  it("carries the same minOut into whichever venue it picked", () => {
-    const v4 = buildTradeCalls({ ...base, quote: q({ v4: { key: V4KEY } }) });
-    const d = decodeFunctionData({ abi: UNIVERSAL_ROUTER_ABI, data: v4[2]!.data });
-    const [, inputs] = d.args as readonly [`0x${string}`, `0x${string}`[], bigint];
-    const [, params] = decodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], inputs[0]!) as [
-      `0x${string}`,
-      `0x${string}`[],
-    ];
-    const [, takeMin] = decodeAbiParameters([{ type: "address" }, { type: "uint256" }], params[2]!);
-    assert.equal(takeMin, base.minAmountOut);
-  });
 
   it("still honours a v3 multi-hop path when the quote had one", () => {
     const hop = { tokens: [USDG, WETH, CATE] as const, fees: [500, 3000] as const };

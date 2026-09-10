@@ -292,7 +292,6 @@ function Row({ r, onToken, passed = false }: { r: Item; onToken: (id: string) =>
  */
 function ResearchLine({ f }: { f: Research }) {
   const parts: string[] = [];
-  if (f.publishedNothing === true) parts.push("published nothing");
   if (f.siteReachable === false) parts.push("site down");
   if (f.siteReachable === true) {
     parts.push("site up");

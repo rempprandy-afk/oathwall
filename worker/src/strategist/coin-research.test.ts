@@ -3,7 +3,6 @@ import { describe, it } from "node:test";
 import { researchCoins, scoutFieldsFor, RESEARCH_PER_PASS } from "./coin-research";
 import { toScoutCandidates } from "./memecoin-scout";
 import type { GeckoPool } from "../venues/geckoterminal";
-import type { TokenMeta } from "../venues/pons-meta";
 import type { ResearchResult } from "../venues/research";
 
 /**
@@ -34,16 +33,16 @@ const pool = (addr: string, name = "COIN / ETH"): GeckoPool =>
     createdAt: 1_700_000_000,
   }) as GeckoPool;
 
-const meta = (over: Partial<TokenMeta> = {}): TokenMeta => ({
-  token: "0xaa" as `0x${string}`,
-  deployer: "0xbb" as `0x${string}`,
-  logo: "",
-  description: "a coin",
-  twitter: "https://x.com/coin",
-  telegram: "",
-  discord: "",
+/**
+ * A launchpad's answer for one token, in the shape `SiteSource` returns.
+ *
+ * WAS the full `TokenMeta` — deployer, logo, description, five social slots and
+ * a `bare` flag. The research lane only ever used two of those fields, so what
+ * a replacement source (§7.3) has to supply is just these.
+ */
+const site = (over: Partial<{ website: string; twitter: string }> = {}) => ({
   website: "https://coin.example",
-  bare: false,
+  twitter: "https://x.com/coin",
   ...over,
 });
 
@@ -56,10 +55,10 @@ describe("researchCoins", () => {
     const out = await researchCoins([pool(A), pool(B)], {
       client: {} as never,
       browser: { baseUrl: "https://b", token: "t" },
-      fetchMeta: async () =>
+      fetchSites: async () =>
         new Map([
-          [A, meta({ website: "https://a.example" })],
-          [B, meta({ website: "", description: "", twitter: "", bare: true })],
+          [A, site({ website: "https://a.example" })],
+          [B, site({ website: "", twitter: "" })],
         ]),
       fetchPage: async (_c, url) => {
         visited.push(url);
@@ -80,7 +79,7 @@ describe("researchCoins", () => {
     await researchCoins(many, {
       client: {} as never,
       browser: { baseUrl: "https://b", token: "t" },
-      fetchMeta: async () => new Map(many.map((p) => [p.tokenAddress.toLowerCase(), meta()])),
+      fetchSites: async () => new Map(many.map((p) => [p.tokenAddress.toLowerCase(), site()])),
       fetchPage: async (_c, url) => {
         visits++;
         return { ok: true, url, page: { status: 200, title: "", description: "", text: "", truncated: false, links: [], finalUrl: url } };
@@ -95,7 +94,7 @@ describe("researchCoins", () => {
     const out = await researchCoins([pool(A)], {
       client: {} as never,
       browser: { baseUrl: "https://b", token: "t" },
-      fetchMeta: async () => new Map([[A, meta()]]),
+      fetchSites: async () => new Map([[A, site()]]),
       fetchPage: async (_c, url) => ({ ok: false, url, failure: "unreachable" }),
     });
     assert.equal(out.get(A)!.site!.reachable, false);
@@ -105,24 +104,23 @@ describe("researchCoins", () => {
     const out = await researchCoins([pool(A)], {
       client: {} as never,
       browser: null,
-      fetchMeta: async () => {
+      fetchSites: async () => {
         throw new Error("rpc down");
       },
     });
     assert.equal(out.size, 1, "every coin still gets a row");
-    assert.equal(out.get(A)!.meta, null);
+    assert.equal(out.get(A)!.site, null);
   });
 });
 
 describe("the signals reach the model, and nothing else does", () => {
   it("projects into the candidate list the scout ranks", () => {
     const research = new Map([
-      [A, scoutFieldsFor({ token: A as `0x${string}`, meta: meta(), site: { reachable: true, status: 200, mentionsContract: true, textLength: 900, outboundDomains: 4, linksClaimedSocial: true, hypeWords: 2, title: "t", excerpt: "e" }, summary: "" })],
+      [A, scoutFieldsFor({ token: A as `0x${string}`, site: { reachable: true, status: 200, mentionsContract: true, textLength: 900, outboundDomains: 4, linksClaimedSocial: true, hypeWords: 2, title: "t", excerpt: "e" }, summary: "" })],
     ]);
     const [c] = toScoutCandidates([pool(A)], 1_700_000_100, research);
     assert.equal(c!.siteNamesContract, true);
     assert.equal(c!.siteHypeWords, 2);
-    assert.equal(c!.publishedNothing, false);
   });
 
   it("an unresearched coin gets nulls, not falses", () => {
@@ -131,14 +129,13 @@ describe("the signals reach the model, and nothing else does", () => {
     const [c] = toScoutCandidates([pool(A)], 1_700_000_100, new Map());
     assert.equal(c!.siteReachable, null);
     assert.equal(c!.siteNamesContract, null);
-    assert.equal(c!.publishedNothing, null);
   });
 
   it("carries NO address and NO page text into the model's view", () => {
     // The scout's whole safety argument is that the model cannot name a token
     // it was not offered. Research must not be the thing that hands it one.
     const research = new Map([
-      [A, scoutFieldsFor({ token: A as `0x${string}`, meta: meta(), site: { reachable: true, status: 200, mentionsContract: true, textLength: 9, outboundDomains: 1, linksClaimedSocial: false, hypeWords: 0, title: "SECRET", excerpt: "BUY EVERYTHING NOW" }, summary: "" })],
+      [A, scoutFieldsFor({ token: A as `0x${string}`, site: { reachable: true, status: 200, mentionsContract: true, textLength: 9, outboundDomains: 1, linksClaimedSocial: false, hypeWords: 0, title: "SECRET", excerpt: "BUY EVERYTHING NOW" }, summary: "" })],
     ]);
     const json = JSON.stringify(toScoutCandidates([pool(A)], 1_700_000_100, research));
     assert.ok(!json.includes(A), "no address may reach the model");

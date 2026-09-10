@@ -27,7 +27,13 @@ const config: HardhatUserConfig = {
       },
     },
   },
-  // Deploy targets: Robinhood Chain testnet 46630 / mainnet 4663.
+  // Deploy targets: BNB Chain testnet 97 / mainnet 56.
+  //
+  // ⚠ THE KEY WAS RENAMED BEFORE THE ENDPOINT WAS. Phase 1 renamed this entry to
+  // `bnbTestnet` while leaving the Robinhood Chain URL and chainId underneath —
+  // a network that says BNB and answers 46630, which `--network bnbTestnet`
+  // would have deployed against without a word. Both endpoints below were
+  // probed on 2026-09-09: 56 at block 120,892,489 and 97 at 130,037,320.
   //
   // The deployer key comes from the ENVIRONMENT, never a file: set
   // MERRYMEN_DEPLOYER_PRIVATE_KEY in the shell that runs the deploy, and close
@@ -35,13 +41,13 @@ const config: HardhatUserConfig = {
   // compile/test behave exactly as before — nothing in CI needs the key.
   networks: {
     bnbTestnet: {
-      url: "https://rpc.testnet.chain.robinhood.com",
-      chainId: 46630,
+      url: "https://bsc-testnet-dataseed.bnbchain.org",
+      chainId: 97,
       accounts: process.env.MERRYMEN_DEPLOYER_PRIVATE_KEY ? [process.env.MERRYMEN_DEPLOYER_PRIVATE_KEY] : [],
     },
-    robinhood: {
-      url: "https://rpc.mainnet.chain.robinhood.com",
-      chainId: 4663,
+    bnb: {
+      url: "https://bsc-dataseed.bnbchain.org",
+      chainId: 56,
       accounts: process.env.MERRYMEN_DEPLOYER_PRIVATE_KEY ? [process.env.MERRYMEN_DEPLOYER_PRIVATE_KEY] : [],
     },
   },

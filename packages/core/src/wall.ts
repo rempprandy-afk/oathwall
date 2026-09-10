@@ -1,10 +1,9 @@
-import { erc20Abi, parseAbi, type Address } from "viem";
+import { erc20Abi, type Address } from "viem";
 import { PolicyFlags } from "@zerodev/permissions";
 import { CallPolicyVersion, ParamCondition, toCallPolicy } from "@zerodev/permissions/policies";
-import { toTimestampPolicy } from "@zerodev/permissions/policies";
-import { UNISWAP_SWAP_ROUTER_ABI, PERMIT2_ABI, UNIVERSAL_ROUTER_ABI, V4SELFSWAP_ABI, PONS_SELFTRADE_ABI } from "./abis";
-import { MORPHO, PANCAKE, RIALTO, UNISWAP } from "./protocols";
-import { INFRA } from "./chain";
+import { toRateLimitPolicy, toTimestampPolicy } from "@zerodev/permissions/policies";
+import { UNISWAP_SWAP_ROUTER_ABI } from "./abis";
+import { PANCAKE } from "./protocols";
 import { CASH, TRADABLE_TOKENS, TRADEABLE_SYMBOLS, CASH_DECIMALS, isValidCustomToken, type CustomToken } from "./tokens";
 import { builtinGrantTargets, type GrantCaps } from "./grant";
 
@@ -28,10 +27,17 @@ import { builtinGrantTargets, type GrantCaps } from "./grant";
  * grants signed afterwards, so the fleet will be running a mix of walls.
  */
 
-const VAULT_ABI = parseAbi([
-  "function deposit(uint256 assets, address receiver) returns (uint256)",
-  "function withdraw(uint256 assets, address receiver, address owner) returns (uint256)",
-]);
+/**
+ * ZeroDev's RateLimitPolicy singleton that REFILLS, as opposed to the lifetime
+ * counter its sibling implements. See the long note in buildWallPolicies for
+ * why the difference decides whether `maxOpsPerDay` means what it says.
+ *
+ * A literal here, and duplicated from @zerodev/permissions on purpose, for the
+ * same reason as WALL_POLICY_CONTRACTS below: this is what THIS code sealed,
+ * and a library version bump that moves the address must fail the probe loudly
+ * rather than quietly follow it into a different contract.
+ */
+const RATE_LIMIT_POLICY_WITH_RESET = "0x6a06358e6b283921deceabe7e8a3741d506cca9b" as Address;
 
 /**
  * Cash conversion lives in ./cash now, and this re-export is the migration
@@ -68,10 +74,15 @@ export { cashUnits, MAX_CASH_UI } from "./cash";
  *
  * NOT_FOR_VALIDATE_SIG closes it: the kernel refuses to validate signatures
  * from this permission, while UserOp execution is untouched. This costs
- * merrymen nothing — the entire trading path is UserOps, and the v4 route
- * authorises Permit2 with a CALL (`permit2.approve`, see venues/uniswap-v4.ts)
- * rather than a signed permit. Grep confirms nothing in worker/, packages/ or
- * web/src/lib signs with the session account.
+ * merrymen nothing — the entire trading path is UserOps. Grep confirms nothing
+ * in worker/, packages/ or web/src/lib signs with the session account.
+ *
+ * The Permit2 route that made this urgent is now gone with the v4 lane (Phase
+ * 5), so the specific chain described above can no longer be built. The flag
+ * stays, and the paragraph above stays with it: the hole was never really about
+ * Permit2. It was about a call policy being asked to constrain something that
+ * is not a call, and the next contract that settles against an ERC-1271
+ * signature would reopen it exactly the same way.
  *
  * The flag travels ON-CHAIN in the validator's enable data, so the account
  * itself enforces it — this is not a client-side promise. It is also hashed
@@ -107,57 +118,30 @@ export const WALL_POLICY_CONTRACTS: readonly { name: string; address: Address }[
   { name: "TimestampPolicy", address: "0xB9f8f524bE6EcD8C945b1b87f9ae5C192FdCE20F" as Address },
   { name: "CallPolicy V0_0_4", address: "0x9a52283276A0ec8740DF50bF01B28A80D880eaf2" as Address },
   { name: "ECDSA signer", address: "0x6A6F069E2a08c2468e7724Ab3250CdBFBA14D4FF" as Address },
+  // Added in Phase 5, and this list is exactly why it can be. The rate limit
+  // was dropped on 4663 because this singleton was the one that did not exist
+  // there, and nothing checked — the failure this list was built to catch.
+  { name: "RateLimitPolicyWithReset", address: RATE_LIMIT_POLICY_WITH_RESET },
 ];
 
 /**
  * The only contracts a token approval may ever name as spender.
  *
- * Permit2 is here only to serve the v4 route, and follows the same opt-in: v4
- * never pulls tokens directly, so the account approves PERMIT2 and Permit2
- * grants the router its allowance — the router itself is approved for nothing.
+ * ONE ENTRY, AND THAT IS THE HEADLINE OF PHASE 5. This list used to hold up to
+ * six: the Pancake router, a Rialto meta-router, a Morpho vault, Permit2, and
+ * two self-swap adapters. Five of them pointed at Robinhood Chain deployments
+ * with no code on BNB, and an approved spender is never free — the sell-side
+ * approvals carry no amount condition, so every unused router in this list was
+ * a standing licence to move every token the agent holds. They are gone with
+ * their venues.
+ *
+ * The result is a wall that is smaller than the one the README describes, which
+ * is the rare direction for that gap to run. Nothing may be added back here
+ * without a venue that has code at the address and a reason the trading path
+ * cannot be served by the router already listed.
  */
-export function allowedSpenders(
-  allowRialto = false,
-  allowUniswapV4 = false,
-  v4AdapterAddress?: Address,
-  ponsAdapterAddress?: Address,
-): Address[] {
-  return [
-    // Rialto is OPT-IN, and off by default — see WallOptions.allowRialto. An
-    // approved spender can pull whatever it was approved for, and the stock
-    // approvals carry no amount condition, so an unused router in this list is
-    // not free: it is a standing licence to move every share the agent holds.
-    ...(allowRialto ? [RIALTO.routerSnapshot as Address] : []),
-    PANCAKE.smartRouter as Address,
-    MORPHO.steakhouseUsdgVault as Address,
-    // Permit2 used to sit here unconditionally, which made the sentence above
-    // literally true of it: with the stock approvals uncapped, the session key
-    // could approve Permit2 for every share it held. Harmless only while the
-    // v4 CALL permissions are absent, so the two are now granted together or
-    // not at all — see WallOptions.allowUniswapV4.
-    ...(allowUniswapV4 ? [INFRA.permit2 as Address] : []),
-    // The V4SelfSwap adapter pulls tokenIn with a plain transferFrom, so it
-    // must be nameable as a spender. That is ALL it gets here: joining this
-    // list puts it inside the existing capped USDG approve (buy-side bound)
-    // and the per-token approves (sell-side, over exactly the sealed set) —
-    // zero new approve permissions. Its own call permission is added below,
-    // and the licence-to-move-shares caveat above is answered by the contract
-    // itself: everything it pulls it settles into the pool, and everything
-    // that comes out lands with msg.sender. See contracts/V4SelfSwap.sol.
-    ...(v4AdapterAddress ? [v4AdapterAddress] : []),
-    // The PonsSelfTrade adapter, on exactly the same terms and for exactly the
-    // same reason: it pulls assetIn with a plain transferFrom, so it must be
-    // nameable as a spender, and that is ALL it gets here — zero new approve
-    // permissions, inside the existing caps.
-    //
-    // The licence-to-move-shares caveat above is answered the same way it is
-    // for the v4 adapter, by the contract: everything it pulls it either
-    // spends on the curve or hands straight back, everything the curve pays
-    // goes to msg.sender, and nothing survives the call. Where it differs is
-    // that its CURVE argument cannot be pinned by any policy — see the call
-    // permission below, which says so rather than implying otherwise.
-    ...(ponsAdapterAddress ? [ponsAdapterAddress] : []),
-  ];
+export function allowedSpenders(): Address[] {
+  return [PANCAKE.smartRouter as Address];
 }
 
 /**
@@ -191,98 +175,37 @@ export interface WallOptions {
    * wall — so this removes an agent's power, not the owner's.
    */
   withdrawalAddresses?: readonly Address[];
-  /**
-   * The Rialto meta-router. OFF by default.
-   *
-   * Its calldata comes from a quote API, so there is no shape for a call
-   * policy to constrain — target-scoping is the entire control, which means
-   * granting it is granting "call anything on this contract". That is
-   * defensible only if you actually use it, and it needs an integrator API key
-   * to work at all, so the default is off and the risk is opt-in.
-   */
-  allowRialto?: boolean;
-  /**
-   * The Uniswap v4 route — Permit2 plus the UniversalRouter. OFF by default.
-   *
-   * The UniversalRouter takes an opaque `bytes[] inputs`, and the swap
-   * recipient lives inside it. A call policy derives one selector from
-   * `functionName` and can only constrain declared `args`, so there is no
-   * shape here to constrain: granting `execute` is granting "call anything on
-   * this contract". That is the same reasoning as allowRialto, and it should
-   * have carried the same default.
-   *
-   * It did not. These two permissions were granted UNCONDITIONALLY, and
-   * Permit2 was an unconditional approved spender, while the stock approvals
-   * carry no amount condition. Chained — approve(stock, permit2, unbounded),
-   * permit2.approve(stock, universalRouter, max, max), execute(...) — that is
-   * the whole non-USDG book to any address, in one UserOp. The comment on the
-   * execute permission asserted a bound ("Permit2 is only ever granted one
-   * trade's worth, expiring") that described what the worker CHOOSES to
-   * encode, not what the policy PERMITS. Same failure as the vault-withdraw
-   * recipient and the FOR_ALL_VALIDATION default: a comment describing intent
-   * over a policy allowing the opposite.
-   *
-   * Turning it on is a real trade, not a formality: v4 is where new pairs on
-   * this chain launch, so an agent without it cannot buy them — or sell one it
-   * already holds. The stock basket is unaffected; every tradeable symbol has
-   * v3 depth. Off is the honest default because the front page promises the
-   * chain enforces the wall, and with this granted it does not.
-   */
-  allowUniswapV4?: boolean;
-  /**
-   * The V4SelfSwap adapter to grant, or absent for none — the CLOSED default,
-   * like everything here.
-   *
-   * This is the route that replaces allowUniswapV4: instead of Permit2 plus a
-   * router whose calldata the policy cannot read, one contract with one
-   * declared selector whose eight arguments are all static words — and whose
-   * recipient is `msg.sender` in bytecode, so the one thing the old route
-   * could never constrain simply does not exist as a parameter.
-   *
-   * An ADDRESS rather than a boolean because the adapter is per-deploy and
-   * per-chain: the wall must name the exact contract the signature covers,
-   * and the grant records it (StoredGrant.v4AdapterAddress) so the worker
-   * calls that address and no other.
-   */
-  v4AdapterAddress?: Address;
-  /**
-   * The PonsSelfTrade adapter to grant, or absent for none — CLOSED by default.
-   *
-   * A SECOND, SEPARATE opt-in from the v4 adapter, not a widening of it. The two
-   * reach different venues with different risks, and one address granting both
-   * would make the owner's only choice all-or-nothing.
-   *
-   * WHAT THIS ONE CANNOT PIN, SAID PLAINLY. Every other call permission in this
-   * file names a target the policy vouches for. A Pons buy goes to a PER-TOKEN
-   * bonding curve — roughly 475 new addresses an hour — so the curve is an
-   * argument, and no ONE_OF list over it would be anything but wrong tomorrow or
-   * unbounded today. The bound is therefore NOT "the policy checks the venue".
-   * It is:
-   *
-   *   - `assetIn` and `assetOut` pinned ONE_OF the same asset list the approve
-   *     permissions cover, so a trade can only move assets this signature
-   *     already covers;
-   *   - the amount bounded by those same approve caps;
-   *   - and the adapter refusing to deliver anywhere but `msg.sender`, checked
-   *     against the account's own balance rather than the curve's word for it.
-   *
-   * That is the same exposure the v4 adapter carries with its caller-chosen pool
-   * key, and the same one SwapRouter02 carries today: a compromised session key
-   * can trade an allowlisted asset into a venue the attacker controls, at a
-   * price they pick, up to the standing allowance. Not zero, and worth the owner
-   * knowing before they turn it on.
-   *
-   * Note also what it does NOT reach: native-quoted curves, which are 53.6% of
-   * the launchpad. The adapter is non-payable so this permission keeps
-   * `valueLimit: 0n`, and native support would be a different contract behind a
-   * different selector — see contracts/PonsSelfTrade.sol.
-   *
-   * An ADDRESS rather than a boolean, for the same reason as the v4 adapter:
-   * per-deploy and per-chain, so the wall names the exact contract the signature
-   * covers.
-   */
-  ponsAdapterAddress?: Address;
 }
+
+/**
+ * WHAT THIS INTERFACE USED TO OFFER, and why removing it made the wall tighter.
+ *
+ * Four opt-ins lived here — `allowRialto`, `allowUniswapV4`, `v4AdapterAddress`
+ * and `ponsAdapterAddress` — each widening the wall to reach a venue. Phase 5
+ * deleted all four with the venues themselves, and the reasoning is worth
+ * keeping because it is the argument for not adding the next one carelessly.
+ *
+ * Two of them (Rialto, Uniswap v4) granted a call on a router whose calldata a
+ * policy CANNOT constrain: an opaque `bytes[] inputs` or API-supplied bytes
+ * means target-scoping is the whole control, so granting the call is granting
+ * "call anything on this contract". `allowUniswapV4` shipped granted
+ * UNCONDITIONALLY at one point, with Permit2 as an unconditional spender and
+ * uncapped sell-side approvals — approve(token, permit2, unbounded) →
+ * permit2.approve(token, universalRouter, max, max) → execute(...) was the whole
+ * book to any address in one UserOp, under a comment asserting a bound that
+ * only the worker chose to encode and the policy never required.
+ *
+ * The other two were self-swap adapters, and they were the better design: one
+ * declared selector, static arguments, recipient hardcoded to `msg.sender` in
+ * bytecode. They still could not pin the VENUE — a Pons buy goes to a per-token
+ * curve, ~475 new addresses an hour, so no ONE_OF list over it was either
+ * bounded or correct for long.
+ *
+ * The wall that remains grants one router, one selector, with arguments the
+ * policy actually reads. If a future venue needs an opt-in, the bar it has to
+ * clear is that one: a shape a call policy can constrain, not a comment
+ * promising the worker will behave.
+ */
 
 /**
  * Owner-added tokens that are safe to seal into a policy.
@@ -329,31 +252,24 @@ export function buildCallPermissions(
   smartAccount: Address,
   opts: WallOptions = {},
 ) {
-  // The adapter address is validated HERE, at the last point before it
-  // becomes on-chain policy — a malformed address in a call permission is a
-  // policy that can never match anything, i.e. a bricked route that looks
-  // granted. Throwing beats sealing garbage into a signature.
-  let adapter: Address | undefined;
-  if (opts.v4AdapterAddress !== undefined) {
-    if (!/^0x[0-9a-fA-F]{40}$/.test(opts.v4AdapterAddress)) {
-      throw new Error(`v4AdapterAddress is not an address: ${JSON.stringify(opts.v4AdapterAddress)}`);
-    }
-    adapter = opts.v4AdapterAddress.toLowerCase() as Address;
-  }
-  let ponsAdapter: Address | undefined;
-  if (opts.ponsAdapterAddress !== undefined) {
-    if (!/^0x[0-9a-fA-F]{40}$/.test(opts.ponsAdapterAddress)) {
-      throw new Error(`ponsAdapterAddress is not an address: ${JSON.stringify(opts.ponsAdapterAddress)}`);
-    }
-    ponsAdapter = opts.ponsAdapterAddress.toLowerCase() as Address;
-  }
-  const spenders = allowedSpenders(opts.allowRialto, opts.allowUniswapV4, adapter, ponsAdapter);
+  const spenders = allowedSpenders();
   const extras = usableExtraTokens(opts.extraTokens);
-  // Every asset this signature may hold a leg in: USDG plus everything the
-  // approve permissions below cover. This is what the adapter's tokenIn and
-  // tokenOut are pinned to — same source, same call, so the approve set and
-  // the swap set cannot drift apart within one grant.
-  const adapterAssets: Address[] = [
+  /**
+   * Every asset this signature may hold a leg in: cash plus everything the
+   * approve permissions below cover.
+   *
+   * WAS `adapterAssets`, named for the self-swap adapters that used it. Those
+   * are gone (Phase 5) and this list is now read by exactInputSingle alone —
+   * but it is the same list, derived in the same call from the same `extras`,
+   * which is the property that matters: the set a grant can APPROVE and the set
+   * it can SWAP cannot drift apart within one signature.
+   *
+   * That pin is what stops a stolen session key minting a worthless token and
+   * swapping the whole approved balance into it. Both legs must be assets the
+   * OWNER named, and the strictness costs nothing — a new token needs a re-sign
+   * to be sellable anyway, under the no-exit rule.
+   */
+  const tradableAssets: Address[] = [
     CASH.USD as Address,
     ...TRADABLE_TOKENS.filter((t) => (TRADEABLE_SYMBOLS as readonly string[]).includes(t.symbol)).map(
       (t) => t.address as Address,
@@ -428,17 +344,6 @@ export function buildCallPermissions(
           } as const,
         ]
       : []),
-    // Rialto router: target-scoped ONLY, because its calldata comes from a
-    // quote API and has no shape to constrain — so this permission is "call
-    // anything on this contract". Opt-in for that reason; absent by default.
-    ...(opts.allowRialto
-      ? [
-          {
-            target: RIALTO.routerSnapshot as Address,
-            valueLimit: 0n,
-          } as const,
-        ]
-      : []),
     {
       // Uniswap SwapRouter02: exactInputSingle only, AND the output must land
       // in the agent's own account.
@@ -473,12 +378,12 @@ export function buildCallPermissions(
       // token. The stocks left via the pool, so the ops-per-day cap never
       // bites — one op is enough to convert the entire non-cash book.
       //
-      // The paragraph below at the v4 adapter already described this attack and
-      // said the adapter's ONE_OF pin closes it; the adapter has never shipped
-      // (allowUniswapV4 is hardcoded false in both signers), so the pin belongs
-      // here, on the route grants actually carry. Same list, same variable as
-      // the approve permissions above — `adapterAssets` — so the set a key may
-      // APPROVE and the set it may SWAP INTO cannot drift apart within a grant.
+      // A v4 adapter below used to carry this same ONE_OF pin, and the argument
+      // for it was written there; that adapter never shipped and is now deleted,
+      // so the pin lives here, on the only route a grant carries. Same list,
+      // same variable as the approve permissions above — `tradableAssets` — so
+      // the set a key may APPROVE and the set it may SWAP INTO cannot drift
+      // apart within a grant.
       //
       // Cost: one bytes32 per allowed address per rule, so two legs over the
       // default 15-address list is ~960 bytes of extra enable-data, paid once
@@ -488,8 +393,8 @@ export function buildCallPermissions(
       abi: UNISWAP_SWAP_ROUTER_ABI,
       functionName: "exactInputSingle",
       args: [
-        { condition: ParamCondition.ONE_OF, value: adapterAssets },
-        { condition: ParamCondition.ONE_OF, value: adapterAssets },
+        { condition: ParamCondition.ONE_OF, value: tradableAssets },
+        { condition: ParamCondition.ONE_OF, value: tradableAssets },
         null,
         self,
         null,
@@ -521,162 +426,31 @@ export function buildCallPermissions(
     // unreachable. That is a real loss of reach and it is the honest trade —
     // the alternative is shipping a hole that cannot be closed. The way back is
     // an adapter with static args (V4SelfSwap is the pattern), not this.
-    // ── the V4SelfSwap adapter, when the owner opted in ──────────────────
+    // ── WHAT ELSE USED TO BE IN THIS ARRAY ───────────────────────────────
     //
-    // ONE permission, and STRICTER than the v3 routes above it. `swapExactIn`
-    // has eight all-static arguments, so each maps to its own calldata word
-    // and each is individually pinnable — proven against viem's encoder in
-    // wall.test.ts, the same way the two routes above are.
+    // Four more permissions stood here and left with their venues in Phase 5.
+    // Recorded because each was removed for a REASON, and the reasons are the
+    // standard the next permission has to meet:
     //
-    // tokenIn and tokenOut are pinned ONE_OF over the same asset set the
-    // approve targets derive from — USDG plus every token this signature can
-    // approve for a sell. Computed inside this same call from the same
-    // `extras`, so the two lists cannot drift within one grant. That closes
-    // the attack the v3 routes still accept: a stolen session key minting a
-    // worthless token and swapping the whole approved balance into it costs
-    // the attacker only gas. Here, both legs must be assets the OWNER named.
-    // The cost of that strictness is zero, not small: a new token needs a
-    // re-sign to be SELLABLE anyway (the no-exit rule), so being pinned here
-    // adds no friction that does not already exist.
+    //   V4SelfSwap.swapExactIn   — the strictest thing in this file: eight
+    //     static words, both legs pinned, recipient hardcoded to msg.sender in
+    //     bytecode. Deleted only because Uniswap v4 has no deployment on BNB.
+    //     It remains the pattern to copy, and the reason `exactInputSingle`
+    //     above now carries its ONE_OF pin.
+    //   PonsSelfTrade.tradeExactIn — same shape, one honest weakness it stated
+    //     outright: the curve address could not be pinned, because a buy goes
+    //     to a per-token curve and any ONE_OF list over it is stale tomorrow or
+    //     unbounded today.
+    //   Morpho deposit / withdraw   — the idle-cash sweep. Both had recipient
+    //     pins won the hard way: `deposit(assets, receiver)` mints shares to
+    //     `receiver`, so unpinned it moved money out wearing a deposit's
+    //     clothes, and `withdraw` could drain the whole position to any address
+    //     in one uncapped call. See YIELD in protocols.ts for why nothing
+    //     replaced the vault.
     //
-    // The words left null are null for stated reasons. amountIn (word 5) is
-    // denominated in tokenIn's own units — a USDG-derived cap would be
-    // meaningless on a sell — and the approve caps above are the real bound:
-    // the adapter can only pull what was approved, and pulls are further
-    // bounded by its own PullExceedsAmountIn check. minAmountOut (word 6) is
-    // denominated in the OUTPUT token, so no single figure means anything
-    // across pairs; the adapter's NoOutput guard is what stops a null here
-    // meaning "zero is acceptable". hooks (word 4) is null DELIBERATELY:
-    // hooked pools are the entire point (new pairs launch through them), and
-    // a hostile hook is inside the adapter's tested threat model — it can
-    // worsen a price, never redirect the output or overdraw the pull.
-    //
-    // And the word that is not here at all is the reason this contract
-    // exists: there is no recipient argument. It is msg.sender, in bytecode.
-    ...(adapter
-      ? [
-          {
-            target: adapter,
-            valueLimit: 0n,
-            abi: V4SELFSWAP_ABI,
-            functionName: "swapExactIn",
-            args: [
-              { condition: ParamCondition.ONE_OF, value: adapterAssets },
-              { condition: ParamCondition.ONE_OF, value: adapterAssets },
-              null, // fee — any tier the pool actually has
-              null, // tickSpacing — pool identity, bounded by the quote
-              null, // hooks — see above
-              null, // amountIn — bounded by the approve caps
-              null, // minAmountOut — see above
-              null, // deadline
-            ],
-          } as const,
-        ]
-      : []),
-    // The Pons bonding-curve adapter. Same shape, one honest difference.
-    //
-    // THE CURVE IS NOT PINNED AND CANNOT BE. A buy goes to a per-token curve —
-    // ~475 new addresses an hour — so any ONE_OF list over word 0 is either
-    // stale tomorrow or unbounded today. This comment exists to say that
-    // outright, because the failure mode this file keeps warning about is a
-    // comment describing intent over a policy allowing the opposite, and a
-    // reader skimming `null` deserves to know it is deliberate rather than an
-    // oversight.
-    //
-    // What still binds: both asset legs are pinned to the SAME list the approve
-    // permissions cover — same variable, same call, so the trade set cannot
-    // drift from the approve set within one grant — the size is bounded by
-    // those approves, and the adapter delivers only to msg.sender, verified
-    // against the account's own balance rather than the curve's claim.
-    //
-    // `valueLimit: 0n` like every other entry here, and that is load-bearing
-    // rather than incidental: the adapter is non-payable, which is exactly why
-    // native-quoted curves are out of reach and why granting this does not
-    // become the first permission in the wall that can move native ETH.
-    ...(ponsAdapter
-      ? [
-          {
-            target: ponsAdapter,
-            valueLimit: 0n,
-            abi: PONS_SELFTRADE_ABI,
-            functionName: "tradeExactIn",
-            args: [
-              null, // curve — unpinnable, see above
-              { condition: ParamCondition.ONE_OF, value: adapterAssets },
-              { condition: ParamCondition.ONE_OF, value: adapterAssets },
-              null, // amountIn — bounded by the approve caps
-              null, // minAmountOut — denominated in the output asset, says nothing useful
-              null, // deadline
-            ],
-          } as const,
-        ]
-      : []),
-    {
-      // Morpho vault deposits, capped per call at the daily limit — and the
-      // SHARES must come back to the agent's own account.
-      //
-      // Not in the original five exits, found while pinning the withdrawal:
-      // deposit(assets, receiver) mints vault shares to `receiver`. Unpinned,
-      // a compromised agent could spend the owner's USDG and mint the shares
-      // to itself elsewhere — the money leaves just as surely as a transfer,
-      // only wearing a deposit's clothes.
-      target: MORPHO.steakhouseUsdgVault as Address,
-      valueLimit: 0n,
-      abi: VAULT_ABI,
-      functionName: "deposit",
-      args: [{ condition: ParamCondition.LESS_THAN_OR_EQUAL, value: cashUnits(caps.dailyUsdg) }, self],
-    },
-    {
-      // Withdrawals are unrestricted in SIZE — money coming home is not a risk
-      // the wall needs to bound. But "coming home" has to be enforced, not
-      // assumed: withdraw(assets, receiver, owner) takes a receiver, and with
-      // no args at all the session key could drain the entire vault position
-      // to any address in one call, uncapped, because the size rule that would
-      // have bounded it was deliberately absent.
-      //
-      // The old comment described the INTENT ("money coming home") while the
-      // policy permitted the opposite. Size stays unbounded; the destination
-      // does not.
-      target: MORPHO.steakhouseUsdgVault as Address,
-      valueLimit: 0n,
-      abi: VAULT_ABI,
-      functionName: "withdraw",
-      args: [null, self, null],
-    },
-    // The v4 pair — OPT-IN, and off by default. See WallOptions.allowUniswapV4
-    // for why, and note these two travel together with the Permit2 spender in
-    // allowedSpenders: any one of the three alone is inert, all three is a
-    // drain. Granting them individually is how this became a hole.
-    ...(opts.allowUniswapV4
-      ? [
-          {
-            // Permit2 may be told to grant an allowance, but ONLY to the
-            // UniversalRouter. Without that EQUAL condition this single
-            // permission would let the session key hand any spender an
-            // allowance on any token — strictly more power than trading.
-            //
-            // The token, the amount and the expiration all stay unconstrained,
-            // so this is a bound on WHO, never on how much or for how long.
-            // That is precisely why the whole pair is opt-in.
-            target: UNISWAP.permit2 as Address,
-            valueLimit: 0n,
-            abi: PERMIT2_ABI,
-            functionName: "approve",
-            args: [null, { condition: ParamCondition.EQUAL, value: UNISWAP.universalRouter as Address }, null, null],
-          },
-          {
-            // The UniversalRouter executes opaque command bundles, so a call
-            // policy cannot constrain its calldata — including the recipient.
-            // Nothing upstream bounds it either: the Permit2 allowance above
-            // is uncapped and non-expiring as far as the POLICY is concerned.
-            // Enabling this grants "move approved tokens anywhere".
-            target: UNISWAP.universalRouter as Address,
-            valueLimit: 0n,
-            abi: UNIVERSAL_ROUTER_ABI,
-            functionName: "execute",
-          },
-        ]
-      : []),
+    // The fifth, the Permit2 + UniversalRouter pair, is described in the block
+    // comment that replaced WallOptions' opt-ins. It is the one nobody should
+    // want back in that form.
   ];
 }
 
@@ -698,60 +472,65 @@ export function buildWallPolicies(args: {
   const policies = [
     // Hard expiry — the key dies even if every other control fails.
     toTimestampPolicy({ validAfter: now, validUntil: expiresAt }),
-    // THE RATE LIMIT POLICY IS GONE, because it was never there.
+    // THE RATE LIMIT IS BACK ON THE CHAIN, and this is the one thing the BNB
+    // move made strictly better rather than merely different.
     //
-    // `toRateLimitPolicy({count: maxOpsPerDay, interval: 86_400})` used to sit
-    // on this line. Its `policyAddress` defaults to RATE_LIMIT_POLICY_CONTRACT
-    // in @zerodev/permissions — and that address has NO CODE on Robinhood
-    // Chain. Measured 2026-08-30 with eth_getCode against both live RPCs:
+    // On Robinhood Chain this line was empty, and the comment where it used to
+    // sit was the longest apology in the file. `toRateLimitPolicy`'s default
+    // `policyAddress` is RATE_LIMIT_POLICY_CONTRACT, which had ZERO BYTES on
+    // 4663 and 46630 (measured 2026-08-30). Every grant the repo could produce
+    // sealed a pointer into empty space: Kernel calls `checkUserOpPolicy`
+    // expecting a uint256, a call to a codeless address returns no data, and
+    // the likeliest result was every UserOp failing validation — consistent
+    // with the project never having landed a trade. A policy that cannot
+    // execute is not a bound, so it was removed and maxOpsPerDay was demoted to
+    // a worker-enforced cap, which a compromised worker simply ignores.
     //
-    //   RateLimitPolicy  0xf63d4139B25c836334edD76641356c6b74C86873   0 bytes on 4663 AND 46630
-    //   TimestampPolicy  0xB9f8f524bE6EcD8C945b1b87f9ae5C192FdCE20F   1,441 bytes
-    //   CallPolicy V4    0x9a52283276A0ec8740DF50bF01B28A80D880eaf2   6,539 bytes
-    //   ECDSA signer     0x6A6F069E2a08c2468e7724Ab3250CdBFBA14D4FF   1,609 bytes
+    // Both variants have code on BNB. Re-probed 2026-09-09 at block 120,867,973
+    // against bsc-dataseed.bnbchain.org, per the standing rule in protocols.ts:
     //
-    // So every grant this repo could produce installed a policy pointing at an
-    // empty address. Kernel calls `checkUserOpPolicy` expecting a uint256; a
-    // call to a codeless address succeeds with zero returndata. That is not
-    // "ops go unlimited" — it is most likely EVERY UserOp failing validation,
-    // which is consistent with this project never having landed a trade.
+    //   RateLimitPolicy             0xf63d…C86873   1,739 bytes
+    //   RateLimitPolicyWithReset    0x6a06…cca9b    5,282 bytes
     //
-    // A policy that cannot execute is not a bound. Leaving it in traded a
-    // guarantee we did not have for a failure mode we could not diagnose.
+    // WE TAKE THE SECOND ONE, AND THE DIFFERENCE IS THE WHOLE POINT. The plain
+    // RateLimitPolicy decrements a LIFETIME counter — `count` ops per GRANT,
+    // never refilled — so wiring it under the name `maxOpsPerDay` would restate
+    // the exact error this comment used to call out: a bound described in days
+    // that the contract measures in grants. At the default 48 and a 30-day
+    // expiry that is not "48 a day", it is 48 ever, and the agent stops
+    // trading on day one with no error that says so.
     //
-    // SAY THE COST OUT LOUD. maxOpsPerDay is now enforced by the WORKER only,
-    // alongside the daily total and the drawdown breaker. The on-chain ceiling
-    // is per-trade × (however many ops fit before expiry) — see the header.
+    // `policyAddress` is passed EXPLICITLY rather than left to the library
+    // default. The default is the lifetime variant, so omitting this argument
+    // silently selects the wrong semantics — and the address is also listed in
+    // WALL_POLICY_CONTRACTS above, so `merrymen doctor` refuses a grant when it
+    // has no code instead of sealing another pointer into empty space.
     //
-    // And it was never the cap it was described as, even where the contract IS
-    // deployed: RateLimitPolicy decrements a LIFETIME counter and returns
-    // packValidationData(startAt); this call never passed `startAt`, so it
-    // defaulted to 0 and imposed no spacing at all. It was maxOpsPerDay ops
-    // TOTAL per grant, with no daily refill — not "48 a day".
-    //
-    // The fix that would restore a real on-chain bound is to deploy the policy
-    // singleton to 4663 ourselves and pass `policyAddress`. That is a contract
-    // deployment and it is deliberately not bundled with this correction.
+    // ⚠ WHAT IS VERIFIED AND WHAT IS NOT. Verified: the contract has code at
+    // this address on 56, and the encoding the library produces for it
+    // (interval ‖ count, no startAt). NOT verified: that a grant carrying this
+    // policy validates a real UserOp end to end — that needs a funded key on
+    // BNB, which is the pre-mainnet checklist, not this commit.
+    toRateLimitPolicy({
+      policyAddress: RATE_LIMIT_POLICY_WITH_RESET,
+      count: args.caps.maxOpsPerDay,
+      interval: 86_400,
+    }),
     toCallPolicy({
       policyVersion: CallPolicyVersion.V0_0_4,
-      // EVERY adapter must be forwarded, and the type system will not tell you.
-      // `ponsAdapterAddress` was missing here and it type-checked, because this
-      // function's argument is an intersection with WallOptions — so the field
-      // was accepted at the call site and silently dropped one line later. The
-      // result would be the exact failure the grant module warns about: a
-      // signature carrying the `pons-adapter` MARKER and a sealed address, over
-      // a call policy with no `tradeExactIn` permission and no adapter in the
-      // approve spender set. `limitsFromGrant` would allow the target, the
-      // worker would build the UserOp, and both calls would revert at the wall.
-      // A mirror looser than the chain is the one shape this file exists to
-      // prevent.
+      // EVERY option must be forwarded, and the type system will not tell you.
+      // `ponsAdapterAddress` was once missing from this object and it
+      // type-checked, because this function's argument is an INTERSECTION with
+      // WallOptions — so the field was accepted at the call site and silently
+      // dropped one line later, producing a grant whose sealed marker promised
+      // a permission the call policy did not carry. A mirror looser than the
+      // chain is the one shape this file exists to prevent.
+      //
+      // Both fields below are now the whole of WallOptions, which is the real
+      // fix: the trap needs three or more options to hide in.
       permissions: buildCallPermissions(args.caps, args.smartAccount, {
         extraTokens: args.extraTokens,
         withdrawalAddresses: args.withdrawalAddresses,
-        allowRialto: args.allowRialto,
-        allowUniswapV4: args.allowUniswapV4,
-        v4AdapterAddress: args.v4AdapterAddress,
-        ponsAdapterAddress: args.ponsAdapterAddress,
       }) as never,
     }),
   ];

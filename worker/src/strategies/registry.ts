@@ -5,7 +5,7 @@
  * changes settings.
  */
 
-import { CASH, MORPHO, TRADABLE_TOKENS, isHostedMode, type TradableToken } from "../../../packages/core/src/index";
+import { CASH, TRADABLE_TOKENS, isHostedMode, type TradableToken } from "../../../packages/core/src/index";
 import type { LlmCreds } from "../llm";
 import { createDriver, nullDriver } from "../strategist/driver";
 import { makeLlmStrategist, type StrategistDecision } from "../strategist/strategy";
@@ -41,20 +41,6 @@ export function isCircleStrategy(name: string): boolean {
 }
 
 export interface StrategyBuildOpts {
-  /**
-   * The bonding-curve legs available right now, re-read per decision.
-   *
-   * Supplied by the host (the worker tick), because a curve leg carries THIS
-   * TICK’S reserves — the input a slippage floor is derived from. Optional, so
-   * a host that does not trade curves is unchanged.
-   */
-  curveLegsNow?: () => {
-    legs: ReadonlyMap<string, import("../strategist/proposals").CurveLeg>;
-    tokens: ReadonlyMap<string, `0x${string}`>;
-    slippageBps: number;
-    /** How far one buy may move the curve, bps. Travels with the legs. */
-    maxImpactBps: number;
-  } | null;
   swapRouter: `0x${string}`;
   usdg6: (v: number) => bigint;
   basketSymbols: string[];
@@ -211,9 +197,6 @@ export function buildStrategy(name: string, opts: StrategyBuildOpts): Strategy {
         maxPerActionUsdg: opts.usdg6(opts.llm.maxActionUsdg),
         maxActionsPerTick: 4,
       },
-      // The curve venue, re-read per decision. Undefined when the host does
-      // not supply one, which keeps every existing strategy identical.
-      curveLegsNow: opts.curveLegsNow,
       decisionIntervalMs: opts.llm.intervalMin * 60_000,
       onNote: opts.onNote,
       onDecision: opts.llm.onDecision,
@@ -267,11 +250,10 @@ export function buildStrategy(name: string, opts: StrategyBuildOpts): Strategy {
     buyPerTickUsdg: opts.usdg6(opts.buyPerTickUsdg),
     idleFloorUsdg: opts.usdg6(opts.idleFloorUsdg),
     swapRouter: opts.swapRouter,
-    vault: MORPHO.steakhouseUsdgVault as `0x${string}`,
     // NULL, so the idle sweep refuses out loud instead of proposing a deposit
-    // into a vault that is empty on this chain (§7.1). `vault` is still passed
-    // because the WITHDRAW branch has to be able to name it: an agent that
-    // migrated with cash already parked must be able to pull it back out.
+    // into a venue that does not exist on this chain (§7.1). The `vault`
+    // address that used to sit beside this is gone with Morpho — there is
+    // nothing parked on BNB to name, and no withdraw permission to name it with.
     yieldVenue: null,
     usdg: CASH.USD as `0x${string}`,
   };

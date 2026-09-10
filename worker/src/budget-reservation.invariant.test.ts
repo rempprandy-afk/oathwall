@@ -115,16 +115,20 @@ test("the execution try carries a finally, because a return inside it runs neith
   );
 });
 
-test("the Rialto router-migration skip records a row rather than returning bare", () => {
-  // The original leak, pinned by name so it cannot silently come back.
-  const idx = SRC.indexOf("Rialto router migrated to");
-  assert.ok(idx > 0, "sanity: the router-migration branch still exists");
+test("the retired-venue skip records a row rather than returning bare", () => {
+  // THE ORIGINAL LEAK, pinned by name so it cannot silently come back — and it
+  // came back. This guarded the Rialto ROUTER-MIGRATION skip, which returned
+  // with an event and no trade row; Phase 5 replaced that branch with one that
+  // refuses a stale `rialtoApiKey`, and the replacement reintroduced the leak
+  // until this assertion caught it.
+  const idx = SRC.indexOf("rialtoApiKey is set, but Rialto");
+  assert.ok(idx > 0, "sanity: the retired-venue branch still exists");
   const branch = SRC.slice(idx, idx + 2000);
-  const ret = branch.indexOf("\n          return;");
+  const ret = branch.indexOf("\n        return;");
   assert.ok(ret > 0, "sanity: the branch still returns");
   assert.match(
     branch.slice(0, ret),
-    /recordTrade\(\{[\s\S]*?reject_rule:\s*"router-migrated"/,
+    /recordTrade\(\{[\s\S]*?reject_rule:\s*"venue-retired"/,
     "the skip must write a rejected row before returning — that is what releases the reservation",
   );
 });

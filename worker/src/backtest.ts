@@ -143,7 +143,7 @@ export async function runBacktest(cfg: BacktestConfig, bars: readonly Bar[]): Pr
       ),
       pausedTokens: new Set(),
       staleFeeds: stale,
-      sequencerUp: true,
+      chainLive: true,
       spendHeadroomUsdg:
         cfg.limits.dailyUsdg > spentToday ? cfg.limits.dailyUsdg - spentToday : 0n,
       perTradeCapUsdg: cfg.limits.perTradeUsdg,

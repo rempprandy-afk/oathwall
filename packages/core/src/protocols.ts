@@ -67,65 +67,26 @@ export const PANCAKE_FEE_TIERS = [100, 500, 2500, 10000] as const;
 export const YIELD = null;
 
 /**
- * ⚠ DEAD ON BNB CHAIN — every address below is EMPTY on 56 and 97.
+ * WHAT USED TO BE HERE, and why nothing replaced it.
  *
- * These are Robinhood Chain deployments, kept only so the venue layer compiles
- * until Phase 3 re-points it and Phase 5 deletes it. docs/bnb-migration-plan.md
- * §5 orders the strip last on purpose: deleting these first breaks compilation
- * across every venue before the replacement exists.
+ * Phase 1 quarantined the Robinhood Chain deployments in a `DEAD_ON_BNB` block
+ * so the venue layer would keep compiling while the replacement was written;
+ * Phase 5 deleted the block and every caller. Recorded here rather than dropped
+ * silently, because "this venue does not exist on BNB" is a fact a reader will
+ * want and grep cannot answer once the addresses are gone:
  *
- * They are quarantined in one block, under one warning, rather than left looking
- * like live constants — an address that resolves and answers nothing is worse
- * than one that is obviously absent. Nothing new may reference them. Approving
- * one of these as a spender is inert rather than dangerous (there is no code at
- * the address to pull anything), but it puts a meaningless entry in a signed
- * grant, and a grant is the one artifact in this product that should contain
- * only things a reader can verify.
+ * - **Uniswap (v2/v3/v4)** — replaced by PANCAKE above. The v4 lane went with
+ *   it: PoolManager, StateView and Quoter were 4663 deployments, and
+ *   PancakeSwap's own v4 ("Infinity") is a different protocol at different
+ *   addresses. Wiring it is new work with its own quoting and hook model, not a
+ *   migration step.
+ * - **Rialto** — Robinhood Chain's propAMM exchange. No BNB equivalent, and
+ *   none needed: the meta-router existed to reach propAMM liquidity because
+ *   stock-token DEX pools were seed-sized. PancakeSwap v3's majors are deep, so
+ *   the tier the meta-router reached for is not missing here — it never existed.
+ * - **Morpho** — the 4626 vault behind the idle-cash sweep. See YIELD above.
+ *
+ * The canonical Permit2 is NOT among the losses. It sat in the Uniswap block,
+ * but `0x0000…78BA3` is the same deployment on every chain including BNB, and
+ * it now lives in chain.ts `INFRA` where a cross-chain constant belongs.
  */
-export const DEAD_ON_BNB = {
-  /** Uniswap on 4663 — replaced by PANCAKE above. */
-  UNISWAP: {
-    universalRouter: "0x8876789976decbfcbbbe364623c63652db8c0904",
-    permit2: "0x000000000022d473030f116ddee9f6b43ac78ba3",
-    v4PoolManager: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
-    v4PositionManager: "0x58daec3116aae6d93017baaea7749052e8a04fa7",
-    v4Quoter: "0x8dc178efb8111bb0973dd9d722ebeff267c98f94",
-    v4StateView: "0xf3334192d15450cdd385c8b70e03f9a6bd9e673b",
-    swapRouter02: "0xcaf681a66d020601342297493863e78c959e5cb2",
-    v3Factory: "0x1f7d7550b1b028f7571e69a784071f0205fd2efa",
-    v3QuoterV2: "0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7",
-    v3PositionManager: "0x73991a25c818bf1f1128deaab1492d45638de0d3",
-    v2Factory: "0x8bceaa40b9acdfaedf85adf4ff01f5ad6517937f",
-    v2Router02: "0x89e5db8b5aa49aa85ac63f691524311aeb649eba",
-    interfaceMulticall: "0x282a3c4d320cc7f0d5eaf56b8029e4b88338f0a3",
-  },
-  /** Rialto — Robinhood Chain's spot exchange. No BNB equivalent; not replaced. */
-  RIALTO: {
-    apiBase: "https://rialto-trade-api.rialto.xyz",
-    routerRegistry: "0x71a120CbBf3Ce7cD910a3c50fF77aFc62735687E",
-    routerSnapshot: "0xC94135b63772b91D79d0A2DaAb2a8801f32359bD",
-    FEATURE_TAKER_ROUTER: 2,
-    FEATURE_GASLESS_ROUTER: 3,
-  },
-  /** Morpho on 4663. See YIELD above for why nothing replaces it. */
-  MORPHO: {
-    morphoBlue: "0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010",
-    vaultV2Factory: "0x0FBad98595b0186dA120E41f77C102beb49f803c",
-    registry: "0xe785a2eFD384BA7B95BaEd3851BC76aeD67C676f",
-    steakhouseUsdgVault: "0xBeEff033F34C046626B8D0A041844C5d1A5409dd",
-    ethenaSteakhouseUsdgVault: "0xbEeFF0fb1Dc19344A87b8479dAb60A2e16160737",
-    graphqlApi: "https://blue-api.morpho.org/graphql",
-  },
-} as const;
-
-/**
- * Compatibility aliases for the quarantined block.
- *
- * The venue layer names these directly at ~90 sites. Re-pointing all of them is
- * Phase 3 and deleting them is Phase 5; aliasing here keeps that one diff each
- * instead of a rename smeared through a phase that is supposed to be about
- * registries. Every one of these is empty on BNB — see DEAD_ON_BNB.
- */
-export const UNISWAP = DEAD_ON_BNB.UNISWAP;
-export const RIALTO = DEAD_ON_BNB.RIALTO;
-export const MORPHO = DEAD_ON_BNB.MORPHO;

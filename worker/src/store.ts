@@ -2143,10 +2143,13 @@ export async function setPositions(
     symbol: string;
     token: string;
     rawBalance: bigint;
-    uiMultiplier: bigint;
     priceUsd: number;
     priceStale: boolean;
-    /** 'chainlink', 'pool' or 'broker' — see the price_source migration. */
+    /**
+     * 'chainlink' or 'pool'. Older rows may also read 'broker', 'curve' or
+     * 'v4' — those producers were deleted in Phase 5 and the words survive in
+     * the ledger. See PriceQuote.source in packages/core.
+     */
     priceSource: string;
     valueUsdg: number;
   }[],
@@ -2168,7 +2171,14 @@ export async function setPositions(
         p.symbol,
         p.token,
         p.rawBalance.toString(),
-        p.uiMultiplier.toString(),
+        // ui_multiplier IS WRITTEN AS A CONSTANT and no longer comes from the
+        // caller. It held the ERC-8056 scaled-UI multiplier, which Phase 5
+        // deleted along with the standard — no BNB token has one. The COLUMN
+        // stays because it is NOT NULL in a schema that ships to owners'
+        // machines, and dropping it is a migration against a live SQLite file
+        // rather than a code change; the dashboard still reads it, and reads
+        // 1e18 as the 1.0 it always was for every token that ever traded here.
+        (10n ** 18n).toString(),
         p.priceUsd,
         p.priceStale ? 1 : 0,
         p.priceSource,

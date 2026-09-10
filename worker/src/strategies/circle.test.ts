@@ -32,7 +32,7 @@ function snap(over: Partial<Snapshot> = {}): Snapshot {
     ]),
     pausedTokens: new Set<string>(),
     staleFeeds: new Set<string>(),
-    sequencerUp: true,
+    chainLive: true,
     // Wide open by default: these fixtures predate cap-aware sizing, so the
     // headroom must not clamp them. Clamping is pinned in its own test.
     spendHeadroomUsdg: 1_000_000_000_000n,
@@ -76,8 +76,8 @@ describe("even-keel (rebalancer)", () => {
     assert.ok(buy, "should top up underweight MSFT");
   });
 
-  it("stays flat when the sequencer is down", () => {
-    assert.deepEqual(ekTick(cfg, snap({ sequencerUp: false })), []);
+  it("stays flat when the chain has stalled", () => {
+    assert.deepEqual(ekTick(cfg, snap({ chainLive: false })), []);
   });
 });
 

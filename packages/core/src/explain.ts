@@ -729,11 +729,23 @@ export const CONCEPTS: readonly Concept[] = [
     evidence: "worker/src/snapshot.ts:158-163, worker/src/index.ts:4721-4744",
   },
   {
-    term: "sequencer down",
-    aliases: ["sequencer", "chain down", "sequencer down — all trading paused", "sequencerup"],
+    term: "chain stalled",
+    // The old L2 vocabulary stays as ALIASES rather than being dropped: an
+    // owner who saw "sequencer DOWN — all trading paused" in their event feed
+    // before the BNB move must still be able to look it up by the words they
+    // were shown.
+    aliases: [
+      "chain down",
+      "chainlive",
+      "chain stalled — all trading paused",
+      "sequencer",
+      "sequencer down",
+      "sequencer down — all trading paused",
+      "sequencerup",
+    ],
     plain: "The chain has to keep producing new blocks for anything to trade. If the newest block merrymen can see is more than two minutes old, it assumes the chain has stalled and every strategy stops proposing trades until fresh blocks appear again — nothing is stuck or lost, it just waits. You get one message when it stops and one when it starts again, not a message every minute.",
-    because: "`sequencerUp` is a heuristic — `now - block.timestamp < 120` — because the Chainlink sequencer-uptime feed address is not yet confirmed for chain 4663; every strategy's first line is `if (!snap.sequencerUp) return`, and the tick only emits an event when the value CHANGES.",
-    confusable: "An unread block is deliberately NOT reported as a down sequencer — that case is routed to \"market unreadable\" instead, so our own rate limit never announces a chain outage to every owner.",
+    because: "`chainLive` is `now - block.timestamp < 120` — a liveness check on our VIEW of the chain as much as on the chain itself, since a stale RPC and a stalled chain look identical from here. Every strategy's first line is `if (!snap.chainLive) return`, and the tick only emits an event when the value CHANGES. It was called `sequencerUp` until the BNB move; BNB is an L1 with no sequencer, and the implementation was always this comparison rather than a sequencer-uptime feed.",
+    confusable: "An unread block is deliberately NOT reported as a stalled chain — that case is routed to \"market unreadable\" instead, so our own rate limit never announces a chain outage to every owner.",
     evidence: "worker/src/snapshot.ts:152-157, worker/src/index.ts:4746-4753, worker/src/strategies/steady-basket.ts:34",
   },
   {

@@ -28,7 +28,7 @@ export function makeDipHunter(cfg: DipHunterConfig): Strategy {
   return {
     name: "dip-hunter",
     tick(snap: Snapshot): Tick {
-      if (!snap.sequencerUp) return { intents: [], why: [] };
+      if (!snap.chainLive) return { intents: [], why: [] };
       if (snap.cashUsdg < cfg.buyPerTickUsdg) return { intents: [], why: [] };
 
       // `symbol` rides along so the reason can name the leg, and `priced` counts

@@ -50,7 +50,6 @@
 
 import { encodeFunctionData, erc20Abi, parseAbi, type Hex, type PublicClient } from "viem";
 import { PANCAKE, PANCAKE_FEE_TIERS, UNISWAP_SWAP_ROUTER_ABI } from "../../../packages/core/src/index";
-import { buildV4AdapterSwapCalls, buildV4SwapCalls, findV4Pool, quoteV4, type PoolKey } from "./uniswap-v4";
 
 /**
  * Fee tiers to scan.
@@ -78,13 +77,13 @@ export interface Quote {
    */
   path?: { tokens: readonly `0x${string}`[]; fees: readonly number[] };
   /**
-   * Present when this quote came from Uniswap **v4**, carrying the exact pool it
-   * priced. v4 executes through Permit2 + UniversalRouter, so a quote and its
-   * calldata are not interchangeable with v3's — buildTradeCalls dispatches on
-   * this, and losing it would mean executing a different route than the one
-   * minOut was computed against.
+   * A `v4` FIELD USED TO SIT HERE, carrying the exact pool a Uniswap v4 quote
+   * priced, because v4 executed through Permit2 + UniversalRouter and its
+   * calldata was not interchangeable with v3's. `buildTradeCalls` dispatched on
+   * it, and losing it would have meant executing a different route than the one
+   * minOut was computed against. That dispatch-on-the-quote discipline is the
+   * part to keep if a second venue ever returns a Quote.
    */
-  v4?: { key: PoolKey };
 }
 
 /**
@@ -213,72 +212,21 @@ export async function bestRoute(
     /** Intermediate token to try routing through. Omit to stay single-hop. */
     via?: `0x${string}`;
     /**
-     * Also quote Uniswap v4. Gated by the CALLER on whether the signed grant
-     * carries the v4 permissions — quoting a venue the key can't reach would
-     * pick a route that then reverts at the wall, which is worse than never
-     * having considered it.
+     * `v4` and `v4Keys` USED TO BE HERE, and one property of them outlives the
+     * venue. Quoting was gated by the CALLER on whether the signed grant
+     * carried the v4 permissions, because quoting a venue the key cannot reach
+     * picks a route that then reverts at the wall — worse than never having
+     * considered it. Any venue added here needs the same gate.
+     *
+     * The hooked-pool rule is the other keeper: entry into a hooked pool also
+     * required the EXIT to quote, because a hook that admits buys and reverts
+     * sells is the no-exit trap one level below the wall, where the wall cannot
+     * see it — the sell permission exists, the pool just refuses to fill.
      */
-    v4?: boolean;
-    /**
-     * Discovered v4 PoolKeys for this pair — the HOOKED pools, learned from
-     * Initialize events (store.poolKeysFor). findV4Pool can only ever guess
-     * hookless keys, so without this list the freshest launches are
-     * structurally unreachable. Quoted only when `v4` is on: a key the grant
-     * cannot execute is a route that reverts at the wall.
-     */
-    v4Keys?: readonly PoolKey[];
   },
 ): Promise<Quote | null> {
   const lc = (a: string) => a.toLowerCase();
   const direct = FEE_TIERS.map((fee) => quoteTier(client, { ...args, fee }));
-
-  // v4 is one more candidate in the same comparison, not a preference. Best
-  // amountOut wins outright, so adding it can only improve the fill — and on
-  // this chain it sometimes does (AAPL quotes better on v4 than v3).
-  const v4 = args.v4
-    ? [
-        (async (): Promise<Quote | null> => {
-          const pool = await findV4Pool(client, args.tokenIn, args.tokenOut);
-          if (!pool) return null;
-          const q = await quoteV4(client, { key: pool.key, tokenIn: args.tokenIn, amountIn: args.amountIn });
-          if (!q) return null;
-          return {
-            fee: pool.key.fee,
-            amountOut: q.amountOut,
-            gasEstimate: q.gasEstimate,
-            v4: { key: pool.key },
-          };
-        })(),
-        // The discovered keys, each its own candidate in the same comparison.
-        // quoteV4 is hooks-agnostic — it always could quote these; nothing
-        // ever FED it one before. Deduped against the hookless guess by pool
-        // id inside pickBestQuote's amountOut comparison (an identical pool
-        // quotes identically, so the duplicate merely ties with itself).
-        //
-        // ENTRY INTO A HOOKED POOL ALSO REQUIRES THE EXIT TO QUOTE. A hook
-        // decides per-swap: one that admits buys and reverts sells is the
-        // no-exit trap one level below the wall, and the wall cannot see it —
-        // the sell permission exists, the pool just refuses to fill it. The
-        // reverse probe is a heuristic (hook behaviour can change after
-        // entry, and that residual is what the scout budget bounds), but a
-        // pool that will not quote the way OUT right now is not a pool to
-        // walk into.
-        ...(args.v4Keys ?? []).map(async (key): Promise<Quote | null> => {
-          const q = await quoteV4(client, { key, tokenIn: args.tokenIn, amountIn: args.amountIn });
-          if (!q) return null;
-          if (lc(key.hooks) !== lc("0x0000000000000000000000000000000000000000")) {
-            const back = await quoteV4(client, { key, tokenIn: args.tokenOut, amountIn: q.amountOut });
-            if (!back || back.amountOut <= 0n) return null;
-          }
-          return {
-            fee: key.fee,
-            amountOut: q.amountOut,
-            gasEstimate: q.gasEstimate,
-            v4: { key },
-          };
-        }),
-      ]
-    : [];
 
   // Hopping through one of the endpoints is the same swap with extra steps.
   const viaUsable =
@@ -295,7 +243,7 @@ export async function bestRoute(
       )
     : [];
 
-  return pickBestQuote(await Promise.all([...direct, ...hops, ...v4]));
+  return pickBestQuote(await Promise.all([...direct, ...hops]));
 }
 
 /**
@@ -317,10 +265,6 @@ export async function requoteRoute(
   route: Quote,
   args: { tokenIn: `0x${string}`; tokenOut: `0x${string}`; amountIn: bigint },
 ): Promise<bigint | null> {
-  if (route.v4) {
-    const q = await quoteV4(client, { key: route.v4.key, tokenIn: args.tokenIn, amountIn: args.amountIn });
-    return q?.amountOut ?? null;
-  }
   if (route.path) {
     const q = await quotePath(client, {
       tokens: route.path.tokens,
@@ -350,36 +294,18 @@ export function buildTradeCalls(args: {
   recipient: `0x${string}`;
   amountIn: bigint;
   minAmountOut: bigint;
-  /** Unix seconds. v4 only — bounds the Permit2 allowance and the router call. */
+  /** Unix seconds. Bounds the router call. */
   deadline: number;
-  /**
-   * The grant-sealed V4SelfSwap address, when this grant carries one. Present
-   * ⇒ v4 quotes execute through the adapter (two calls, no Permit2, recipient
-   * structural). Absent ⇒ the legacy Permit2 + UniversalRouter path, which
-   * only pre-adapter GRANT_V4 grants can actually reach.
-   */
-  v4Adapter?: `0x${string}`;
 }): SwapCall[] {
-  if (args.quote.v4) {
-    if (args.v4Adapter) {
-      return buildV4AdapterSwapCalls({
-        adapter: args.v4Adapter,
-        key: args.quote.v4.key,
-        tokenIn: args.tokenIn,
-        amountIn: args.amountIn,
-        minAmountOut: args.minAmountOut,
-        deadline: args.deadline,
-      });
-    }
-    return buildV4SwapCalls({
-      key: args.quote.v4.key,
-      tokenIn: args.tokenIn,
-      amountIn: args.amountIn,
-      minAmountOut: args.minAmountOut,
-      deadline: args.deadline,
-    });
-  }
-  // v3: approve the router directly for exactly this trade, then swap.
+  // ONE SHAPE NOW. This used to branch on `quote.v4` into either the
+  // V4SelfSwap adapter (two calls, no Permit2, recipient structural) or the
+  // legacy Permit2 + UniversalRouter pair. The reason for dispatching on the
+  // QUOTE rather than being told the venue separately still holds and is why
+  // this function exists at all: building the calls at the call site is how you
+  // approve one router and swap through another, or execute one path against a
+  // minOut computed on a different pool.
+  //
+  // approve the router directly for exactly this trade, then swap.
   const approve: SwapCall = {
     to: args.tokenIn,
     value: 0n,

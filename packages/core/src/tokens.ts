@@ -109,18 +109,19 @@ export interface PriceQuote {
    * and a round-trip cost check instead. Good enough to value a holding, and
    * still inside the scout budget on the buy side.
    *
-   * "broker" and "curve" ARE DEAD ON BNB and are deleted in Phase 5, not here.
-   * "broker" was the Robinhood get_equity_quotes rail; "curve" was a Pons
-   * bonding curve, an evidential class of its own because a curve has no oracle
-   * to diverge from. Neither has a producer on this chain. They stay in the
-   * union only because venues/robinhood-feed.ts and venues/curve-prices.ts
-   * still emit them, and narrowing the type before deleting the producers would
-   * break the venue layer before its replacement exists — the ordering
-   * docs/bnb-migration-plan.md §5 is explicit about. Every consumer switch that
-   * handles them is dead code with a live type, which is the honest state of
-   * this tree mid-migration.
+  * "broker", "curve" and "v4" WERE members and were removed in Phase 5 with
+   * their producers — the Robinhood get_equity_quotes rail, the Pons bonding
+   * curve, and the Uniswap v4 lane, none of which has code at its address on
+   * BNB. Two sources are all this chain can produce.
+   *
+   * ⚠ THIS UNION DESCRIBES A LIVE READ, NOT THE LEDGER. Trade and position rows
+   * written before the migration still carry those three words in
+   * `price_source`, and `priceSourceTag` below is deliberately typed `string`
+   * rather than this union so it can keep decoding them. Narrowing the reader
+   * to match the writer would send a historical bonding-curve mark through the
+   * default arm — and the default arm means Chainlink-grade.
    */
-  source: "chainlink" | "pool" | "v4" | "broker" | "curve";
+  source: "chainlink" | "pool";
   /** For pool prices: route + depth, so a human can judge the number. */
   detail?: string;
   /**
@@ -152,11 +153,12 @@ export function isValidCustomToken(t: unknown): t is CustomToken {
 /**
  * Cash + gas legs.
  *
- * ⚠ EVERY BNB STABLE IS 18 DECIMALS. USDG on Robinhood Chain was 6, and that 6
- * is still baked into conversion sites across the worker as a literal `1e6`.
- * See docs/bnb-migration-plan.md §4 — until that sweep lands, cash arithmetic
- * in this tree is wrong by 10^12. Nothing here may be armed against real funds
- * before it does.
+ * EVERY BNB STABLE IS 18 DECIMALS, where USDG on Robinhood Chain was 6. That
+ * exponent used to be a literal at more than a hundred conversion sites; Phase 2
+ * routed every one of them through `CASH_DECIMALS` and `cash.ts`, so the next
+ * change to it is one line. See docs/bnb-migration-plan.md §4 for the seven bugs
+ * that sweep found, each one a constant whose comment named a quantity and whose
+ * value encoded 6dp.
  */
 export const CASH = {
   /**
@@ -284,13 +286,22 @@ export const TOKEN_ABI = [
  * distinguished FROM; tagging it would put a label on every row and so label
  * nothing.
  *
- * "broker" and "curve" still have entries because they still have PRODUCERS —
- * see PriceQuote.source. Dropping their tags while venues/robinhood-feed.ts and
- * venues/curve-prices.ts can still emit them would send an unoracled mark
- * through the default arm, and the default arm means Chainlink-grade: no colour,
- * no tag, and no marker in the ledger string handed to the strategist, which
- * would then narrate a bonding-curve number as if a feed had published it. The
- * tags go when the producers go, in Phase 5, and not one commit earlier.
+ * ⚠ "broker", "curve" and "v4" KEEP THEIR TAGS THOUGH NOTHING PRODUCES THEM.
+ * Phase 5 deleted all three producers, and the obvious follow-up — delete the
+ * three cases too — is wrong, which is why this paragraph replaced the one that
+ * promised exactly that.
+ *
+ * The reason is that this function reads the LEDGER, not a live quote. Its
+ * parameter is `string` and not `PriceQuote["source"]` because its caller is
+ * `telegram/reads.ts`, which passes `price_source` straight off a positions row
+ * that may have been written months ago on the old chain. Those rows still say
+ * "curve". Dropping the case would route a historical bonding-curve mark to the
+ * default arm, and the default arm means Chainlink-grade: no tag, no colour, no
+ * marker in the string handed to the strategist — which would then narrate an
+ * unoracled number as if a feed had published it.
+ *
+ * A tag outlives its producer. Deleting these is a migration of the stored
+ * ledger, not of the code, and nothing here can do it.
  */
 export function priceSourceTag(source: string): string {
   switch (source) {

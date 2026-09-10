@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { classifyBalance, nativeSweep, sweepList } from "./recover";
-import { CASH, MORPHO, TRADABLE_TOKENS } from "../../packages/core/src/index";
+import { CASH, TRADABLE_TOKENS } from "../../packages/core/src/index";
 
 /**
  * The escape hatch, which had no tests at all.
@@ -18,15 +18,15 @@ import { CASH, MORPHO, TRADABLE_TOKENS } from "../../packages/core/src/index";
 
 const addr = (n: string) => `0x${n.repeat(40).slice(0, 40)}` as const;
 
-test("the builtin floor includes the vault — a fully-parked agent is not an empty one", () => {
+test("the builtin sweep floor covers cash and every tradable token", () => {
+  // A "vault" entry used to lead this list and carried the sharpest comment in
+  // the file: steady-basket parked idle cash on the first tick, so for most of a
+  // run the VAULT was the account, and leaving it out made recovery report
+  // "empty" for a wallet that was fully invested. Phase 5 removed it with
+  // Morpho — there is no venue on BNB to park in, so nothing can hide there.
   const list = sweepList();
   const targets = list.map((t) => t.address.toLowerCase());
   assert.ok(targets.includes(CASH.USD.toLowerCase()), "cash");
-  assert.ok(
-    targets.includes(MORPHO.steakhouseUsdgVault.toLowerCase()),
-    "the vault — steady-basket parks idle cash there on the first tick, so for most of a run this " +
-      "IS the account. Leaving it out made recovery report 'empty' for a wallet that was fully invested.",
-  );
   for (const t of TRADABLE_TOKENS) {
     assert.ok(targets.includes(t.address.toLowerCase()), `${t.symbol} must be sweepable`);
   }

@@ -15,7 +15,7 @@
 import { statSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { CASH, MORPHO, PANCAKE, RIALTO, TRADABLE_TOKENS, UNISWAP, cashUnits } from "../../../packages/core/src/index";
+import { CASH, PANCAKE, TRADABLE_TOKENS, cashUnits } from "../../../packages/core/src/index";
 import { homePaths } from "../home";
 import type { TradeIntent } from "../policy";
 import type { Snapshot, Strategy } from "./types";
@@ -33,22 +33,25 @@ export function customStrategiesDir(): string {
  */
 export interface StrategyCtx {
   CASH: typeof CASH;
-  UNISWAP: typeof UNISWAP;
-  RIALTO: typeof RIALTO;
-  MORPHO: typeof MORPHO;
+  /**
+   * ⚠ BREAKING FOR CUSTOM STRATEGY FILES. `UNISWAP`, `RIALTO` and `MORPHO` were
+   * fields here and are gone with their deployments — a user strategy that
+   * names one now gets `undefined` at the property rather than a bad address,
+   * which is the failure mode worth having. `PANCAKE` is the venue on this
+   * chain, and it is new to this context for the same reason.
+   */
+  PANCAKE: typeof PANCAKE;
   TRADABLE_TOKENS: typeof TRADABLE_TOKENS;
   /** token address by symbol, lowercase-safe lookups left to the caller */
   tokenBySymbol: Record<string, `0x${string}`>;
-  /** 25 → 25_000_000n (USDG 6dp) */
+  /** $25 → 25n * 10n ** 18n — cash is 18dp on BNB. The name predates USDT. */
   usdg: (v: number) => bigint;
 }
 
 export function buildStrategyCtx(): StrategyCtx {
   return {
     CASH,
-    UNISWAP,
-    RIALTO,
-    MORPHO,
+    PANCAKE,
     TRADABLE_TOKENS,
     tokenBySymbol: Object.fromEntries(TRADABLE_TOKENS.map((t) => [t.symbol, t.address])),
     usdg: cashUnits,
@@ -103,11 +106,12 @@ export function validateIntent(raw: unknown): { intent: TradeIntent | null; reas
     };
   }
   if (i.kind === "vault-deposit" || i.kind === "vault-withdraw") {
-    if (!isHexAddress(i.target)) return { intent: null, reason: `${i.kind}.target is not an address` };
-    if (typeof i.amountUsdg !== "bigint" || i.amountUsdg <= 0n) {
-      return { intent: null, reason: `${i.kind}.amountUsdg must be a positive bigint` };
-    }
-    return { intent: { kind: i.kind, target: i.target, amountUsdg: i.amountUsdg } };
+    // REFUSED BY NAME. There is no ERC-4626 venue on BNB (YIELD in
+    // protocols.ts) and the wall carries no vault permission, so this intent
+    // could only ever be refused downstream — at the policy's target allowlist,
+    // with a reason about an address rather than about the missing venue. A
+    // strategy written for the old chain deserves the real sentence.
+    return { intent: null, reason: `${i.kind}: there is no vault on BNB Chain, so idle cash cannot be parked` };
   }
   return { intent: null, reason: `unknown kind ${String(i.kind)}` };
 }
@@ -116,6 +120,36 @@ interface LoadedModule {
   mtimeMs: number;
   strategy: { name?: string; tick: (snap: Snapshot, ctx: StrategyCtx) => unknown } | null;
   error?: string;
+}
+
+/**
+ * The snapshot a USER strategy sees: the real one, plus the pre-BNB name for
+ * chain liveness.
+ *
+ * `sequencerUp` was renamed `chainLive` in Phase 5 and every builtin strategy
+ * moved with it. User files cannot: they live in ~/.merrymen/strategies,
+ * outside the repo, are dynamically imported with no typecheck, and both the
+ * shipped example and the `merrymen strategy new` scaffold told people to open
+ * with `if (!snap.sequencerUp) return [];`. Without this, that line reads
+ * `undefined`, returns nothing on every tick, and raises no error — an agent
+ * that goes quiet forever with nothing in the activity feed to say why.
+ *
+ * A GETTER, not a copied field, so the read itself is observable: the first
+ * one triggers `onLegacyRead`, which the caller turns into a single warning
+ * telling the owner to switch. It loosens nothing — the value is a copy of a
+ * boolean the strategy already receives, and every intent still passes
+ * validateIntent, checkPolicy and the wall.
+ */
+export function withLegacyNames(snap: Snapshot, onLegacyRead: () => void): Snapshot {
+  const view = { ...snap };
+  Object.defineProperty(view, "sequencerUp", {
+    get() {
+      onLegacyRead();
+      return snap.chainLive;
+    },
+    enumerable: false,
+  });
+  return view;
 }
 
 /**
@@ -168,6 +202,16 @@ export function makeCustomStrategy(
   }
 
   let lastError: string | null = null;
+  let warnedLegacy = false;
+  const onLegacyRead = () => {
+    if (warnedLegacy) return;
+    warnedLegacy = true;
+    note(
+      "warn",
+      `custom strategy "${name}" reads snap.sequencerUp, which was renamed snap.chainLive in the BNB move. ` +
+        `It still works; switch to the new name before it is removed.`,
+    );
+  };
 
   return {
     name: `custom:${name}`,
@@ -184,7 +228,7 @@ export function makeCustomStrategy(
 
       let raw: unknown;
       try {
-        raw = await loaded.strategy.tick(snap, ctx);
+        raw = await loaded.strategy.tick(withLegacyNames(snap, onLegacyRead), ctx);
       } catch (e) {
         note("warn", `custom strategy "${name}" threw: ${e instanceof Error ? e.message : String(e)}`);
         return [];

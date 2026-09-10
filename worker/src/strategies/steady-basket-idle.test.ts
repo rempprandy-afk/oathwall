@@ -37,7 +37,6 @@ const cfg = (over: Partial<SteadyBasketConfig> = {}): SteadyBasketConfig => ({
   buyPerTickUsdg: cashUnits(25),
   idleFloorUsdg: cashUnits(50),
   swapRouter: ROUTER,
-  vault: VAULT,
   // This suite tests the SWEEP, so it keeps a venue; the BNB refusal path
   // has its own test below.
   yieldVenue: "erc4626",
@@ -52,7 +51,7 @@ const snap = (over: Partial<Snapshot> = {}): Snapshot => ({
   prices: new Map(),
   pausedTokens: new Set(),
   staleFeeds: new Set(),
-  sequencerUp: true,
+  chainLive: true,
   spendHeadroomUsdg: cashUnits(1_000_000),
   perTradeCapUsdg: cashUnits(1_000_000),
   ...over,
@@ -94,13 +93,15 @@ describe("a stale weekend is reported, not just endured", () => {
     assert.match(renderWhy(t.idle!), /paused/);
   });
 
-  it("still reports while it sweeps cash to the vault", () => {
-    // Over a weekend the sweep is the ONLY thing a basket agent does, and its
-    // owner is still owed the sentence about why nothing was bought. An earlier
-    // shape keyed on "produced no intents at all" and went silent in exactly
-    // the case that matters.
+  it("still explains itself when every leg is stale AND there is idle cash", () => {
+    // This once asserted that a sweep to the vault happened alongside the
+    // explanation: over a weekend the sweep was the ONLY thing a basket agent
+    // did, and an earlier shape keyed on "produced no intents at all" and went
+    // silent in exactly that case. There is no sweep on BNB and no weekend
+    // either, but the property that mattered is the same one — a tick that
+    // bought nothing owes its owner the reason.
     const t = steadyBasketTick(cfg(), snap({ cashUsdg: cashUnits(500), staleFeeds: new Set(["QQQ", "NVDA", "TSLA"]) }));
-    assert.ok(t.intents.some((i) => i.kind === "vault-deposit"), "idle cash is still parked");
+    assert.equal(t.intents.length, 0, "nothing to buy and nowhere to park it");
     assert.ok(t.idle, "and the silence about buying is still explained");
   });
 
@@ -152,12 +153,19 @@ describe("a stale weekend is reported, not just endured", () => {
       assert.equal(t.idle?.code, undefined);
     });
 
-    it("can still WITHDRAW, because cash parked before the migration must come home", () => {
-      const t = steadyBasketTick(noYield(), snap({ cashUsdg: 0n, vaultUsdg: cashUnits(100) }));
-      assert.ok(
-        t.intents.some((i) => i.kind === "vault-withdraw"),
-        "one-way is the trap this whole product exists to avoid — including for its own sweep",
-      );
-    });
+    /**
+     * "can still WITHDRAW, because cash parked before the migration must come
+     * home" WAS HERE, and it deserves its epitaph: one-way is the trap this
+     * whole product exists to avoid, including for its own sweep, so the
+     * withdraw branch survived even after the deposit branch was disabled.
+     *
+     * Phase 5 removed it anyway, because on BNB it could not have worked and
+     * pretending otherwise is the worse failure. There is no ERC-4626 vault to
+     * hold anything (`vaultUsdg` is a constant zero in snapshot.ts), and the
+     * wall no longer carries a withdraw permission, so the intent would have
+     * been built and refused at the chain. Cash parked on Robinhood Chain comes
+     * home from Robinhood Chain, with `merrymen recover` on the tree that knew
+     * about it.
+     */
   });
 });

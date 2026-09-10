@@ -1336,7 +1336,11 @@ async function runReconstructionDryRunIfAsked(): Promise<void> {
         `recon| WARNING: ${scopeTo.size} account(s) named but only ${accounts.length} found in the roster`,
       );
     }
-    const rpcUrl = process.env.MERRYMEN_RPC_MAINNET ?? "https://rpc.mainnet.chain.robinhood.com";
+    // The registry's own endpoint, not a second copy — this default was the
+    // last live Robinhood Chain RPC in the worker, so an operator who set no
+    // MERRYMEN_RPC_MAINNET had the reconciler reading 4663 while everything
+    // else read BNB.
+    const rpcUrl = process.env.MERRYMEN_RPC_MAINNET ?? bnbChain.rpcUrls.default.http[0]!;
     let rpcId = 1;
     const rpc = async (method: string, params: unknown[]): Promise<unknown> => {
       const r = await fetch(rpcUrl, {

@@ -21,17 +21,16 @@ import { readFileSync } from "node:fs";
  * where a simulated fill gets its numbers.
  */
 
-test("paper prices AND multipliers both come from mainnet", () => {
-  // They disagreed: prices read through mainnetClient, multipliers through the
-  // grant-chain client. On a testnet grant that meant live prices and no
-  // multiplier — and paperMultiplierOf returns null for an unread token by
-  // design, so the fill path refused every simulated trade. Practice mode
-  // looked implemented and produced nothing.
+test("a paper fill takes its price from mainnet, and there is no second chain to disagree with", () => {
+  // THE BUG THIS REPLACES. Prices read through mainnetClient and multipliers
+  // through the grant-chain client, so a testnet grant got live prices and no
+  // multiplier — and a missing multiplier was refused by design, so the fill
+  // path turned down every simulated trade. Practice mode looked implemented
+  // and produced nothing.
+  //
+  // ERC-8056 went in Phase 5 and took the second read with it: price is the
+  // only input a paper fill has, so the two halves cannot come from two worlds.
   const src = readFileSync("worker/src/index.ts", "utf8");
-  assert.match(src, /readMultipliers\(mainnetClient\(\), watchTokens\)/);
-  assert.equal(
-    /readMultipliers\(client,/.test(src),
-    false,
-    "reading multipliers on the grant chain is what broke testnet paper",
-  );
+  assert.equal(/readMultipliers\(/.test(src), false, "no multiplier read survives on either chain");
+  assert.match(src, /mergePoolPrices|mainnetClient\(\)/, "paper still prices from mainnet");
 });

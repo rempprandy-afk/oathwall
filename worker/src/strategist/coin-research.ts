@@ -25,7 +25,7 @@
 
 import type { PublicClient } from "viem";
 import type { GeckoPool } from "../venues/geckoterminal";
-import { readTokenMeta, type TokenMeta } from "../venues/pons-meta";
+import { TOKEN_METADATA_SOURCE } from "../venues/token-meta";
 import {
   readPage,
   signalsFrom,
@@ -46,29 +46,53 @@ export const RESEARCH_PER_PASS = 6;
 
 export interface CoinResearch {
   token: `0x${string}`;
-  /** What the launcher published, from the chain. Claims, not facts. */
-  meta: TokenMeta | null;
   /** What its website actually said. Absent when there was nothing to visit. */
   site: SiteSignals | null;
   /** One line for a human, and for the decision row. */
   summary: string;
 }
 
+/**
+ * Where the website to visit comes from, or null when nothing can supply one.
+ *
+ * A SEPARATE INJECTION FROM `fetchPage`, and that split is the point. The
+ * browser still works; what the chain move removed is the thing that told it
+ * WHICH page to open. Keeping them separate means wiring Four.meme later is
+ * supplying this function, not rebuilding the lane.
+ */
+export type SiteSource = (
+  client: PublicClient,
+  tokens: readonly `0x${string}`[],
+) => Promise<Map<string, { website: string; twitter: string }>>;
+
 /** Everything research needs, injected so the pipeline is testable offline. */
 export interface ResearchDeps {
   client: PublicClient;
   browser: BrowserConfig | null;
-  /** Injected for tests; defaults to the real reader. */
-  fetchMeta?: typeof readTokenMeta;
+  /**
+   * Injected for tests, and by a future launchpad reader. Defaults to
+   * TOKEN_METADATA_SOURCE, which is null on BNB — see below.
+   */
+  fetchSites?: SiteSource | null;
   fetchPage?: typeof readPage;
   limit?: number;
 }
+
+/** What a pass reports when nothing on this chain can name a site to visit. */
+export const NO_SITE_SOURCE = "no launchpad metadata on this chain — nothing to visit";
 
 /**
  * Research a shortlist of coins.
  *
  * Never throws into a discovery pass. A coin whose site is down is a coin whose
  * site is down — a fact worth recording, not an error worth stopping for.
+ *
+ * ⚠ ON BNB THIS LANE IS OFF, AND IT SAYS SO. Every coin comes back with
+ * `summary: NO_SITE_SOURCE` rather than the "site not visited" line, which used
+ * to mean "this one published nothing" and would now mean "no coin can publish
+ * anything". The distinction is the whole reason this branch is written out
+ * instead of falling out of an empty map: a lane that researches nothing must
+ * not be indistinguishable from a lane that researched and found nothing.
  */
 export async function researchCoins(
   pools: readonly GeckoPool[],
@@ -77,14 +101,21 @@ export async function researchCoins(
   const out = new Map<string, CoinResearch>();
   if (!pools.length) return out;
 
-  const fetchMeta = deps.fetchMeta ?? readTokenMeta;
+  const fetchSites = deps.fetchSites === undefined ? TOKEN_METADATA_SOURCE : deps.fetchSites;
   const fetchPage = deps.fetchPage ?? readPage;
 
-  // One batched call for every coin's on-chain claims — cheap, and it decides
+  if (!fetchSites) {
+    for (const p of pools) {
+      out.set(p.tokenAddress.toLowerCase(), { token: p.tokenAddress, site: null, summary: NO_SITE_SOURCE });
+    }
+    return out;
+  }
+
+  // One batched call for every coin's published site — cheap, and it decides
   // which of them are even worth a page visit.
-  let meta = new Map<string, TokenMeta>();
+  let sites = new Map<string, { website: string; twitter: string }>();
   try {
-    meta = await fetchMeta(deps.client, pools.map((p) => p.tokenAddress));
+    sites = await fetchSites(deps.client, pools.map((p) => p.tokenAddress));
   } catch {
     /* the chain read failing is not a reason to skip the rest */
   }
@@ -92,16 +123,25 @@ export async function researchCoins(
   // Visit only coins that published a site. A coin with no website is not
   // researched and is not thereby condemned: `site: null` means "nothing to
   // visit", which the model reads differently from "visited and empty".
-  const withSite = pools.filter((p) => (meta.get(p.tokenAddress.toLowerCase())?.website ?? "").length > 0);
+  const withSite = pools.filter((p) => (sites.get(p.tokenAddress.toLowerCase())?.website ?? "").length > 0);
   const budget = deps.limit ?? RESEARCH_PER_PASS;
 
   for (const p of pools) {
-    const m = meta.get(p.tokenAddress.toLowerCase()) ?? null;
+    const s = sites.get(p.tokenAddress.toLowerCase()) ?? null;
+    // THREE STATES, NOT TWO, and the map is what separates them. A coin ABSENT
+    // from it was not read — the source returns a map precisely so a caller can
+    // tell that from "read and empty". Present with no website published
+    // nothing, which is a claim about the coin and may only be made when the
+    // read actually succeeded; the same distinction the launchpad cards got
+    // wrong by rendering every unread coin as one that published nothing.
     out.set(p.tokenAddress.toLowerCase(), {
       token: p.tokenAddress,
-      meta: m,
       site: null,
-      summary: m ? (m.bare ? "published nothing about itself" : "published claims, site not visited") : "no on-chain metadata",
+      summary: !s
+        ? "no on-chain metadata"
+        : s.website
+          ? "published claims, site not visited"
+          : "published nothing about itself",
     });
   }
 
@@ -109,15 +149,10 @@ export async function researchCoins(
   for (const p of withSite) {
     if (spent >= budget) break;
     spent++;
-    const m = meta.get(p.tokenAddress.toLowerCase())!;
-    const read = await fetchPage(deps.browser, m.website);
-    const site = signalsFrom({ read, token: p.tokenAddress, claimedSocial: m.twitter });
-    out.set(p.tokenAddress.toLowerCase(), {
-      token: p.tokenAddress,
-      meta: m,
-      site,
-      summary: describeSignals(site),
-    });
+    const s = sites.get(p.tokenAddress.toLowerCase())!;
+    const read = await fetchPage(deps.browser, s.website);
+    const site = signalsFrom({ read, token: p.tokenAddress, claimedSocial: s.twitter });
+    out.set(p.tokenAddress.toLowerCase(), { token: p.tokenAddress, site, summary: describeSignals(site) });
   }
   return out;
 }
@@ -136,9 +171,17 @@ export interface ScoutSiteFields {
   siteTextLength: number | null;
   siteOutboundDomains: number | null;
   siteHypeWords: number | null;
-  /** Published no description and no socials at all — an abandoned template. */
-  publishedNothing: boolean | null;
 }
+
+/**
+ * `publishedNothing` USED TO BE HERE and was removed with the metadata reader.
+ *
+ * It meant "the launcher filled in no description and no socials at all" — an
+ * abandoned template — and it came from `TokenMeta.bare`. With no source for
+ * that on BNB it could only ever have been null, and it was also a line in the
+ * scout's PROMPT telling the model what the field means. A prompt describing a
+ * signal the model will never receive is worse than one field short.
+ */
 
 export function scoutFieldsFor(r: CoinResearch | undefined): ScoutSiteFields {
   if (!r) {
@@ -148,7 +191,6 @@ export function scoutFieldsFor(r: CoinResearch | undefined): ScoutSiteFields {
       siteTextLength: null,
       siteOutboundDomains: null,
       siteHypeWords: null,
-      publishedNothing: null,
     };
   }
   return {
@@ -157,6 +199,5 @@ export function scoutFieldsFor(r: CoinResearch | undefined): ScoutSiteFields {
     siteTextLength: r.site ? r.site.textLength : null,
     siteOutboundDomains: r.site ? r.site.outboundDomains : null,
     siteHypeWords: r.site ? r.site.hypeWords : null,
-    publishedNothing: r.meta ? r.meta.bare : null,
   };
 }

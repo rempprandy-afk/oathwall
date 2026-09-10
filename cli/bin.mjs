@@ -47,17 +47,25 @@ const GRANTS_ARCHIVE = path.join(HOME, "grants");
 const PKG_STRATEGIES = path.join(ROOT, "strategies");
 const WELCOMED = path.join(HOME, ".welcomed");
 
-const RPC_MAINNET = "https://rpc.mainnet.chain.robinhood.com";
-const RPC_TESTNET = "https://rpc.testnet.chain.robinhood.com";
-const BUILTINS = ["steady-basket", "weekend-gap", "llm-strategist"];
+// BNB Chain 56 / 97. Duplicated from packages/core/src/chain.ts rather than
+// imported, because this file is plain .mjs that must run before any build step
+// — but they are the SAME endpoints, and a probe on 2026-09-09 confirmed both
+// answer with the chain id below. These two constants were the last live
+// Robinhood Chain RPCs in the product: a BNB agent whose settings named no RPC
+// fell back to 4663 here and in the orchestrator.
+const RPC_MAINNET = "https://bsc-dataseed.bnbchain.org";
+const RPC_TESTNET = "https://bsc-testnet-dataseed.bnbchain.org";
+// `weekend-gap` was here until Phase 4 deleted it — it entered on Chainlink
+// staleness at equity market close, and crypto never closes.
+const BUILTINS = ["steady-basket", "llm-strategist"];
 // Merry Circle strategies — selectable, but only RUN for $MERRYMEN holders (the
 // worker gates them by tier). Listed apart so the lock is obvious.
 const CIRCLE_STRATEGIES = ["even-keel", "dip-hunter"];
 // tsx worker entry that rebuilds the Kernel account and sweeps it (merrymen recover).
 const RECOVER_CLI = path.join(ROOT, "worker", "src", "recover-cli.ts");
 const EXPLORER = {
-  4663: "https://robinhoodchain.blockscout.com",
-  46630: "https://explorer.testnet.chain.robinhood.com",
+  56: "https://bscscan.com",
+  97: "https://testnet.bscscan.com",
 };
 
 const green = c.green;
@@ -243,7 +251,7 @@ async function archivedWallets() {
 }
 
 const rpcFor = (s, chainId) =>
-  chainId === 46630 ? (s.rpcTestnet ?? RPC_TESTNET) : (s.rpcMainnet ?? RPC_MAINNET);
+  chainId === 97 ? (s.rpcTestnet ?? RPC_TESTNET) : (s.rpcMainnet ?? RPC_MAINNET);
 
 async function usdgBalance(rpc, addr) {
   const data = "0x70a08231" + addr.toLowerCase().replace(/^0x/, "").padStart(64, "0");
@@ -928,23 +936,24 @@ const TEMPLATE = (name) => `/**
  * wall disposes. See README.md and example-dip-buyer.mjs in this folder.
  *
  * No imports needed — ctx injects the registry:
- *   ctx.tokenBySymbol.QQQ · ctx.CASH.USDG · ctx.UNISWAP.swapRouter02
- *   ctx.MORPHO.steakhouseUsdgVault · ctx.STOCK_TOKENS · ctx.usdg(25)
- * Units: USDG = 6dp bigint · stock balances = 18dp bigint · prices = 8dp bigint.
+ *   ctx.tokenBySymbol.BTCB · ctx.CASH.USD · ctx.PANCAKE.smartRouter
+ *   ctx.TRADABLE_TOKENS · ctx.usdg(25)
+ * Units: cash = 18dp bigint (USDT) · token balances = the token's own decimals
+ * (18 for every registry token) · prices = 8dp bigint.
  */
 
 export default {
   name: "${name}",
 
   tick(snap, ctx) {
-    if (!snap.sequencerUp) return [];
+    if (!snap.chainLive) return [];
 
-    // your logic here — e.g. buy 10 USDG of QQQ when you like the setup:
+    // your logic here — e.g. buy $10 of BTCB when you like the setup:
     // return [{
     //   kind: "swap",
-    //   target: ctx.UNISWAP.swapRouter02,
-    //   sellToken: ctx.CASH.USDG,
-    //   buyToken: ctx.tokenBySymbol.QQQ,
+    //   target: ctx.PANCAKE.smartRouter,
+    //   sellToken: ctx.CASH.USD,
+    //   buyToken: ctx.tokenBySymbol.BTCB,
     //   sellAmountRaw: ctx.usdg(10),
     //   notionalUsdg: ctx.usdg(10),
     // }];
@@ -1253,7 +1262,7 @@ async function recover() {
   console.log(dim("\n  signing the recovery op with your owner key…\n"));
   const done = await runRecoverChild("sweep", { ownerKey, to, chainId, expect });
   if (done.result?.ok && done.result.txHash) {
-    const base = EXPLORER[chainId] ?? EXPLORER[4663];
+    const base = EXPLORER[chainId] ?? EXPLORER[56];
     console.log(`\n  ${green("✓")} ${bold("recovered.")} ${list} → ${to}`);
     console.log(`  proof: ${bold(`${base}/tx/${done.result.txHash}`)}\n`);
   } else {

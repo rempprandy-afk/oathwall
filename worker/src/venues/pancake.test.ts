@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { decodeFunctionData } from "viem";
-import { PANCAKE, UNISWAP, UNISWAP_SWAP_ROUTER_ABI } from "../../../packages/core/src/index";
+import { PANCAKE, UNISWAP_SWAP_ROUTER_ABI } from "../../../packages/core/src/index";
 import { buildSwapCall, minOutWithSlippage, pickBestQuote, type Quote } from "./pancake";
 
 const USDG = "0x3333333333333333333333333333333333333333" as const;

@@ -176,7 +176,7 @@ describe("an escape that collapsed into a control character", () => {
     // carries a real control character, plus a character-class range written
     // with literal bytes. Both are input to a sanitiser, not escapes that lost
     // a backslash.
-    "worker/src/venues/pons-meta.test.ts": "control bytes are the injection fixture",
+    "worker/src/venues/token-meta.test.ts": "control bytes are the injection fixture",
   };
 
   it("no source file contains a raw control character", () => {

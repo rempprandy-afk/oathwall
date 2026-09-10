@@ -12,7 +12,6 @@
 import { createPublicClient, http } from "viem";
 import {
   CHAINLINK_ABI,
-  RIALTO,
   TOKEN_ABI,
   TRADABLE_TOKENS,
   type TokenKind,
@@ -56,17 +55,14 @@ const BLOCKSCOUT = "https://robinhoodchain.blockscout.com/api/v2";
 const LOGO_CDN = (address: string) =>
   `https://cdn.robinhood.com/ncw_assets/logos/${address.toLowerCase()}.png`;
 
+/**
+ * RIALTO LIQUIDITY WAS READ HERE, mapping token address → whether the exchange
+ * would actually fill it. Rialto was Robinhood Chain's propAMM venue and has no
+ * BNB deployment (Phase 5), so the map is empty and every caller falls to its
+ * unknown branch — which is what it already did whenever Rialto was down.
+ */
 async function fetchRialtoLiquidity(): Promise<Map<string, boolean>> {
-  const map = new Map<string, boolean>();
-  try {
-    const res = await fetch(`${RIALTO.apiBase}/tokens`, { next: { revalidate: 300 } });
-    if (!res.ok) return map;
-    const j = (await res.json()) as { tokens?: { address: string; liquid: boolean }[] };
-    for (const t of j.tokens ?? []) map.set(t.address.toLowerCase(), t.liquid);
-  } catch {
-    // Rialto being down must not take the market table down.
-  }
-  return map;
+  return new Map();
 }
 
 interface BlockscoutStats {

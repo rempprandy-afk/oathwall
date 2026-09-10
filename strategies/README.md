@@ -23,17 +23,35 @@ export default {
 ```
 
 No imports needed — `ctx` injects the verified registry and helpers:
-`ctx.tokenBySymbol.QQQ`, `ctx.CASH.USDG`, `ctx.UNISWAP.swapRouter02`,
-`ctx.RIALTO.routerSnapshot`, `ctx.MORPHO.steakhouseUsdgVault`,
-`ctx.STOCK_TOKENS`, and `ctx.usdg(25)` → `25_000_000n`.
+`ctx.tokenBySymbol.BTCB`, `ctx.CASH.USD` (USDT), `ctx.PANCAKE.smartRouter`,
+`ctx.TRADABLE_TOKENS`, and `ctx.usdg(25)` → `25n * 10n ** 18n` (cash is 18dp).
 
-`snapshot` gives you `cashUsdg`, `vaultUsdg`, `holdings` (per-symbol raw
-balance + USDG value + staleness), `prices` (Chainlink, stale-flagged),
-`pausedTokens`, `staleFeeds`, `sequencerUp`. Units: USDG = 6dp bigint,
-stock balances = 18dp bigint, prices = 8dp bigint.
+`snapshot` gives you `cashUsdg`, `holdings` (per-symbol raw balance + cash
+value + staleness), `prices` (Chainlink, stale-flagged), `pausedTokens`,
+`staleFeeds`, `chainLive`. Units: cash = 18dp bigint, token balances = the
+token's own decimals (18 for every registry token), prices = 8dp bigint.
+`vaultUsdg` is still present and always `0n`.
 
 See [example-dip-buyer.mjs](./example-dip-buyer.mjs) for a fully commented
-walkthrough including sell / vault intents.
+walkthrough including sell intents.
+
+## Written before the BNB move?
+
+merrymen moved from Robinhood Chain to BNB Chain. A strategy file from before
+the move needs these changes:
+
+| was | now |
+|---|---|
+| `snap.sequencerUp` | `snap.chainLive`. The old name still works and warns once in the activity feed, so an old strategy doesn't stop trading without a word |
+| `ctx.CASH.USDG` | `ctx.CASH.USD` |
+| `ctx.UNISWAP.swapRouter02`, `ctx.RIALTO.routerSnapshot` | `ctx.PANCAKE.smartRouter` |
+| `ctx.MORPHO.steakhouseUsdgVault`, `vault-deposit`, `vault-withdraw` | gone. There is no vault on BNB; vault intents are refused with a reason that says so |
+| `ctx.STOCK_TOKENS`, `QQQ`, `NVDA`… | `ctx.TRADABLE_TOKENS`: WBNB, BTCB, ETH, CAKE, USDC |
+| `ctx.usdg(25)` → `25_000_000n` | → `25n * 10n ** 18n`. A hand-written 6dp literal is now 10¹² too small |
+
+A removed `ctx` field reads as `undefined`, which fails shape validation and
+drops that intent with the reason in the activity feed. It never silently
+becomes an address.
 
 ## What you can rely on
 
@@ -49,6 +67,7 @@ walkthrough including sell / vault intents.
 
 - Strategy names are plain tokens (`[A-Za-z0-9_-]`) — the filename is the name.
 - Never put API keys in a strategy file; use `/settings`.
-- Feed staleness is *expected* on nights/weekends (24/5 Chainlink feeds on 24/7
-  tokens) — it's a signal, not an error. That gap is where the native
-  strategies live.
+- Feed staleness is a **fault**, not a schedule. Crypto feeds run 24/7, so a
+  stale price means the feed or the RPC stopped. Treat it as "no opinion", not
+  as a signal. (On the old chain, staleness was expected every night and
+  weekend, and the strategy built around that gap was deleted with it.)

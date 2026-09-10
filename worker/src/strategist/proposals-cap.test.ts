@@ -59,7 +59,7 @@ function snap(over: Partial<Snapshot> = {}): Snapshot {
     prices: new Map([["AAPL", { price8: 100_00000000n, stale: false, source: "chainlink" as const }]]),
     pausedTokens: new Set(),
     staleFeeds: new Set(),
-    sequencerUp: true,
+    chainLive: true,
     spendHeadroomUsdg: cashUnits(1_000_000),
     /** The SIGNATURE — the default minted preset, 10 USDG in micro. */
     perTradeCapUsdg: cashUnits(10),

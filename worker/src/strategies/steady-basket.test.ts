@@ -24,7 +24,6 @@ function cfg(over: Partial<SteadyBasketConfig> = {}): SteadyBasketConfig {
     buyPerTickUsdg: 20_000_000n, // 20 USDG per tick
     idleFloorUsdg: 50_000_000n, // keep 50 USDG liquid
     swapRouter: ROUTER,
-    vault: VAULT,
     // The existing suite tests the SWEEP, so it keeps a venue; the BNB
     // refusal path has its own tests below.
     yieldVenue: "erc4626",
@@ -41,7 +40,7 @@ function snap(over: Partial<Snapshot> = {}): Snapshot {
     prices: new Map(),
     pausedTokens: new Set<string>(),
     staleFeeds: new Set<string>(),
-    sequencerUp: true,
+    chainLive: true,
     // Wide open by default: these fixtures predate cap-aware sizing, so the
     // headroom must not clamp them. Clamping is pinned in its own test.
     spendHeadroomUsdg: 1_000_000_000_000n,
@@ -51,68 +50,21 @@ function snap(over: Partial<Snapshot> = {}): Snapshot {
 }
 
 /**
- * Regression: the vault sweep used to propose the WHOLE excess above the idle
- * floor. On a small grant that is over the daily cap, so checkPolicy rejected it
- * — and because the strategy is stateless, it re-proposed the identical
- * oversized deposit every single tick, forever: a rejected trade row and a warn
- * event each time, while the cash never actually reached the vault.
+ * THE VAULT SWEEP SIZED ITSELF TO THE POLICY WALL, and that is the lesson to
+ * carry to whatever replaces it (§7.1).
  *
- * The sweep is now sized to the headroom the wall will really accept. Reported
- * by @zeeonchain (PR #4), fixed here by sizing to the live cap rather than a
- * fixed constant, so it holds for every grant preset instead of just large ones.
+ * A deposit is capped at the DAILY limit, and the same tick's buys have already
+ * eaten into that budget — so proposing the whole idle excess on a small grant
+ * had the deposit rejected every single tick, forever, while the cash never
+ * moved. It swept what fit and left the rest for the next tick, and a sweep cut
+ * short said `clamped`, because saying "parked the idle cash" while parking
+ * part of it leaves the sentence and the balance disagreeing in front of the
+ * owner. Nothing about it loosened a cap: the proposal only ever shrank.
  */
-describe("steadyBasketTick — the vault sweep sizes itself to the policy wall", () => {
-  const SCOUT_DAILY = 50_000_000n; // the shipped "scout" preset: 50 USDG/day
-
-  it("clamps an oversized sweep to the remaining daily budget instead of proposing the lot", () => {
-    // 500 USDG cash, 50 floor → wants to sweep 450, but scout allows 50/day.
-    const intents = sbTick(
-      cfg({ buyPerTickUsdg: 20_000_000n }),
-      snap({ cashUsdg: 500_000_000n, spendHeadroomUsdg: SCOUT_DAILY }),
-    );
-    const deposit = intents.find((i) => i.kind === "vault-deposit");
-    assert.ok(deposit, "still sweeps — the cash isn't stranded");
-    assert.equal(deposit!.kind === "vault-deposit" && deposit!.amountUsdg, 30_000_000n,
-      "50 headroom minus the 20 already committed to this tick's buys");
-  });
-
-  it("accounts for the buys it proposed in the same tick — they spend the same budget", () => {
-    const intents = sbTick(
-      cfg({ buyPerTickUsdg: 20_000_000n }),
-      snap({ cashUsdg: 500_000_000n, spendHeadroomUsdg: 100_000_000n }),
-    );
-    const buys = intents.filter((i) => i.kind === "swap");
-    const deposit = intents.find((i) => i.kind === "vault-deposit");
-    const buyTotal = buys.reduce((s, i) => s + (i.kind === "swap" ? i.notionalUsdg : 0n), 0n);
-    assert.equal(buyTotal, 20_000_000n);
-    assert.equal(deposit!.kind === "vault-deposit" && deposit!.amountUsdg, 80_000_000n);
-    // The whole tick fits inside the budget — that's the point.
-    assert.ok(buyTotal + 80_000_000n <= 100_000_000n);
-  });
-
-  it("proposes NO deposit when the daily budget is already spent — silence beats a guaranteed rejection", () => {
-    const intents = sbTick(
-      cfg({ buyPerTickUsdg: 20_000_000n }),
-      snap({ cashUsdg: 500_000_000n, spendHeadroomUsdg: 20_000_000n }),
-    );
-    // The buys consume the last 20; nothing is left for the sweep this tick.
-    assert.equal(intents.some((i) => i.kind === "vault-deposit"), false);
-  });
-
-  it("leaves a sweep that already fits completely alone", () => {
-    const intents = sbTick(
-      cfg({ buyPerTickUsdg: 20_000_000n }),
-      snap({ cashUsdg: 100_000_000n, spendHeadroomUsdg: 500_000_000n }),
-    );
-    const deposit = intents.find((i) => i.kind === "vault-deposit");
-    // 100 cash − 20 buys − 50 floor = 30, well inside the budget: unchanged.
-    assert.equal(deposit!.kind === "vault-deposit" && deposit!.amountUsdg, 30_000_000n);
-  });
-});
 
 describe("steadyBasketTick", () => {
-  it("emits nothing when the sequencer is down", () => {
-    assert.deepEqual(sbTick(cfg(), snap({ sequencerUp: false })), []);
+  it("emits nothing when the chain has stalled", () => {
+    assert.deepEqual(sbTick(cfg(), snap({ chainLive: false })), []);
   });
 
   it("splits the tick budget across legs by weight", () => {
@@ -148,16 +100,6 @@ describe("steadyBasketTick", () => {
     assert.equal(intents.filter((i) => i.kind === "swap").length, 0);
   });
 
-  it("sweeps idle cash above the floor into the vault", () => {
-    // 100 cash - 20 buys = 80 idle, floor 50 → deposit 30
-    const intents = sbTick(cfg(), snap());
-    const deposit = intents.find((i) => i.kind === "vault-deposit");
-    assert.ok(deposit);
-    assert.equal(deposit.kind === "vault-deposit" && deposit.amountUsdg, 30_000_000n);
-    // Narrowed access: equity orders carry no target, so the union no longer
-    // exposes it un-narrowed — which is the point of the variant's shape.
-    assert.equal(deposit.kind === "vault-deposit" && deposit.target, VAULT);
-  });
 
   it("leaves cash alone when at or below the idle floor", () => {
     const intents = sbTick(cfg(), snap({ cashUsdg: 70_000_000n }));
@@ -165,26 +107,7 @@ describe("steadyBasketTick", () => {
     assert.equal(intents.find((i) => i.kind === "vault-deposit"), undefined);
   });
 
-  it("withdraws from the vault when cash cannot cover a buy", () => {
-    const intents = sbTick(
-      cfg(),
-      snap({ cashUsdg: 5_000_000n, vaultUsdg: 200_000_000n }),
-    );
-    // Withdraw-only tick: top cash up to buyPerTick (20) + floor (50) = 70 → need 65
-    assert.equal(intents.length, 1);
-    const w = intents[0]!;
-    assert.equal(w.kind, "vault-withdraw");
-    assert.equal(w.kind === "vault-withdraw" && w.amountUsdg, 65_000_000n);
-  });
 
-  it("withdrawal is capped at the vault balance", () => {
-    const intents = sbTick(
-      cfg(),
-      snap({ cashUsdg: 0n, vaultUsdg: 12_000_000n }),
-    );
-    assert.equal(intents.length, 1);
-    assert.equal(intents[0]!.kind === "vault-withdraw" && intents[0]!.amountUsdg, 12_000_000n);
-  });
 
   it("does not withdraw when the vault is empty", () => {
     const intents = sbTick(cfg(), snap({ cashUsdg: 5_000_000n, vaultUsdg: 0n }));

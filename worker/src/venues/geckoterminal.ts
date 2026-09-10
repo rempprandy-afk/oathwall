@@ -32,8 +32,19 @@ import { readBoundedJson } from "../bounded-read";
 
 const GECKO_BASE = "https://api.geckoterminal.com/api/v2";
 
-/** The network slug for Robinhood Chain (4663) in GeckoTerminal's namespace. */
-export const GECKO_NETWORK = "robinhood";
+/**
+ * The network slug for BNB Chain (56) in GeckoTerminal's namespace.
+ *
+ * ⚠ A SLUG, NOT A CHAIN ID, and it is the one thing here that fails SILENTLY.
+ * This read `"robinhood"` until Phase 5. GeckoTerminal answers an unknown
+ * network with a 404 HTML page rather than an error the client would raise, so
+ * a stale slug is indistinguishable from a quiet market: the discovery lane
+ * simply finds nothing, forever, and says nothing about why.
+ *
+ * Verified against the live API on 2026-09-09 — `networks/bsc/trending_pools`
+ * returns real BNB pools, and every id it hands back is prefixed `bsc_`.
+ */
+export const GECKO_NETWORK = "bsc";
 
 /** Which list to ask for. Each answers a different question about a market. */
 export type PoolFeed = "trending_pools" | "new_pools" | "pools";

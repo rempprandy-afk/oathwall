@@ -33,7 +33,6 @@ import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator";
 import { assertDerivedAccount } from "../../packages/core/src/index";
 import {
   CASH,
-  MORPHO,
   TRADABLE_TOKENS,
   CASH_DECIMALS,
   isValidCustomToken,
@@ -110,7 +109,10 @@ export interface RecoverResult extends RecoverPlan {
 const BUILTIN_SWEEPABLE: { symbol: string; address: Address; decimals: number }[] = [
   { symbol: "USDG", address: CASH.USD as Address, decimals: CASH_DECIMALS },
   ...TRADABLE_TOKENS.map((t) => ({ symbol: t.symbol, address: t.address as Address, decimals: 18 })),
-  { symbol: "vault", address: MORPHO.steakhouseUsdgVault as Address, decimals: CASH_DECIMALS },
+  // A "vault" row used to follow, sweeping Morpho shares. Gone with the venue —
+  // there is no ERC-4626 deployment on BNB to hold shares in. An owner
+  // recovering an account that traded on the OLD chain sweeps it from that
+  // chain, with the tree that knew about it.
 ];
 
 /**
@@ -296,38 +298,19 @@ export async function planRecovery(opts: {
     .map((t, i) => ({ t, raw: raws[i] ?? null }))
     .filter((x): x is { t: (typeof tokens)[number]; raw: bigint } => x.raw !== null && x.raw > 0n);
 
-  const balances: TokenBalance[] = await Promise.all(
-    held.map(async ({ t, raw }) => {
-      if (t.address.toLowerCase() !== (MORPHO.steakhouseUsdgVault as string).toLowerCase()) {
-        return { symbol: t.symbol, address: t.address, raw, decimals: t.decimals, amount: formatUnits(raw, t.decimals) };
-      }
-      // The vault row is priced, not counted. A raw share figure formatted at a
-      // decimals we invented would be a number the owner confirms a real sweep
-      // against — so ask the vault what the shares are worth, and say plainly
-      // when it will not tell us rather than printing something plausible.
-      const assets = await publicClient
-        .readContract({
-          address: t.address,
-          abi: VAULT_READS,
-          functionName: "convertToAssets",
-          args: [raw],
-        })
-        .then((v) => v as bigint)
-        .catch(() => null);
-      if (assets === null) unreadable.push("vault value");
-      return {
-        symbol: t.symbol,
-        address: t.address,
-        raw,
-        decimals: t.decimals,
-        amount: assets === null ? "unknown" : formatUnits(assets, CASH_DECIMALS),
-        note:
-          assets === null
-            ? "Morpho vault shares — held, but the vault would not price them. They sweep regardless."
-            : "Morpho vault shares, shown at their USDG value. The shares move; redeem them at your leisure.",
-      };
-    }),
-  );
+  // ONE SHAPE PER ROW NOW. The vault row was the exception: it was PRICED
+  // rather than counted, because a raw share figure formatted at a decimals we
+  // invented is a number the owner would confirm a real sweep against — so it
+  // asked the vault what the shares were worth and said "unknown" plainly when
+  // the vault would not answer. Every remaining token is a plain ERC-20 whose
+  // own `decimals` is the truth.
+  const balances: TokenBalance[] = held.map(({ t, raw }) => ({
+    symbol: t.symbol,
+    address: t.address,
+    raw,
+    decimals: t.decimals,
+    amount: formatUnits(raw, t.decimals),
+  }));
 
   return {
     smartAccount: account.address,
