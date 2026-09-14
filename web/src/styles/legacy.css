@@ -1,5 +1,5 @@
 /* ============================================================
-   merrymen — Sherwood dark terminal design system
+   oathwall — Sherwood dark terminal design system
    Lineage: littlejohn's palette, Bloomberg density, calm confidence.
    Numbers and addresses are ALWAYS mono. Green = gain, red = loss,
    gold = the chain / live status. Nothing memes.
@@ -668,7 +668,7 @@ button { font: inherit; cursor: pointer; }
 .recover-note b { color: var(--text-dim); }
 .recover-done { display: flex; flex-direction: column; gap: 9px; }
 
-/* ---------- the merry circle (holder tier) panel ---------- */
+/* ---------- the oathwall circle (holder tier) panel ---------- */
 .circle-panel { display: flex; flex-direction: column; gap: 9px; }
 .circle-sub { font-size: 11.5px; color: var(--text-dim); line-height: 1.55; }
 .circle-sub b { color: var(--text); }
@@ -687,7 +687,7 @@ button { font: inherit; cursor: pointer; }
 .circle-save { font-size: 10.5px; color: var(--green); }
 .circle-perks { list-style: none; display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
 .circle-perks li { font-size: 11px; line-height: 1.4; color: var(--text-dim); padding-left: 15px; position: relative; }
-.circle-perks li::before { content: "🏹"; position: absolute; left: 0; font-size: 9px; top: 1px; }
+.circle-perks li::before { content: "🛡"; position: absolute; left: 0; font-size: 9px; top: 1px; }
 .circle-next { font-size: 11px; line-height: 1.5; color: var(--text-faint); }
 .circle-next b { color: var(--text-dim); }
 .circle-ladder { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
@@ -1120,7 +1120,7 @@ button { font: inherit; cursor: pointer; }
 
 /* ============================================================
    setup-look — the onboarding / settings screens, dressed in the
-   merrymen.dev language (Hanken Grotesk + JetBrains Mono, airy
+   oathwall.dev language (Hanken Grotesk + JetBrains Mono, airy
    cards, tight-radius buttons, "get a key" chips). Scoped so the
    dense trading terminal keeps its own look untouched.
    ============================================================ */

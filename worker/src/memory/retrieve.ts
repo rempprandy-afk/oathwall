@@ -1,5 +1,5 @@
 /**
- * Memory retrieval — pick what the merryman actually remembers RIGHT NOW.
+ * Memory retrieval — pick what the agent actually remembers RIGHT NOW.
  *
  * THE PROBLEM THIS SOLVES: soulPromptBlock used to take `ownerFacts().slice(-15)`
  * — the newest fifteen lines, chosen purely by position. With caps of 60 facts

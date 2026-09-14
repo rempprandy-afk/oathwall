@@ -36,9 +36,9 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 export const TICKET_TTL_MS = 15 * 60 * 1000;
 
 function secretOrThrow(): string {
-  const s = process.env.MERRYMEN_SESSION_SECRET;
+  const s = process.env.OATHWALL_SESSION_SECRET;
   if (!s || s.length < 32) {
-    throw new Error("MERRYMEN_SESSION_SECRET is not set (hosted mode requires a 32+ char secret)");
+    throw new Error("OATHWALL_SESSION_SECRET is not set (hosted mode requires a 32+ char secret)");
   }
   return s;
 }
@@ -55,7 +55,7 @@ const hmac = (payload: string, secret: string) =>
  */
 export function recoveryChallengeMessage(origin: string, nonce: string): string {
   return [
-    `${origin} — withdraw from your merrymen account.`,
+    `${origin} — withdraw from your oathwall account.`,
     "",
     "This proves you control the owner key so the site will relay your withdrawal.",
     "It moves no funds by itself and grants no permissions: the withdrawal itself",

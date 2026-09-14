@@ -67,7 +67,7 @@ const FIELDS = [
   "max per token (USDG)",
   "max slippage",
   "max spot-vs-average gap (bps)",
-  "merry circle token",
+  "oathwall circle token",
   "minimum pool depth (USD)",
   "model",
   "Agent name",

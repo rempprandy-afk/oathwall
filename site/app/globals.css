@@ -1,29 +1,30 @@
-/* merrymen.dev — cinematic editorial. Original design.
-   Fonts: Bricolage Grotesque (display) · Inter (text) · JetBrains Mono (code), all OFL. */
+/* oathwall.dev — Fortified Ledger. Original design.
+   Fonts: Space Grotesk (display + text) · JetBrains Mono (code), all OFL. */
 
 :root {
-  --bg: #070a08;
-  --bg-1: #0b0f0c;
-  --bg-2: #10160f; /* card */
-  --bg-3: #182018;
-  --border: #202a22;
-  --border-soft: #19211b;
-  --line: #2a352c;
+  --bg: #0b0d0f;
+  --bg-1: #0e1114;
+  --bg-2: #14171a; /* card */
+  --bg-3: #1b1f22;
+  --border: #242a2f;
+  --border-soft: #1c2124;
+  --line: #2f363b;
 
-  --text: #edf2ec;
-  --text-2: #c3cec4;
-  --text-dim: #8b9a8e;
-  --text-faint: #566258;
+  --text: #eef1f3;
+  --text-2: #c7cdd1;
+  --text-dim: #8d959b;
+  --text-faint: #5a6167;
 
-  --lime: #b6e226;
-  --lime-2: #cbf24a;
+  --brass: #d4a24c;
+  --brass-2: #e6ba6c;
+  --steel: #5b8ca8;
   --green: #3ad884;
   --gold: #eab308;
   --red: #ef5a5a;
 
   --maxw: 1200px;
   --radius: 14px;
-  /* next/font sets --font-sans (Hanken Grotesk, with its own fallback) on <html>.
+  /* next/font sets --font-sans (Space Grotesk, with its own fallback) on <html>.
      One refined family for everything, headings included. */
   --font-display: var(--font-sans);
   --font-mono: var(--font-mono-jb), ui-monospace, "SF Mono", Menlo, monospace;
@@ -43,14 +44,14 @@ body {
   overflow-x: hidden;
 }
 a { color: inherit; text-decoration: none; }
-::selection { background: color-mix(in srgb, var(--lime) 32%, transparent); color: #0a1400; }
+::selection { background: color-mix(in srgb, var(--brass) 32%, transparent); color: #0a1400; }
 
 h1, h2, h3, h4, .display { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.025em; }
 
-/* ---------- ambient: cinematic light + halftone + grain ---------- */
+/* ---------- ambient: blueprint grid + studio light ---------- */
 .page { position: relative; isolation: isolate; }
 /* soft studio light on a dark surface — a grey glow high-center fading to black,
-   a faint lime wash, a hint of light off to one side. Filmic, not flat. */
+   a faint brass wash, a hint of light off to one side. Filmic, not flat. */
 .ambient {
   position: fixed; inset: 0; z-index: -3; pointer-events: none;
   background:
@@ -62,18 +63,20 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); font-weight: 700; l
     radial-gradient(52% 42% at 82% 10%, rgba(206,220,206,0.07), transparent 72%),
     /* vignette + base */
     radial-gradient(120% 120% at 50% 42%, transparent 52%, rgba(0,0,0,0.5) 100%),
-    linear-gradient(180deg, #0c110d 0%, var(--bg) 58%);
+    linear-gradient(180deg, #0d1013 0%, var(--bg) 58%);
 }
-/* halftone dots — the printed-poster texture over the whole upper canvas */
+/* architectural grid — a faint blueprint of thin coursing lines over the whole
+   upper canvas, replacing the old halftone-poster texture */
 .halftone {
   position: fixed; inset: 0; z-index: -2; pointer-events: none;
-  background-image: radial-gradient(rgba(233,242,236,0.06) 0.9px, transparent 1.35px);
-  background-size: 3.5px 3.5px;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(238,241,243,0.05) 0px, rgba(238,241,243,0.05) 1px, transparent 1px, transparent 64px),
+    repeating-linear-gradient(90deg, rgba(238,241,243,0.035) 0px, rgba(238,241,243,0.035) 1px, transparent 1px, transparent 64px);
   -webkit-mask-image: radial-gradient(95% 78% at 50% 26%, #000, transparent 88%);
   mask-image: radial-gradient(95% 78% at 50% 26%, #000, transparent 88%);
 }
 .grain {
-  position: fixed; inset: -50%; z-index: -1; pointer-events: none; opacity: 0.11;
+  position: fixed; inset: -50%; z-index: -1; pointer-events: none; opacity: 0.05;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -86,7 +89,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); font-weight: 700; l
   font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--text-dim);
 }
-.tag .n { color: var(--lime); }
+.tag .n { color: var(--brass); }
 .tag::before { content: ""; }
 
 /* ---------- nav ---------- */
@@ -154,7 +157,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); font-weight: 700; l
   margin: 28px auto 0; max-width: 19ch; color: var(--text);
 }
 .hero-statement .mut { color: var(--text-faint); }
-.hero-statement .accent { color: var(--lime); font-weight: 600; }
+.hero-statement .accent { color: var(--brass); font-weight: 600; }
 .hero-sub { margin: 24px auto 0; max-width: 54ch; font-size: clamp(15.5px, 1.9vw, 18px); color: var(--text-dim); line-height: 1.65; }
 .hero-cta { display: flex; gap: 12px; justify-content: center; margin-top: 34px; flex-wrap: wrap; }
 .hero-meta { margin-top: 22px; font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.05em; color: var(--text-faint); }
@@ -207,7 +210,7 @@ section { padding: 96px 0; }
 .term-dot { width: 11px; height: 11px; border-radius: 50%; }
 .term-title { margin-left: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--text-faint); }
 .term-body { padding: 20px; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.9; overflow-x: auto; }
-.c-prompt { color: var(--lime); } .c-cmd { color: var(--text); } .c-comment { color: var(--text-faint); }
+.c-prompt { color: var(--brass); } .c-cmd { color: var(--text); } .c-comment { color: var(--text-faint); }
 .c-out { color: var(--text-dim); } .c-ok { color: var(--green); }
 
 pre.code {
@@ -215,7 +218,7 @@ pre.code {
   background: var(--bg-1); border: 1px solid var(--border); border-radius: 12px;
   padding: 16px 18px; overflow-x: auto; color: var(--text-dim); margin: 0;
 }
-pre.code .tok { color: var(--lime); }
+pre.code .tok { color: var(--brass); }
 code.inline {
   font-family: var(--font-mono); font-size: 0.86em;
   background: var(--bg-2); border: 1px solid var(--border-soft);
@@ -226,7 +229,7 @@ code.inline {
 .msg { max-width: 86%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.5; }
 .msg.me { align-self: flex-end; background: #294f6f; color: #eaf2fb; border-bottom-right-radius: 5px; }
 .msg.bot { align-self: flex-start; background: var(--bg-3); color: var(--text); border: 1px solid var(--border-soft); border-bottom-left-radius: 5px; }
-.msg .mono { font-family: var(--font-mono); font-size: 12.5px; color: var(--lime); }
+.msg .mono { font-family: var(--font-mono); font-size: 12.5px; color: var(--brass); }
 
 /* ---------- capability grid ---------- */
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border-soft); border: 1px solid var(--border-soft); border-radius: var(--radius); overflow: hidden; }
@@ -258,7 +261,7 @@ code.inline {
 }
 .install-note b { color: var(--text); }
 
-/* ---------- word from the woods ---------- */
+/* ---------- reports from the field ---------- */
 .words-quote { max-width: 860px; margin: 0 auto; text-align: center; }
 .words-attr { color: var(--text-faint); font-size: 13.5px; margin-top: 18px; }
 .receipts {
@@ -272,7 +275,7 @@ code.inline {
 .words-invite a { color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px; }
 .words-invite a:hover { color: var(--text); }
 .safety .quote { font-family: var(--font-display); font-weight: 700; font-size: clamp(22px, 3.4vw, 34px); letter-spacing: -0.02em; line-height: 1.2; color: var(--text); }
-.safety .quote b { color: var(--lime); }
+.safety .quote b { color: var(--brass); }
 .safety p { color: var(--text-dim); margin: 20px 0 0; font-size: 16px; max-width: 74ch; }
 
 /* ---------- CTA ---------- */
@@ -317,7 +320,7 @@ footer.foot { border-top: 1px solid var(--border-soft); padding: 64px 0 44px; ma
 .doc-side { position: sticky; top: 88px; }
 .doc-side h6 { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint); margin: 20px 0 10px; font-weight: 500; }
 .doc-side a { display: block; color: var(--text-dim); font-size: 14px; padding: 5px 0 5px 14px; border-left: 1px solid var(--border); margin-left: -1px; transition: color .15s, border-color .15s; }
-.doc-side a:hover { color: var(--text); border-color: var(--lime); }
+.doc-side a:hover { color: var(--text); border-color: var(--brass); }
 .doc-body { max-width: 760px; }
 .doc-body h1 { font-size: 46px; margin: 0 0 10px; }
 .doc-lead { color: var(--text-dim); font-size: 18px; margin: 0 0 32px; }
@@ -326,19 +329,19 @@ footer.foot { border-top: 1px solid var(--border-soft); padding: 64px 0 44px; ma
 .doc-body p, .doc-body li { color: var(--text-dim); font-size: 15.5px; line-height: 1.78; }
 .doc-body ul, .doc-body ol { padding-left: 22px; }
 .doc-body li { margin: 6px 0; }
-.doc-body a.link { color: var(--lime); }
+.doc-body a.link { color: var(--brass); }
 .doc-body a.link:hover { text-decoration: underline; }
 .doc-body strong { color: var(--text); font-weight: 600; }
 .doc-body pre.code { margin: 16px 0; }
 .doc-body table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14px; }
 .doc-body th, .doc-body td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-soft); color: var(--text-dim); vertical-align: top; }
 .doc-body th { color: var(--text); font-weight: 600; }
-.callout { border: 1px solid var(--border); border-left: 2px solid var(--lime); background: var(--bg-1); border-radius: 8px; padding: 15px 18px; margin: 20px 0; font-size: 14.5px; color: var(--text-dim); }
+.callout { border: 1px solid var(--border); border-left: 2px solid var(--brass); background: var(--bg-1); border-radius: 8px; padding: 15px 18px; margin: 20px 0; font-size: 14.5px; color: var(--text-dim); }
 .callout.warn { border-left-color: var(--gold); }
 .callout.danger { border-left-color: var(--red); }
 .callout strong { color: var(--text); }
 
-/* ---------- the Merry Circle: tier cards + governance ---------- */
+/* ---------- the Oathwall Circle: tier cards + governance ---------- */
 .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 24px 0 8px; }
 .tier-card {
   border: 1px solid var(--line); border-radius: 14px; padding: 20px 18px;
@@ -359,13 +362,13 @@ footer.foot { border-top: 1px solid var(--border-soft); padding: 64px 0 44px; ma
 }
 .tier-perks { list-style: none !important; padding-left: 0 !important; margin: 8px 0 0; display: flex; flex-direction: column; gap: 5px; }
 .tier-perks li { font-size: 12.5px !important; line-height: 1.5 !important; color: var(--text-dim); padding-left: 16px; position: relative; margin: 0 !important; }
-.tier-perks li::before { content: "🏹"; position: absolute; left: 0; font-size: 10px; top: 2px; }
+.tier-perks li::before { content: "🛡"; position: absolute; left: 0; font-size: 10px; top: 2px; }
 .gov-list { display: flex; flex-direction: column; gap: 10px; margin: 18px 0; }
 .gov-item { display: flex; gap: 14px; align-items: flex-start; border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; background: var(--bg-1); }
 .gov-tag {
   flex: 0 0 auto; margin-top: 2px;
   font-family: var(--font-mono, monospace); font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
-  color: var(--lime); border: 1px solid color-mix(in srgb, var(--lime) 35%, transparent);
+  color: var(--brass); border: 1px solid color-mix(in srgb, var(--brass) 35%, transparent);
   border-radius: 5px; padding: 3px 8px;
 }
 .gov-title { font-size: 15px; font-weight: 600; color: var(--text); }
@@ -412,6 +415,18 @@ footer.foot { border-top: 1px solid var(--border-soft); padding: 64px 0 44px; ma
 /* backstop: if the motion layer never ran, force everything visible */
 .fx-done [data-reveal] { opacity: 1 !important; transform: none !important; clip-path: none !important; }
 
+/* coursing-line reveal — a wall course drawing in left-to-right, for section
+   dividers/headers. Uses the same [data-reveal]/.is-in lifecycle ScrollFx.tsx
+   already drives; no JS changes needed for this variant. */
+.fx-ready [data-reveal="coursing"] { opacity: 1; transform: none; position: relative; }
+.fx-ready [data-reveal="coursing"]::before {
+  content: ""; position: absolute; left: 0; bottom: -10px; height: 1px; width: 100%;
+  background: linear-gradient(90deg, var(--brass), transparent 85%);
+  transform: scaleX(0); transform-origin: left; transition: transform .9s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--d, 0ms);
+}
+.fx-ready [data-reveal="coursing"].is-in::before { transform: scaleX(1); }
+
 /* magnetic wrapper — the JS drifts this toward the cursor; it eases back on leave */
 .mag { display: inline-flex; transition: transform .4s cubic-bezier(0.16, 1, 0.3, 1); }
 
@@ -442,7 +457,7 @@ footer.foot { border-top: 1px solid var(--border-soft); padding: 64px 0 44px; ma
   font-family: var(--font-mono); font-size: 12.5px; letter-spacing: 0.06em;
   text-transform: uppercase; color: var(--text-2); white-space: nowrap;
 }
-.marquee-dot { width: 4px; height: 4px; border-radius: 50%; background: color-mix(in srgb, var(--lime) 60%, var(--text-faint)); flex: 0 0 auto; }
+.marquee-dot { width: 4px; height: 4px; border-radius: 50%; background: color-mix(in srgb, var(--brass) 60%, var(--text-faint)); flex: 0 0 auto; }
 @keyframes marquee { to { transform: translateX(-50%); } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -496,7 +511,7 @@ footer.foot { border-top: 1px solid var(--border-soft); padding: 64px 0 44px; ma
 .tape-when, .scope-age { color: var(--text-faint); font-family: var(--font-mono); font-size: 12px; }
 .tape-what { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 13.5px; }
 .leg-out { color: var(--text-2); }
-.leg-in { color: var(--lime); }
+.leg-in { color: var(--brass); }
 .leg-arrow { color: var(--text-faint); }
 /* A one-sided transfer is a deposit or a withdrawal, not a swap — tint the
    whole row so it doesn't read as trading activity at a glance. */
@@ -507,7 +522,7 @@ footer.foot { border-top: 1px solid var(--border-soft); padding: 64px 0 44px; ma
   color: var(--text-faint); font-family: var(--font-mono); font-size: 11.5px;
   text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;
 }
-.tape-link:hover, .scope-link:hover { color: var(--lime); }
+.tape-link:hover, .scope-link:hover { color: var(--brass); }
 
 .scope-sym { font-weight: 600; font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
 .scope-pair { color: var(--text-faint); font-weight: 400; font-size: 13px; }
@@ -706,8 +721,8 @@ footer.foot { border-top: 1px solid var(--border-soft); padding: 64px 0 44px; ma
   border: 1px solid var(--line);
   box-shadow:
     0 40px 80px -30px rgba(0,0,0,0.8),
-    0 0 0 1px rgba(182,226,38,0.06),
-    0 0 90px -30px rgba(182,226,38,0.22);
+    0 0 0 1px rgba(212,162,76,0.06),
+    0 0 90px -30px rgba(212,162,76,0.22);
   position: relative;
 }
 .app-phone-notch {
@@ -746,15 +761,15 @@ footer.foot { border-top: 1px solid var(--border-soft); padding: 64px 0 44px; ma
   background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 1.35rem 1.4rem;
 }
-.app-truth h3 { margin: 0 0 0.5rem; font-size: 1.08rem; color: var(--lime-2); }
+.app-truth h3 { margin: 0 0 0.5rem; font-size: 1.08rem; color: var(--brass-2); }
 .app-truth p { margin: 0; color: var(--text-2); font-size: 0.95rem; }
 .mono-chip {
-  font-family: var(--font-mono); font-size: 0.82em; color: var(--lime);
-  background: color-mix(in srgb, var(--lime) 10%, transparent);
+  font-family: var(--font-mono); font-size: 0.82em; color: var(--brass);
+  background: color-mix(in srgb, var(--brass) 10%, transparent);
   padding: 0.08em 0.4em; border-radius: 6px; white-space: nowrap;
 }
 
-/* ── campfire band ── */
+/* ── recovery band ── */
 .app-camp { position: relative; isolation: isolate; padding: 5.5rem 0; }
 .app-camp-art {
   position: absolute; inset: 0; z-index: -2;
@@ -777,7 +792,7 @@ footer.foot { border-top: 1px solid var(--border-soft); padding: 64px 0 44px; ma
     linear-gradient(180deg, rgba(7,10,8,0.88), rgba(7,10,8,0.94)),
     url("/app/canopy.webp") center / cover;
 }
-.app-honest-card h3 { margin: 0 0 0.6rem; color: var(--lime-2); font-size: 1.12rem; }
+.app-honest-card h3 { margin: 0 0 0.6rem; color: var(--brass-2); font-size: 1.12rem; }
 .app-honest-card p { color: var(--text-2); margin: 0 0 0.7rem; max-width: 40rem; }
 .app-honest-sub { color: var(--text-dim); font-size: 0.9rem; }
 

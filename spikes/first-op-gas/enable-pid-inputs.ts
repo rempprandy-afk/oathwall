@@ -9,7 +9,7 @@
  * not an input. This spike varies one input at a time and prints the resulting id,
  * plus the ValidationId that toInitConfig would install for it.
  *
- * It matters because merrymen's wall includes a TIMESTAMP policy built from
+ * It matters because oathwall's wall includes a TIMESTAMP policy built from
  * `now` (packages/core/src/wall.ts:693-698). If the timestamps are part of the
  * hash, then every re-grant — even one that reuses the same session key — is a
  * different permissionId, and therefore a fresh install.

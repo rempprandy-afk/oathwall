@@ -10,7 +10,7 @@ import { statusLine, type AgentSnapshot } from "./status-line";
  */
 
 const base: AgentSnapshot = {
-  name: "Robin",
+  name: "Warden",
   mode: "live",
   testnet: false,
   hasGas: true,
@@ -26,7 +26,7 @@ const base: AgentSnapshot = {
 
 test("HIS EXACT SITUATION gets an answer, not a balance sheet", () => {
   const l = statusLine(base);
-  assert.match(l.headline, /Robin is live and watching/);
+  assert.match(l.headline, /Warden is live and watching/);
   assert.match(l.next, /hasn't found a trade worth making/);
   // And it says the quiet state is normal, because the honest answer to "will
   // it trade" is often "not yet, and that is fine" — which reads as broken

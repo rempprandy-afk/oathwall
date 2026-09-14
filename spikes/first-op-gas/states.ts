@@ -1,7 +1,7 @@
 /**
  * WHICH EXECUTION STATE COSTS THE 7.7M, AND WHAT DRIVES IT?
  *
- * The first probe established that a merrymen agent's first UserOperation
+ * The first probe established that a oathwall agent's first UserOperation
  * estimates at 7,711,654 raw gas, of which 7,059,814 is the permission-validator
  * plugin-enable. This one answers the two questions that decide what to do about
  * it:
@@ -67,7 +67,7 @@ const read = (r: { result?: Record<string, string> }): Gas | null => {
 };
 
 async function main() {
-  const apiKey = process.env.MERRYMEN_BUNDLER_API_KEY;
+  const apiKey = process.env.OATHWALL_BUNDLER_API_KEY;
   if (!apiKey) {
     console.error("run under: railway run --service orchestrator --");
     process.exit(1);

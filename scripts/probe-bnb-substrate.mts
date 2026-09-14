@@ -1,8 +1,8 @@
 /**
- * READ-ONLY: does the substrate merrymen is about to be pinned to actually exist?
+ * READ-ONLY: does the substrate oathwall is about to be pinned to actually exist?
  *
  * The standing rule at the top of chain.ts and protocols.ts is that no address
- * lands in packages/core without being probed on the chain merrymen talks to.
+ * lands in packages/core without being probed on the chain oathwall talks to.
  * docs/bnb-migration-plan.md §2 is research notes, not a source of truth, and a
  * migration that copies a table out of a plan document has verified nothing.
  *

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
-import type { StoredGrant } from "@merrymen/core";
-import { homePaths } from "@merrymen/home";
+import type { StoredGrant } from "@oathwall/core";
+import { homePaths } from "@oathwall/home";
 
 /** Read the complete local signed grant for server-side callers only. */
 export async function readStoredGrant(): Promise<StoredGrant | null> {

@@ -251,7 +251,7 @@ def _summarise(records: list[RunRecord], *, ablate: bool) -> None:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="Measure the Brain against frozen Merrymen scenarios.")
+    p = argparse.ArgumentParser(description="Measure the Brain against frozen Oathwall scenarios.")
     p.add_argument("--stages", default="adaptive", choices=["adaptive", "analysts", "analysts+debate", "full"])
     p.add_argument("--set", default="full", choices=["ten", "full"], help="the ten incidents, or the whole suite")
     p.add_argument("--ablate", action="store_true", help="run all three depths and compare decisions")

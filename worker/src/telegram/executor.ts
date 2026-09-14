@@ -132,7 +132,7 @@ export async function executeCommand(cmd: Command, deps: CommandDeps): Promise<s
     case "link": {
       const r = deps.link(cmd.code); // call once — link mutates state
       return r.ok
-        ? "🏹 you're linked — you now command this merryman. Try /status."
+        ? "🛡 you're linked — you now command this agent. Try /status."
         : `couldn't link: ${r.reason ?? "bad or expired code"}`;
     }
     case "help":
@@ -163,10 +163,10 @@ export async function executeCommand(cmd: Command, deps: CommandDeps): Promise<s
       return await deps.reads.brag();
     case "pause":
       deps.setPaused(true);
-      return "⏸ paused — the band holds position. /resume to ride again.";
+      return "⏸ paused — the agent holds position. /resume to go again.";
     case "resume":
       deps.setPaused(false);
-      return "▶️ resumed — the band rides on the next tick.";
+      return "▶️ resumed — the agent runs on the next tick.";
     case "strategy": {
       const r = deps.setStrategy(cmd.name);
       return r.ok ? `🎯 strategy set to ${esc(cmd.name)}. Applies on the next tick.` : `can't switch: ${esc(r.reason ?? "unknown")}`;
@@ -203,7 +203,7 @@ export async function executeCommand(cmd: Command, deps: CommandDeps): Promise<s
         // advice that costs a session key and delivers nothing. Worded to
         // match what checkPolicy says for the same refusal, so the two read
         // alike wherever the owner meets them.
-        return "🧱 this wall carries no transfer permission — no withdrawal address was registered when it was signed, so the chain would refuse the send. Move funds with your owner key: `merrymen recover`.";
+        return "🧱 this wall carries no transfer permission — no withdrawal address was registered when it was signed, so the chain would refuse the send. Move funds with your owner key: `oathwall recover`.";
       }
       let usdg = cmd.usdg;
       let note = "";
@@ -267,11 +267,11 @@ export async function executeCommand(cmd: Command, deps: CommandDeps): Promise<s
           const r = deps.kill();
           if (!r.ok) return `nothing to kill: ${r.reason ?? "no grant"}`;
           return (
-            `🛑 KILL SWITCH — grant destroyed, the band stands down on the next tick.\n` +
+            `🛑 KILL SWITCH — grant destroyed, the agent stands down on the next tick.\n` +
             (r.archived
-              ? `Owner key archived to <code>~/.merrymen/grants/</code> — <code>merrymen recover</code> can still sweep the funds.`
-              : `⚠️ nothing could be archived — if this account held funds, check ~/.merrymen/grants/ before re-granting.`) +
-            `\nRe-grant in the dashboard to ride again.`
+              ? `Owner key archived to <code>~/.oathwall/grants/</code> — <code>oathwall recover</code> can still sweep the funds.`
+              : `⚠️ nothing could be archived — if this account held funds, check ~/.oathwall/grants/ before re-granting.`) +
+            `\nRe-grant in the dashboard to go again.`
           );
         }
       }
@@ -290,7 +290,7 @@ export async function executeCommand(cmd: Command, deps: CommandDeps): Promise<s
     case "name": {
       const r = deps.setName(cmd.name);
       return r.ok
-        ? `🏹 ${esc(r.name!)} it is — that's my name now, and I'll wear it proudly. Sworn to you.`
+        ? `🛡 ${esc(r.name!)} it is — that's my name now, and I'll wear it proudly. Sworn to you.`
         : `can't take that name: ${esc(r.reason ?? "invalid")}`;
     }
     case "remember":
@@ -369,9 +369,9 @@ export async function executeCommand(cmd: Command, deps: CommandDeps): Promise<s
     case "kill": {
       deps.setPending({ kind: "kill", expiresAt: now() + CONFIRM_TTL_SEC });
       return (
-        `⚠️ <b>confirm kill</b> — this destroys the grant and stands the band down.\n` +
-        `Your owner key is archived to <code>~/.merrymen/grants/</code> first, so ` +
-        `<code>merrymen recover</code> can still sweep the funds.\n\n` +
+        `⚠️ <b>confirm kill</b> — this destroys the grant and stands the agent down.\n` +
+        `Your owner key is archived to <code>~/.oathwall/grants/</code> first, so ` +
+        `<code>oathwall recover</code> can still sweep the funds.\n\n` +
         `/confirm to kill (${CONFIRM_TTL_SEC}s) or /cancel.`
       );
     }
@@ -383,6 +383,6 @@ export async function executeCommand(cmd: Command, deps: CommandDeps): Promise<s
       // Agent tasks are intercepted in service.ts (they run a detached loop that
       // streams its own messages). This branch keeps the switch exhaustive and is
       // not reached in normal flow.
-      return "🏹 starting…";
+      return "🛡 starting…";
   }
 }

@@ -28,7 +28,7 @@ import { newsDesk, type NewsItem } from "./research/news";
 const NOW = 1_788_600_000;
 const homes: string[] = [];
 const home = (): string => {
-  const d = mkdtempSync(path.join(tmpdir(), "merrymen-research-"));
+  const d = mkdtempSync(path.join(tmpdir(), "oathwall-research-"));
   homes.push(d);
   return d;
 };

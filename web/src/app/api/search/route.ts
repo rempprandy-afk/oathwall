@@ -15,7 +15,7 @@
  */
 import { NextResponse } from "next/server";
 import { withReadDb } from "@/lib/ledger";
-import { getIdentityStore } from "@merrymen/identity-store";
+import { getIdentityStore } from "@oathwall/identity-store";
 import { fetchMarket } from "@/lib/market";
 
 /**

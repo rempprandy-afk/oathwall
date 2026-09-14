@@ -174,7 +174,7 @@ export default function Home() {
             <View style={styles.topRow}>
               <View style={styles.identity}>
                 <Text style={styles.who} numberOfLines={1}>
-                  {name ?? "merryman"}
+                  {name ?? "agent"}
                 </Text>
                 <View style={styles.statusRow}>
                   <View style={[styles.dot, { backgroundColor: lastError ? C.gold : C.green }]} />
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   // flexShrink, not flex:1 — a long agent name gives up width before the gear
   // does, and the gear never gets pushed off the right edge.
   identity: { flex: 1, flexShrink: 1 },
-  // The agent's name is this screen's title. Knowing WHICH merryman you are
+  // The agent's name is this screen's title. Knowing WHICH agent you are
   // looking at matters before any number on the page does.
   who: { color: C.text, fontSize: 20, fontWeight: "700", letterSpacing: -0.3 },
   // 44dp: the minimum touch target. The icon is 20, so the box carries the rest.

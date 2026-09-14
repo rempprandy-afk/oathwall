@@ -13,7 +13,7 @@
  * the statement. That is the same reason budget-rails.integration.test.ts
  * exists: its bug was a SQL status list too.
  *
- * MERRYMEN_HOME is set before any store import runs getDb(); node's --test runs
+ * OATHWALL_HOME is set before any store import runs getDb(); node's --test runs
  * each file in its own process, so the override never leaks.
  */
 import assert from "node:assert/strict";
@@ -22,8 +22,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-inflight-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-inflight-"));
+process.env.OATHWALL_HOME = HOME;
 
 const { initStore, addTrade, getOpsToday, getSpentTodayUsdg, listOpHashes, listSubmittedOps } =
   await import("./store");

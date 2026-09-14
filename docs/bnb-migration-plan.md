@@ -1,7 +1,7 @@
 # BNB Chain migration plan
 
 **Status:** Phases 1–5 landed · **Drafted:** 2026-09-08 · **Updated:** 2026-09-09
-**Decision:** merrymen moves off Robinhood Chain (4663/46630) to BNB Chain (56).
+**Decision:** oathwall moves off Robinhood Chain (4663/46630) to BNB Chain (56).
 Robinhood Chain is dropped entirely — not kept as a second chain.
 
 | Phase | State | Commit |
@@ -55,7 +55,7 @@ five members to two.
 3. **Two live Robinhood Chain RPCs were still the DEFAULT**, bypassing the Phase
    1 registry: `cli/bin.mjs` and `orchestrator.ts` each carried their own
    hardcoded `rpc.mainnet.chain.robinhood.com`. An operator who set no
-   `MERRYMEN_RPC_MAINNET` had the reconciler reading 4663. `GECKO_NETWORK` was
+   `OATHWALL_RPC_MAINNET` had the reconciler reading 4663. `GECKO_NETWORK` was
    still `"robinhood"` too — and GeckoTerminal answers an unknown network with a
    404 HTML page, so a stale slug is indistinguishable from a quiet market.
    `contracts/hardhat.config.ts` had been renamed to `bnbTestnet` while keeping
@@ -65,8 +65,8 @@ five members to two.
    proposed zero intents: `scripts/probe-paper-run.mts` builds its own snapshot
    behind an `as unknown as Snapshot` cast, so the stale field name was invisible
    to `tsc`. The same rename would have silently stopped every strategy in
-   `~/.merrymen/strategies` — dynamically imported, never typechecked, and both
-   the shipped example and the `merrymen strategy new` scaffold opened with
+   `~/.oathwall/strategies` — dynamically imported, never typechecked, and both
+   the shipped example and the `oathwall strategy new` scaffold opened with
    `if (!snap.sequencerUp) return [];`. A user's agent would have gone quiet
    forever with nothing in the activity feed. The old name is now a warn-once
    getter on the snapshot user code receives, and `strategies/README.md` carries
@@ -116,7 +116,7 @@ This is not a port. Robinhood Stock Tokens do not exist on BNB Chain, so the
 thing the agent trades changes species: tokenized equities become crypto majors
 plus the PancakeSwap longtail.
 
-What does *not* change is the reason merrymen exists — the on-chain wall, the
+What does *not* change is the reason oathwall exists — the on-chain wall, the
 hash-chained ledger, `export`/`verify`, the accounting, the HWM fee model, the
 "model proposes, deterministic code disposes" rule. That is the product, and it
 survives the move intact.
@@ -340,7 +340,7 @@ dissimilar backends (Uniswap vs Rialto vs Pons proves it).
   again. ⚠ The default singleton (`0xf63d…C86873`, 1,739 b on BNB) decrements a
   **lifetime** counter, so wiring it under the name `maxOpsPerDay` would have
   meant `count` ops per GRANT — 48 ever, not 48 a day, with the agent going
-  quiet on day one. merrymen installs the **with-reset** variant
+  quiet on day one. oathwall installs the **with-reset** variant
   (`0x6a06…cca9b`, 5,282 b, probed at block 120,867,973) with `policyAddress`
   passed explicitly, and `wall.test.ts` pins `interval: 86_400`.
 - ✅ README honesty section rewritten. The caps paragraph SHRANK: trades-per-day
@@ -413,7 +413,7 @@ The exceptions need real thought, and they are the ones worth keeping:
 ## 8 · Not addressed here
 
 **MEV.** Sandwiching is endemic on BNB in a way it was not on 4663. The current
-`MERRYMEN_SLIPPAGE_BPS=100` default is an invitation on a public mempool. Before
+`OATHWALL_SLIPPAGE_BPS=100` default is an invitation on a public mempool. Before
 real funds: private-relay submission (bloXroute / 48 Club) and a tighter default.
 This is a pre-mainnet blocker, not a migration step, and deserves its own doc.
 

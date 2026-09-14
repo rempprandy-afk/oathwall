@@ -27,7 +27,7 @@ describe("safeFetchUrl refuses what a browser must not be pointed at", () => {
 
   it("refuses our own private network", () => {
     for (const h of [
-      "https://merrymen-orchestrator.railway.internal:8080/",
+      "https://oathwall-orchestrator.railway.internal:8080/",
       "https://postgres.railway.internal:5432/",
       "https://localhost:3000/",
       "https://127.0.0.1/",

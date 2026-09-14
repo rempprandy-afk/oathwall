@@ -8,7 +8,7 @@ identical reason and its shape is already load-bearing here: pinned port, bind
 
 WHAT THIS SERVICE MUST NEVER HOLD: the store DEK, the session secret,
 DATABASE_URL, any owner or session key, bundler or RPC house keys, or any
-authority to construct calldata. It computes; Merrymen owns the database and the
+authority to construct calldata. It computes; Oathwall owns the database and the
 money. Brain is outside the trust domain by construction, not by policy.
 """
 
@@ -27,7 +27,7 @@ from .graph import BrainGraph
 from .llm import Llm, LlmConfig
 from .schemas import BrainDecision, DecideRequest, Refusal, SCHEMA_VERSION
 
-app = FastAPI(title="Merrymen Brain", version=SCHEMA_VERSION)
+app = FastAPI(title="Oathwall Brain", version=SCHEMA_VERSION)
 
 _concurrency = AgentConcurrency()
 

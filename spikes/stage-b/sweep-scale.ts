@@ -6,7 +6,7 @@
  * address topic, so only ONE account's logs come back however wide the window."
  * A cohort OR-list removes that guarantee. So measure the thing it guaranteed:
  * payload size and latency for a 22-sender cohort of ACTIVE accounts over the
- * full 200,001 blocks — deliberately harsher than merrymen's own fleet, 20 of
+ * full 200,001 blocks — deliberately harsher than oathwall's own fleet, 20 of
  * whose 22 accounts have never been deployed at all.
  *
  * Also runs the real readMarketSafety() from worker/src/snapshot.ts, which is
@@ -49,7 +49,7 @@ async function main() {
     topics: [USEROP_EVENT_TOPIC],
   });
   // 22 senders that demonstrably DO emit UserOperationEvents — a worst case for
-  // result volume, unlike merrymen's own cohort.
+  // result volume, unlike oathwall's own cohort.
   const active = [...new Set(probe.map((l) => String(l.topics[2])))].slice(0, 22) as Hex[];
   console.log(`=== 22-SENDER ACTIVE COHORT, 200,001 BLOCKS ===`);
   console.log(`cohort of ${active.length} senders, all known-active in the last 3,000 blocks`);

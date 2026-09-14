@@ -23,7 +23,7 @@
  * in the store nothing else uses. 404, like the rest of the hosted-only surface.
  */
 import { NextResponse } from "next/server";
-import { isHostedMode } from "@merrymen/core";
+import { isHostedMode } from "@oathwall/core";
 import { tenantOf } from "@/lib/auth";
 import { getLikeStore, MAX_LIKES } from "@/lib/like-store";
 import { POST_ID_SHAPE } from "@/lib/post-id";

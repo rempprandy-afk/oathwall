@@ -14,7 +14,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 // Set BEFORE the auth functions are called (they read the secret at call time,
 // not at import), so a static import is safe and the CJS test target is happy.
-process.env.MERRYMEN_SESSION_SECRET = "test-secret-at-least-thirty-two-characters-long";
+process.env.OATHWALL_SESSION_SECRET = "test-secret-at-least-thirty-two-characters-long";
 
 import {
   challengeMessage,
@@ -24,7 +24,7 @@ import {
   verifySignedChallenge,
 } from "./auth";
 
-const ORIGIN = "https://app.merrymen.dev";
+const ORIGIN = "https://app.oathwall.dev";
 
 async function signIn(origin = ORIGIN, now?: number) {
   const account = privateKeyToAccount(generatePrivateKey());

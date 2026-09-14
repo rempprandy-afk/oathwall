@@ -1,5 +1,5 @@
 /**
- * Telegram Bot API client — the merryman's mouth and ears.
+ * Telegram Bot API client — the agent's mouth and ears.
  *
  * Mirrors the venue-client discipline (worker/src/venues/rialto.ts): an
  * injectable `FetchLike` for tests, and every method returns `{ result, reason }`

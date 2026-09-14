@@ -1,7 +1,7 @@
 /**
  * A tiny Robinhood Chain reader for the browser — no dependency, no backend.
  *
- * The whole claim merrymen makes is "you don't have to trust us", so a page that
+ * The whole claim oathwall makes is "you don't have to trust us", so a page that
  * proxied this through a server of ours would be asking for exactly the trust
  * the project says you shouldn't extend. Everything here reads the chain's OWN
  * public infrastructure — the Blockscout explorer for history and the public RPC

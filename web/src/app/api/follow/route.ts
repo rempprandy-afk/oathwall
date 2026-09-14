@@ -27,8 +27,8 @@
  * for everyone who read it.
  */
 import { NextResponse } from "next/server";
-import { isHostedMode } from "@merrymen/core";
-import { getFollowStore, MAX_FOLLOWS, SLUG_SHAPE } from "@merrymen/follow-store";
+import { isHostedMode } from "@oathwall/core";
+import { getFollowStore, MAX_FOLLOWS, SLUG_SHAPE } from "@oathwall/follow-store";
 import { tenantOf } from "@/lib/auth";
 
 /** A follow is per-caller state; it must never be cached or shared. */

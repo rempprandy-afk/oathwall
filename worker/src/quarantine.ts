@@ -1,7 +1,7 @@
 /**
  * Quarantine — holding something you cannot price, without lying about it.
  *
- * THE PROBLEM. merrymen refuses to value a token whose pool is too new or too
+ * THE PROBLEM. oathwall refuses to value a token whose pool is too new or too
  * thin, because that price can be pushed by anyone with moderate capital and it
  * feeds equity, P&L and the drawdown breaker. That refusal is correct. But it
  * left a hole: the moment ONE such token was held, the tick stopped publishing

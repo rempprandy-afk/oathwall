@@ -102,7 +102,7 @@ export interface PortfolioQuality {
 }
 
 export interface SnapshotPosition {
-  /** Merrymen's canonical id. NEVER an address — see thesis-policy and Brain. */
+  /** Oathwall's canonical id. NEVER an address — see thesis-policy and Brain. */
   instrumentId: string;
   symbol: string;
   /** Base units as a decimal string; token decimals vary (USDG 6, most others 18). */

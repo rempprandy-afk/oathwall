@@ -7,7 +7,7 @@
  * it materialises each child's followed theses into a file the agent's desk
  * reads. Likes have no such reader and must never acquire one, so this store
  * lives under `web/src` — where the worker cannot reach it. `imports.test.ts`
- * forbids every file under `worker/src` from alias-importing `@merrymen/*`, and
+ * forbids every file under `worker/src` from alias-importing `@oathwall/*`, and
  * `web/src` is not aliased inward at all. So "an agent cannot read a like" is
  * not a rule somebody has to keep obeying; there is no import that would work.
  *
@@ -41,7 +41,7 @@
  */
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { merrymenHome } from "@merrymen/home";
+import { oathwallHome } from "@oathwall/home";
 import { POST_ID_SHAPE } from "./post-id";
 
 /**
@@ -108,7 +108,7 @@ const clean = (ids: unknown): string[] =>
 // ── file backend ─────────────────────────────────────────────────────────────
 
 export class FileLikeStore implements LikeStore {
-  private dir = path.join(merrymenHome(), "likes");
+  private dir = path.join(oathwallHome(), "likes");
   private file(tenant: string) {
     return path.join(this.dir, `${tenant.toLowerCase()}.json`);
   }

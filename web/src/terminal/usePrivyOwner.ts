@@ -5,7 +5,7 @@
  *
  * Null means "not a Privy session", and every caller treats that as "use the
  * browser-generated owner key exactly as before". That is what keeps an
- * existing Merryman on its existing owner: a legacy user who links a DID still
+ * existing Agent on its existing owner: a legacy user who links a DID still
  * gets null here, because their tenant is not this wallet.
  *
  * A LOCAL ACCOUNT, NOT AN EIP-1193 PROVIDER. `toViemAccount` returns a viem
@@ -13,7 +13,7 @@
  * would route through `toSigner`, which resolves the address with
  * `Promise.any([eth_requestAccounts, eth_accounts])` and takes `[0]` —
  * whichever RPC answers first. The owner address decides the ACCOUNT address,
- * so that race would decide which Merryman somebody gets.
+ * so that race would decide which Agent somebody gets.
  *
  * `getEmbeddedConnectedWallet` and never `wallets[0]`: with the wallet login
  * enabled, `useWallets()` returns a mixed list and index zero can be the user's

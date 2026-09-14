@@ -35,7 +35,7 @@ export const PRIVY_APP_ID = (process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "").trim();
  * decision has to be the same one the provider makes or a button renders with
  * no provider above it.
  */
-const BETA = (process.env.NEXT_PUBLIC_MERRYMEN_PRIVY_BETA ?? "").trim() === "1";
+const BETA = (process.env.NEXT_PUBLIC_OATHWALL_PRIVY_BETA ?? "").trim() === "1";
 
 /**
  * Privy app ids are lowercase alphanumeric, ~25 characters. Deliberately loose

@@ -1,5 +1,5 @@
 /**
- * Merrymen AI gateway — SHARED CORE (runtime-agnostic).
+ * Oathwall AI gateway — SHARED CORE (runtime-agnostic).
  *
  * All the security-critical logic lives here exactly once: HMAC access tokens,
  * single-use domain-bound claim nonces, the on-chain holder check, the cost
@@ -126,7 +126,7 @@ export function createGateway(cfg) {
     bitqueryKey,
     bitqueryUrl = "https://streaming.bitquery.io/graphql",
     model,
-    brandModel = "merrymen-fast",
+    brandModel = "oathwall-fast",
     domain,
     minTokens,
     tokenAddress,
@@ -195,7 +195,7 @@ export function createGateway(cfg) {
   // wallet shows real context and the signature can't be replayed.
   const claimMessage = (addr, nonce) =>
     [
-      `Merrymen AI — prove you hold $MERRYMEN`,
+      `Oathwall AI — prove you hold $OATHWALL`,
       `Domain: ${domain}`,
       `Address: ${addr}`,
       `Nonce: ${nonce}`,
@@ -267,7 +267,7 @@ export function createGateway(cfg) {
       return { status: 401, json: { error: "nonce already used — refresh the page and sign again" } };
     }
     if (!(await isHolder(address))) {
-      return { status: 403, json: { error: `this wallet doesn't hold at least ${minTokens} $MERRYMEN — join the Circle, then claim.` } };
+      return { status: 403, json: { error: `this wallet doesn't hold at least ${minTokens} $OATHWALL — join the Circle, then claim.` } };
     }
     await store.setBal(address.toLowerCase(), true, T.BALANCE_TTL_SEC);
     return { status: 200, json: { token: issueToken(address), expiresInDays: T.TOKEN_TTL_SEC / 86400, model: brandModel } };
@@ -278,7 +278,7 @@ export function createGateway(cfg) {
    *
    * Not a menu — a fact. `clampPayload` forces `model` server-side, which is
    * the whole point of the proxy, so a client cannot pick anything else. This
-   * exists only because every OpenAI-compatible client asks: merrymen's own
+   * exists only because every OpenAI-compatible client asks: oathwall's own
    * settings page fetches `<baseUrl>/models` for any openai-transport provider,
    * got the catch-all 404, and printed "Could not load AI models. Check your
    * provider and key" beside a key that was perfectly good. Two testers
@@ -290,15 +290,15 @@ export function createGateway(cfg) {
   function models() {
     return {
       status: 200,
-      json: { object: "list", data: [{ id: brandModel, object: "model", owned_by: "merrymen" }] },
+      json: { object: "list", data: [{ id: brandModel, object: "model", owned_by: "oathwall" }] },
     };
   }
 
   async function chat({ token, body, ip }) {
     const addr = verifyToken(token);
-    if (!addr) return { status: 401, json: { error: { message: "invalid or expired Merrymen AI token — re-claim at /claim" } } };
+    if (!addr) return { status: 401, json: { error: { message: "invalid or expired Oathwall AI token — re-claim at /claim" } } };
     if (!(await store.rateHit(addr, T.RATE_PER_MIN, 60))) return { status: 429, json: { error: { message: "rate limit — slow down (holder quota)" } } };
-    if (!(await isHolder(addr))) return { status: 403, json: { error: { message: "this wallet no longer meets the $MERRYMEN holding requirement" } } };
+    if (!(await isHolder(addr))) return { status: 403, json: { error: { message: "this wallet no longer meets the $OATHWALL holding requirement" } } };
     if (!body || typeof body !== "object") return { status: 400, json: { error: { message: "bad request body" } } };
     clampPayload(body);
     try {
@@ -387,7 +387,7 @@ export function createGateway(cfg) {
       return { status: 503, json: { error: "this gateway has no Bitquery key configured" } };
     }
     const addr = verifyToken(token);
-    if (!addr) return { status: 401, json: { error: "invalid or expired Merrymen token — re-claim at /claim" } };
+    if (!addr) return { status: 401, json: { error: "invalid or expired Oathwall token — re-claim at /claim" } };
     // A SEPARATE, tighter bucket from the chat route. Discovery is polled on a
     // timer rather than driven by a human typing, so it would otherwise quietly
     // consume the whole per-address allowance that the brain also depends on.
@@ -395,7 +395,7 @@ export function createGateway(cfg) {
       return { status: 429, json: { error: "rate limit — discovery is polled, not streamed (holder quota)" } };
     }
     if (!(await isHolder(addr))) {
-      return { status: 403, json: { error: "this wallet no longer meets the $MERRYMEN holding requirement" } };
+      return { status: 403, json: { error: "this wallet no longer meets the $OATHWALL holding requirement" } };
     }
     const name = body && typeof body === "object" ? body.query : null;
     const entry = Object.prototype.hasOwnProperty.call(BITQUERY_QUERIES, name)

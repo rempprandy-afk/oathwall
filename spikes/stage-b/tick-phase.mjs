@@ -74,19 +74,19 @@ export function msUntilNextSlot(nowMs, offsetMs, periodMs) {
 }
 
 /**
- * Who am I? The orchestrator sets MERRYMEN_TENANT explicitly (one line in
- * childEnv). The MERRYMEN_HOME basename is the fallback, because childHome()
+ * Who am I? The orchestrator sets OATHWALL_TENANT explicitly (one line in
+ * childEnv). The OATHWALL_HOME basename is the fallback, because childHome()
  * is `<home>/children/<lowercased tenant>` — but it is only a fallback, and
  * the caller LOGS what it resolved: if this ever silently stopped yielding a
  * tenant address the whole fleet would quietly re-synchronise, which is the
  * exact failure this module exists to prevent, and it must not be silent.
  */
 export function tenantIdentity(env, homeDir) {
-  const explicit = (env.MERRYMEN_TENANT ?? "").trim().toLowerCase();
-  if (/^0x[0-9a-f]{40}$/.test(explicit)) return { id: explicit, source: "MERRYMEN_TENANT" };
+  const explicit = (env.OATHWALL_TENANT ?? "").trim().toLowerCase();
+  if (/^0x[0-9a-f]{40}$/.test(explicit)) return { id: explicit, source: "OATHWALL_TENANT" };
   const base = String(homeDir).split(/[\\/]/).filter(Boolean).pop() ?? "";
   const low = base.trim().toLowerCase();
-  if (/^0x[0-9a-f]{40}$/.test(low)) return { id: low, source: "MERRYMEN_HOME basename" };
+  if (/^0x[0-9a-f]{40}$/.test(low)) return { id: low, source: "OATHWALL_HOME basename" };
   // Self-hosted: one process, nothing to spread against. Stable either way.
   return { id: String(homeDir).toLowerCase(), source: "home path (not a tenant address)" };
 }

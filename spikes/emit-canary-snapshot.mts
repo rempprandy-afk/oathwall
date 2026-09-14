@@ -16,7 +16,7 @@ const snap = buildPortfolioSnapshot({
   grossWithdrawalsUsdg: 0,
   gasUsdg: null,                          // never priced at burn time
   positions: [{
-    instrumentId: "merrymen:tsla", symbol: "TSLA",
+    instrumentId: "oathwall:tsla", symbol: "TSLA",
     qtyRaw: "4420417000000000", valueUsdg: toMicro(6.55),
     costBasisUsdg: toMicro(6.666), priceSource: "chainlink", quarantined: false,
   }],

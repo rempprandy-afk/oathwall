@@ -28,7 +28,7 @@ const move = (i: number) => ({
 
 const state = (n: number, extra: Record<string, unknown> = {}) =>
   JSON.stringify({
-    name: "Robin",
+    name: "Warden",
     equity: 1000,
     strategy: "steady-basket",
     moves: Array.from({ length: n }, (_, i) => move(i)),
@@ -61,7 +61,7 @@ describe("fitChatState", () => {
 
   it("keeps every non-tape field whole — half a number is not a smaller number", () => {
     const out = JSON.parse(fitChatState(state(400))) as Record<string, unknown>;
-    assert.equal(out.name, "Robin");
+    assert.equal(out.name, "Warden");
     assert.equal(out.equity, 1000);
     assert.equal(out.strategy, "steady-basket");
   });
@@ -74,7 +74,7 @@ describe("fitChatState", () => {
   it("UNPARSEABLE INPUT YIELDS NOTHING, never a prefix", () => {
     // With no STATE the prompt's own rule applies and the agent says it does
     // not know. With a fragment it answers from wreckage.
-    const broken = `{"name":"Robin","moves":[` + "x".repeat(STATE_BUDGET);
+    const broken = `{"name":"Warden","moves":[` + "x".repeat(STATE_BUDGET);
     assert.equal(fitChatState(broken), "");
   });
 

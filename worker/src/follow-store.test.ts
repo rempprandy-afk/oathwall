@@ -14,13 +14,13 @@ let prev: string | undefined;
 
 beforeEach(async () => {
   home = await mkdtemp(path.join(tmpdir(), "mm-follow-"));
-  prev = process.env.MERRYMEN_HOME;
-  process.env.MERRYMEN_HOME = home;
+  prev = process.env.OATHWALL_HOME;
+  process.env.OATHWALL_HOME = home;
   resetFollowStoreForTest();
 });
 afterEach(async () => {
-  if (prev === undefined) delete process.env.MERRYMEN_HOME;
-  else process.env.MERRYMEN_HOME = prev;
+  if (prev === undefined) delete process.env.OATHWALL_HOME;
+  else process.env.OATHWALL_HOME = prev;
   resetFollowStoreForTest();
   await rm(home, { recursive: true, force: true });
 });

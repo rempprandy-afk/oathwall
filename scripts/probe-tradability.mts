@@ -1,5 +1,5 @@
 /**
- * READ-ONLY: of the tokens merrymen can now PRICE, how many can it actually TRADE?
+ * READ-ONLY: of the tokens oathwall can now PRICE, how many can it actually TRADE?
  *
  * These are different questions and it would be easy to conflate them. Pricing
  * routes TOKEN -> WETH -> USDG when that's the deeper path. Execution calls
@@ -42,7 +42,7 @@ async function discover(): Promise<`0x${string}`[]> {
 
 async function main() {
   console.log(`\nRobinhood Chain ${bnbChain.id} @ block ${await client.getBlockNumber()}`);
-  console.log(`can merrymen TRADE what it can PRICE? (buy size $10)\n`);
+  console.log(`can oathwall TRADE what it can PRICE? (buy size $10)\n`);
 
   const guard = {
     minLiquidityUsdg: BigInt(SETTINGS_DEFAULTS.minPoolLiquidityUsdg) * 1_000_000n,

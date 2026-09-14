@@ -1,4 +1,4 @@
-import { bnbChain } from "@merrymen/core";
+import { bnbChain } from "@oathwall/core";
 
 /**
  * Explorer + RPC endpoints, taken from the shared chain definition.

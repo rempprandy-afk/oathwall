@@ -24,12 +24,12 @@
  *    directory, session key sealed when a DEK is present. The default.
  *
  * NODE-ONLY (node:crypto, node:fs, pg). Imported by web API routes (node
- * runtime) and the worker via the @merrymen/grant-store alias — never by the
+ * runtime) and the worker via the @oathwall/grant-store alias — never by the
  * browser bundle, which is why it lives here and not in core's browser barrel.
  */
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { merrymenHome } from "./home";
+import { oathwallHome } from "./home";
 import { carriesOwnerKey } from "../../packages/core/src/index";
 import { openSecret, requireDek, sealSecret, storeDek } from "./store-crypto";
 import type { StoredGrant } from "../../packages/core/src/index";
@@ -110,7 +110,7 @@ function fromRecord(rec: StoredRecord): StoredGrant {
  * not contain the plaintext key.
  */
 export class FileGrantStore implements GrantStore {
-  private dir = path.join(merrymenHome(), "tenants");
+  private dir = path.join(oathwallHome(), "tenants");
   private file(tenant: string) {
     return path.join(this.dir, `${tenant.toLowerCase()}.json`);
   }

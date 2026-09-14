@@ -54,9 +54,9 @@ test("NO OVERRIDE CHANNEL — not an env var, not a setting, not a flag", () => 
       assert.equal(line, undefined, "and nothing else redeclares it");
     }
   }
-  // No MERRYMEN_* escape hatch anywhere near it.
+  // No OATHWALL_* escape hatch anywhere near it.
   assert.equal(
-    /MERRYMEN_[A-Z_]*SLIPPAGE[A-Z_]*MAX/.test(src.join("\n")),
+    /OATHWALL_[A-Z_]*SLIPPAGE[A-Z_]*MAX/.test(src.join("\n")),
     false,
     "an env var here would let the deployment out-vote the policy",
   );

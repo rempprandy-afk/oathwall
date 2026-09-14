@@ -14,7 +14,7 @@
  * the precise bug the epoch boundary was built to end, reintroduced by the
  * boundary itself.
  *
- * MERRYMEN_HOME is set before any store import runs getDb(); node's --test runs
+ * OATHWALL_HOME is set before any store import runs getDb(); node's --test runs
  * each file in its own process, so the override never leaks.
  */
 import assert from "node:assert/strict";
@@ -23,8 +23,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-epoch-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-epoch-"));
+process.env.OATHWALL_HOME = HOME;
 
 const {
   initStore,

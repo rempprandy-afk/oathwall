@@ -32,10 +32,10 @@ jobs:
         shell: bash
         run: npm install
 
-      # Pack merrymen into a tarball (with the prebuilt dashboard + worker) so the
+      # Pack oathwall into a tarball (with the prebuilt dashboard + worker) so the
       # desktop app installs a REAL COPY of it — not a `file:` symlink, which a
       # fresh CI npm may create and which electron-builder (asar off) chokes on.
-      - name: Pack merrymen (symlink-free copy)
+      - name: Pack oathwall (symlink-free copy)
         shell: bash
         run: npm pack
 
@@ -44,7 +44,7 @@ jobs:
         working-directory: desktop
         run: |
           npm install                      # electron + electron-builder + deps
-          npm install ../merrymen-*.tgz    # replace file:.. with the packed copy
+          npm install ../oathwall-*.tgz    # replace file:.. with the packed copy
 
       - name: Build the installer for this OS
         shell: bash
@@ -61,7 +61,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: merrymen-${{ matrix.os }}
+          name: oathwall-${{ matrix.os }}
           if-no-files-found: warn
           path: |
             desktop/dist/*.exe
@@ -73,19 +73,19 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          name: merrymen desktop ${{ github.ref_name }}
+          name: oathwall desktop ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           draft: false
           fail_on_unmatched_files: false
           body: |
-            **merrymen desktop** — the one-click app. Double-click to install; no terminal, no Node.
+            **oathwall desktop** — the one-click app. Double-click to install; no terminal, no Node.
 
             - **Windows:** download the `.exe`. It's **unsigned**, so Windows SmartScreen shows
               "Windows protected your PC" → **More info → Run anyway**. (We'll sign it later.)
             - **macOS:** download the `.dmg`. It's **unsigned/un-notarized**, so right-click the app
               → **Open** (or System Settings → Privacy & Security → Open Anyway) the first time.
 
-            Shares its home (`~/.merrymen`) with the `npm i -g merrymen` CLI.
+            Shares its home (`~/.oathwall`) with the `npm i -g oathwall` CLI.
           files: |
             desktop/dist/*.exe
             desktop/dist/*.dmg

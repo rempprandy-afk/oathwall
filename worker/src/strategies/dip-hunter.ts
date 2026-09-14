@@ -1,5 +1,5 @@
 /**
- * Dip Hunter — a Merry Circle (holder-only) strategy.
+ * Dip Hunter — an Oathwall Circle (holder-only) strategy.
  *
  * Instead of spreading the tick's budget evenly, it concentrates it on the one
  * basket token that has fallen furthest below its recent high — buying weakness.

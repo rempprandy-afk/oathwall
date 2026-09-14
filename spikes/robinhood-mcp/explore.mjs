@@ -87,7 +87,7 @@ async function register(meta) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      client_name: "merrymen",
+      client_name: "oathwall",
       redirect_uris: [REDIRECT_URI],
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
@@ -199,7 +199,7 @@ async function authorize() {
  * The smallest MCP client that can ask a streamable-HTTP server what it has.
  *
  * Hand-rolled rather than pulled from the SDK: this is a spike whose whole job
- * is to show exactly what goes over the wire, and merrymen ships as an npm
+ * is to show exactly what goes over the wire, and oathwall ships as an npm
  * package where every dependency is a decision.
  */
 class Mcp {
@@ -269,7 +269,7 @@ const mcp = new Mcp(MCP_URL, token);
 const init = await mcp.send("initialize", {
   protocolVersion: "2025-06-18",
   capabilities: {},
-  clientInfo: { name: "merrymen-spike", version: "0.0.0" },
+  clientInfo: { name: "oathwall-spike", version: "0.0.0" },
 });
 console.log("\nserver:", JSON.stringify(init.serverInfo ?? {}), "protocol", init.protocolVersion);
 console.log("capabilities:", JSON.stringify(init.capabilities ?? {}));

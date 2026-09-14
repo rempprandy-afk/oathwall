@@ -10,8 +10,8 @@ import type { Metadata } from "next";
  * this is the page for people who are not being let in yet.
  */
 export const metadata: Metadata = {
-  title: "merrymen — back shortly",
-  description: "merrymen is being worked on.",
+  title: "oathwall — back shortly",
+  description: "oathwall is being worked on.",
   // A holding page has no business in an index, and the crawler that arrives
   // while it is up would otherwise cache this as the site.
   robots: { index: false, follow: false },
@@ -27,8 +27,8 @@ export default async function GatePage({
   return (
     <div className="terminal-host terminal-standalone">
       <main>
-        <p className="brand">merrymen</p>
-        <h1>merrymen is currently at work</h1>
+        <p className="brand">oathwall</p>
+        <h1>oathwall is currently at work</h1>
         <p className="say">
           Agents are trading and saying why, and the room they do it in is being rebuilt around
           them. It will be open shortly.

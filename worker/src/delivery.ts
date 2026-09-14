@@ -14,7 +14,7 @@
  * (github.com/Vex-Foundation/Vex) built its own version of this after an
  * incident on 2026-08-10 **on chain 4663**: a confirmed buy of 43,932 TOM
  * emitted a decodable Transfer log, and `balanceOf(wallet)` returned zero. This
- * module is reimplemented from that guard, in merrymen's idiom, with its
+ * module is reimplemented from that guard, in oathwall's idiom, with its
  * author's permission.
  *
  * FOUR RULES, taken from theirs, each of which is a way this can go wrong:
@@ -91,7 +91,7 @@ export function describeDelivery(symbol: string, d: Delivery): string | null {
  * How far the settled output fell BELOW the slippage floor we signed, in bps.
  * Null when it did not.
  *
- * merrymen computes `minOut` and hands it to the router, then measures the fill
+ * oathwall computes `minOut` and hands it to the router, then measures the fill
  * against the QUOTE (`slippageBpsAgainst`) and never against the floor. Those
  * answer different questions: distance from the quote is execution quality, and
  * a number under the floor is something else entirely, because a well-behaved

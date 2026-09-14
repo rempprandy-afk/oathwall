@@ -2,7 +2,7 @@
  * GeckoTerminal — what is actually trading on this chain, including tokens the
  * agent would otherwise never hear about.
  *
- * WHAT THIS ADDS. merrymen only ever saw tokens at the moment a pool was
+ * WHAT THIS ADDS. oathwall only ever saw tokens at the moment a pool was
  * created: discovery watches Initialize events, so a coin that launched last
  * week and is up 40% today is invisible to it. The owner's ask was to consider
  * trending and established coins too, not only fresh launches. This is that

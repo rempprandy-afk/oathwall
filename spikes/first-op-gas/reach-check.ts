@@ -3,7 +3,7 @@
  *
  * Question: on a REAL already-deployed Kernel v3.3 account that ALREADY carries
  * an installed permission validator (i.e. the exact post-first-op state a
- * merrymen renewal lands on), does a FRESH merrymen wall + FRESH session key
+ * oathwall renewal lands on), does a FRESH oathwall wall + FRESH session key
  * still produce an ENABLE-mode nonce — so PR #56's `!accountLive && isFirstEnable`
  * evaluates FALSE and the op is handed the 3,000,000 ceiling?
  *
@@ -35,7 +35,7 @@ const TARGETS: { addr: Address; note: string; installedPid?: `0x${string}` }[] =
   },
   {
     addr: "0x032Da6A0Ccf866474e45854E7fDEF9afd1509036",
-    note: "merrymen's own account (sudo deploy only, no wall ever installed)",
+    note: "oathwall's own account (sudo deploy only, no wall ever installed)",
   },
 ];
 

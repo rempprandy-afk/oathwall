@@ -1,9 +1,9 @@
 /**
  * End-to-end proof of the attribution substrate against a REAL sqlite db (a
- * throwaway MERRYMEN_HOME): a decision is written, a trade links to it via
+ * throwaway OATHWALL_HOME): a decision is written, a trade links to it via
  * decision_id, and /why joins them exactly — no time-window guessing.
  *
- * MERRYMEN_HOME is set before any store import runs getDb(), so the whole test
+ * OATHWALL_HOME is set before any store import runs getDb(), so the whole test
  * operates on an isolated temp database. node's --test runs each file in its own
  * process, so this env override never leaks into other suites.
  */
@@ -14,8 +14,8 @@ import os from "node:os";
 import path from "node:path";
 import { cashUnits } from "../../packages/core/src/index";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-dec-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-dec-"));
+process.env.OATHWALL_HOME = HOME;
 
 const { initStore, addDecision, addTrade, newDecisionId, getBasis, setBasis, getRealizedPnlUsdg } =
   await import("./store");

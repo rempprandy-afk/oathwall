@@ -10,7 +10,7 @@
  * nobody asked for.
  */
 import { NextResponse } from "next/server";
-import { isHostedMode } from "@merrymen/core";
+import { isHostedMode } from "@oathwall/core";
 import { challengeMessage, issueChallengeNonce, requestOrigin } from "@/lib/auth";
 
 export const runtime = "nodejs";

@@ -11,7 +11,7 @@
 
 import { DEFAULT_BASKET_SYMBOLS } from "./tokens";
 
-export interface MerrymenSettings {
+export interface OathwallSettings {
   // ── connections ────────────────────────────────────────────────────────
   /** The easy path to live trading: a Pimlico API key (secret). The worker
    * builds the bundler URL for the grant's chain automatically, so it can
@@ -60,7 +60,7 @@ export interface MerrymenSettings {
   browserUrl?: string;
   browserToken?: string;
   /**
-   * HOW A MERRYMAN THINKS — one shared Brain service, reached over Railway
+   * HOW A AGENT THINKS — one shared Brain service, reached over Railway
    * private networking, same shape as the browser and the bundler.
    *
    * HOUSE-OWNED on both counts: the URL is an address our egress connects to,
@@ -195,20 +195,20 @@ export interface MerrymenSettings {
   llmIntervalMin?: number;
   llmMaxActionUsdg?: number;
 
-  // ── $MERRYMEN · the Merry Circle (holder perks) ────────────────────────
-  /** The wallet you hold $MERRYMEN in. The worker reads its balance (read-only)
+  // ── $OATHWALL · the Oathwall Circle (holder perks) ────────────────────────
+  /** The wallet you hold $OATHWALL in. The worker reads its balance (read-only)
    * to set your Circle tier — which lowers your platform fee and unlocks perks.
    * Optional; blank = no tier. Purely a discount/perk lookup, never a spend key. */
   holderAddress?: string;
 
   // ── Virtuals Terminal (stream your agent's activity to its Virtuals page) ─
   /** Virtuals API key (secret). Get it from your agent's page on app.virtuals.io.
-   * Enables streaming the merryman's live activity to its Virtuals Terminal. */
+   * Enables streaming the agent's live activity to its Virtuals Terminal. */
   virtualsApiKey?: string;
   /**
    * Bitquery API key (secret). Bitquery indexes Robinhood Chain from genesis —
    * decoded events, DEX trades and, crucially, Uniswap **v4** pool activity that
-   * merrymen's own v3 reads cannot see. It is a DISCOVERY source: it can tell
+   * oathwall's own v3 reads cannot see. It is a DISCOVERY source: it can tell
    * the agent a pair exists, never authorise a trade in it.
    *
    * Read-only and off the hot path by construction. Nothing Bitquery returns
@@ -217,8 +217,8 @@ export interface MerrymenSettings {
    */
   bitqueryApiKey?: string;
   /**
-   * A Merry Circle gateway token (secret), claimed by signing at the gateway's
-   * /claim page with a wallet holding $MERRYMEN.
+   * An Oathwall Circle gateway token (secret), claimed by signing at the gateway's
+   * /claim page with a wallet holding $OATHWALL.
    *
    * STANDALONE ON PURPOSE. The same token opens both the gateway's brain and its
    * Bitquery route, but the two choices are independent: an owner may well want
@@ -229,7 +229,7 @@ export interface MerrymenSettings {
    * Your OWN bitqueryApiKey always wins over this — your quota, your limits, no
    * third party in the path.
    */
-  merrymenToken?: string;
+  oathwallToken?: string;
   /**
    * Discovery: poll Bitquery for newly launched pairs and TELL the owner.
    * Defaults ON, because it only runs when a Bitquery key or a holder token is
@@ -243,7 +243,7 @@ export interface MerrymenSettings {
    * SCOUT MODE — buying tokens too new or too thin to price.
    *
    * A freshly launched pool has no TWAP history and almost no depth, which is
-   * exactly the shape a price anyone can push takes. merrymen refuses to VALUE
+   * exactly the shape a price anyone can push takes. oathwall refuses to VALUE
    * such a token, and that refusal is load-bearing: equity, P&L and the drawdown
    * breaker all read those numbers.
    *
@@ -321,7 +321,7 @@ export interface MerrymenSettings {
    * Outbound + public: nothing streams until you turn this on. */
   virtualsEnabled?: boolean;
 
-  // ── telegram (chat with your merryman) ─────────────────────────────────
+  // ── telegram (chat with your agent) ─────────────────────────────────
   /** Bot token from @BotFather (secret). Enables the Telegram bridge. */
   telegramBotToken?: string;
   /** Master switch — the poller only runs when this is true and a token is set. */
@@ -342,7 +342,7 @@ export interface MerrymenSettings {
    * >0 = batch them into a single summary every N minutes (quiet mode). Warnings,
    * price alerts, reminders and the daily report always come through immediately. */
   telegramNotifyEveryMin?: number;
-  /** Local hour (0-23) after which the daily campfire report is sent. */
+  /** Local hour (0-23) after which the daily report is sent. */
   telegramDigestHour?: number;
 
   // ── remote control · your PC (OpenClaw-style — all OFF by default) ──────
@@ -387,7 +387,7 @@ export const SECRET_SETTING_KEYS = [
   "telegramTranscribeKey",
   "virtualsApiKey",
   "bitqueryApiKey",
-  "merrymenToken",
+  "oathwallToken",
 ] as const;
 export type SecretSettingKey = (typeof SECRET_SETTING_KEYS)[number];
 
@@ -436,7 +436,7 @@ export const HOUSE_KEY_FIELDS = [
   "rialtoApiKey",
   "rialtoApiKeyHeader",
   "bitqueryApiKey",
-  "merrymenToken",
+  "oathwallToken",
   "virtualsApiKey",
   "telegramTranscribeKey",
   "telegramTranscribeBase",

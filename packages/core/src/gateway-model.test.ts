@@ -1,7 +1,7 @@
 /**
  * THE GATEWAY'S FORCED MODEL MUST BE ONE THAT EXISTS.
  *
- * The Merrymen AI gateway picks the model server-side — that is the whole point
+ * The Oathwall AI gateway picks the model server-side — that is the whole point
  * of the proxy, and it means the gateway is the only place the choice can be
  * wrong. It was wrong for weeks: both defaults still named
  * `llama-3.3-70b-versatile`, which Groq retired along with the rest of the
@@ -38,7 +38,7 @@ import { SETTINGS_DEFAULTS } from "./settings";
 const ROOT = join(import.meta.dirname, "..", "..", "..");
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 
-/** Every file that carries a `MERRYMEN_GATEWAY_MODEL ||` fallback. */
+/** Every file that carries a `OATHWALL_GATEWAY_MODEL ||` fallback. */
 const DEFAULT_SITES = [
   // The standalone node server.
   "gateway/server.mjs",
@@ -54,8 +54,8 @@ describe("the gateway forces a model that exists", () => {
     assert.ok(want, "settings must declare a groq model to pin against");
     for (const file of DEFAULT_SITES) {
       const src = read(file);
-      const m = src.match(/MERRYMEN_GATEWAY_MODEL\s*\|\|\s*"([^"]+)"/);
-      assert.ok(m, `${file} no longer declares a MERRYMEN_GATEWAY_MODEL default`);
+      const m = src.match(/OATHWALL_GATEWAY_MODEL\s*\|\|\s*"([^"]+)"/);
+      assert.ok(m, `${file} no longer declares a OATHWALL_GATEWAY_MODEL default`);
       assert.equal(
         m![1],
         want,

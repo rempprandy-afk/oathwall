@@ -6,7 +6,7 @@
       -> sequence 4
   and a permission id that has NEVER been used on that account, as a control:
     ENABLE key for 0xdeadbeef -> sequence 0
-  merrymen's own account, which has executed exactly one op ever (a sudo deploy):
+  oathwall's own account, which has executed exactly one op ever (a sudo deploy):
     SUDO/DEFAULT key -> sequence 1   (1 = the deploy landed)
     a never-used ENABLE key -> sequence 0
 

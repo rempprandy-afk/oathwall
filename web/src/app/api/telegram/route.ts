@@ -12,13 +12,13 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import { merrymenHome } from "@merrymen/home";
-import type { MerrymenSettings } from "@merrymen/core";
+import { oathwallHome } from "@oathwall/home";
+import type { OathwallSettings } from "@oathwall/core";
 
 export const dynamic = "force-dynamic";
 
-const SETTINGS_FILE = path.join(merrymenHome(), "settings.json");
-const TELEGRAM_FILE = path.join(merrymenHome(), "telegram.json");
+const SETTINGS_FILE = path.join(oathwallHome(), "settings.json");
+const TELEGRAM_FILE = path.join(oathwallHome(), "telegram.json");
 
 async function readJson<T>(file: string): Promise<T | null> {
   try {
@@ -60,7 +60,7 @@ export interface TelegramStatus {
 }
 
 export async function GET() {
-  const settings = (await readJson<MerrymenSettings>(SETTINGS_FILE)) ?? {};
+  const settings = (await readJson<OathwallSettings>(SETTINGS_FILE)) ?? {};
   const tg = (await readJson<{ linkCode?: string; ownerId?: number | null }>(TELEGRAM_FILE)) ?? {};
   const token = settings.telegramBotToken;
 
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
   // Use the provided token (typed but not yet saved) or the stored one.
   let token = typeof body.token === "string" && body.token.trim().length > 8 ? body.token.trim() : undefined;
   if (!token) {
-    const settings = (await readJson<MerrymenSettings>(SETTINGS_FILE)) ?? {};
+    const settings = (await readJson<OathwallSettings>(SETTINGS_FILE)) ?? {};
     token = settings.telegramBotToken;
   }
   if (!token) return NextResponse.json({ ok: false, reason: "no token set" });

@@ -6,7 +6,7 @@ import { isAddr, normalizeAddr } from "@/lib/address";
 import { planFromBrowser, sweepFromBrowser, redact, type BrowserWallet } from "@/lib/recover-client";
 
 /**
- * "Get my money out" — the one-click counterpart to `merrymen recover`.
+ * "Get my money out" — the one-click counterpart to `oathwall recover`.
  *
  * Funds sit in a counterfactual smart account, not a plain wallet, so users
  * can't reach them by importing the owner key into MetaMask. This sweeps the
@@ -140,7 +140,7 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
     const w = browserWallet();
     if (!w) {
       setError(
-        "this browser doesn't hold that wallet, so it can't withdraw here. Use `merrymen recover` on the machine with your key.",
+        "this browser doesn't hold that wallet, so it can't withdraw here. Use `oathwall recover` on the machine with your key.",
       );
       return;
     }
@@ -287,7 +287,7 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
             won&apos;t show it. Sweep it back to any address you control, anytime (even after a kill).
           </p>
           <button className="recover-btn" onClick={() => void expand()}>
-            🏹 recover my funds
+            🛡 recover my funds
           </button>
         </>
       ) : loadingCtx ? (
@@ -444,7 +444,7 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
 
           <p className="recover-note">
             Signed by your <b>owner key</b> (not the capped session key), so it works after a kill and
-            isn&apos;t bound by trade limits. Same engine as <span className="mono">merrymen recover</span>.
+            isn&apos;t bound by trade limits. Same engine as <span className="mono">oathwall recover</span>.
           </p>
         </>
       )}

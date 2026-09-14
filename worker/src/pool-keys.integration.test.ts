@@ -7,7 +7,7 @@
  * keyless upsert blanked the captured key, a hooked pool would be routable for
  * ten minutes and then silently never again — and nothing would error.
  *
- * MERRYMEN_HOME is set before any store import runs getDb(); node's --test runs
+ * OATHWALL_HOME is set before any store import runs getDb(); node's --test runs
  * each file in its own process, so the override never leaks.
  */
 import assert from "node:assert/strict";
@@ -16,8 +16,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-poolkeys-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-poolkeys-"));
+process.env.OATHWALL_HOME = HOME;
 
 const { initStore, poolKeysFor, recordCandidate } = await import("./store");
 

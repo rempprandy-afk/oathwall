@@ -1,5 +1,5 @@
 import { createPublicClient, http } from "viem";
-import { bnbChain, bnbTestnet, PONS_SELFTRADE_ABI } from "@merrymen/core";
+import { bnbChain, bnbTestnet, PONS_SELFTRADE_ABI } from "@oathwall/core";
 
 export async function verifiedAdapter(
   address: `0x${string}` | undefined,

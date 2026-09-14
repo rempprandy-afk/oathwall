@@ -404,34 +404,34 @@ test("a run that fails partway does not commit its own inserts", async () => {
 
 test("the default is read-only and mutation must be spelled out", async () => {
   assert.equal(parseRepairOptions({}), null, "absent means the tool does not run at all");
-  assert.equal(parseRepairOptions({ MERRYMEN_REPAIR: "dry-run" })!.mode, "dry-run");
-  assert.equal(parseRepairOptions({ MERRYMEN_REPAIR: "1" })!.mode, "dry-run", "a truthy value is not consent");
-  assert.equal(parseRepairOptions({ MERRYMEN_REPAIR: "true" })!.mode, "dry-run");
-  assert.equal(parseRepairOptions({ MERRYMEN_REPAIR: "COMMIT " })!.mode, "commit");
-  assert.equal(parseRepairOptions({ MERRYMEN_REPAIR: "verify-only" })!.mode, "verify-only");
+  assert.equal(parseRepairOptions({ OATHWALL_REPAIR: "dry-run" })!.mode, "dry-run");
+  assert.equal(parseRepairOptions({ OATHWALL_REPAIR: "1" })!.mode, "dry-run", "a truthy value is not consent");
+  assert.equal(parseRepairOptions({ OATHWALL_REPAIR: "true" })!.mode, "dry-run");
+  assert.equal(parseRepairOptions({ OATHWALL_REPAIR: "COMMIT " })!.mode, "commit");
+  assert.equal(parseRepairOptions({ OATHWALL_REPAIR: "verify-only" })!.mode, "verify-only");
   // A LIST, normalised once. Whitespace, case and stray commas are the
   // operator's, not the comparison's — every downstream check reads a
   // lower-cased array and never has to remember to trim.
   assert.deepEqual(
-    parseRepairOptions({ MERRYMEN_REPAIR: "dry-run", MERRYMEN_REPAIR_ACCOUNT: " 0xABC " })!.accounts,
+    parseRepairOptions({ OATHWALL_REPAIR: "dry-run", OATHWALL_REPAIR_ACCOUNT: " 0xABC " })!.accounts,
     ["0xabc"],
   );
   assert.deepEqual(
     parseRepairOptions({
-      MERRYMEN_REPAIR: "commit",
-      MERRYMEN_REPAIR_ACCOUNT: "0xAAA, 0xbbb ,,0xCcC,",
+      OATHWALL_REPAIR: "commit",
+      OATHWALL_REPAIR_ACCOUNT: "0xAAA, 0xbbb ,,0xCcC,",
     })!.accounts,
     ["0xaaa", "0xbbb", "0xccc"],
   );
   // Anything that is not an address is dropped rather than silently becoming a
   // selector that matches nothing.
   assert.deepEqual(
-    parseRepairOptions({ MERRYMEN_REPAIR: "commit", MERRYMEN_REPAIR_ACCOUNT: "all, everything" })!.accounts,
+    parseRepairOptions({ OATHWALL_REPAIR: "commit", OATHWALL_REPAIR_ACCOUNT: "all, everything" })!.accounts,
     [],
   );
-  assert.equal(parseRepairOptions({ MERRYMEN_REPAIR: "commit", MERRYMEN_REPAIR_RESUME: "1" })!.resume, true);
-  assert.equal(parseRepairOptions({ MERRYMEN_REPAIR: "commit" })!.resume, false);
-  assert.match(parseRepairOptions({ MERRYMEN_REPAIR: "commit" }, 0)!.runId, /^run-1970-01-01/);
+  assert.equal(parseRepairOptions({ OATHWALL_REPAIR: "commit", OATHWALL_REPAIR_RESUME: "1" })!.resume, true);
+  assert.equal(parseRepairOptions({ OATHWALL_REPAIR: "commit" })!.resume, false);
+  assert.match(parseRepairOptions({ OATHWALL_REPAIR: "commit" }, 0)!.runId, /^run-1970-01-01/);
 });
 
 test("a dry run writes nothing", async () => {
@@ -547,11 +547,11 @@ test("the run id does not default to the epoch, the way its predecessor did", ()
   // `run-1970-01-01T00-00-00-000Z`, which is the one property a run id exists to
   // provide, absent exactly where it was needed. Its unit tests could not catch
   // it, because they passed `now` explicitly. This one does not.
-  const withClock = parseRepairOptions({ MERRYMEN_REPAIR: "dry-run" })!;
+  const withClock = parseRepairOptions({ OATHWALL_REPAIR: "dry-run" })!;
   assert.doesNotMatch(withClock.runId, /^run-1970/, "the default reads a real clock");
   assert.match(withClock.runId, /^run-20\d\d-/);
   // …and it is still injectable, so the tests above can pin an exact value.
-  assert.match(parseRepairOptions({ MERRYMEN_REPAIR: "dry-run" }, 0)!.runId, /^run-1970-01-01/);
+  assert.match(parseRepairOptions({ OATHWALL_REPAIR: "dry-run" }, 0)!.runId, /^run-1970-01-01/);
 });
 
 test("mode parsing has exactly one owner, and the orchestrator uses it", () => {

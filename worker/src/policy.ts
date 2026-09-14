@@ -228,7 +228,7 @@ export interface AgentState {
  * Everything the scout ceiling needs, supplied BY THE CALLER, never by the intent.
  *
  * That separation is the point. Intents come from strategies, including
- * user-written ones in ~/.merrymen/strategies, so a flag carried on the intent
+ * user-written ones in ~/.oathwall/strategies, so a flag carried on the intent
  * saying "this token is priceable" would be a flag a strategy could simply set —
  * and the budget on unpriceable positions would be bypassable by the very code
  * it exists to bound. Only the tick knows what it managed to price, so only the
@@ -438,7 +438,7 @@ export function checkPolicy(
           rule: "transfer-not-permitted",
           detail:
             "this wall carries no transfer permission — no withdrawal addresses were registered when it was signed. " +
-            "Re-sign the grant with a destination, or move funds with your owner key (`merrymen recover`).",
+            "Re-sign the grant with a destination, or move funds with your owner key (`oathwall recover`).",
         };
       }
       const to = intent.recipient.toLowerCase();

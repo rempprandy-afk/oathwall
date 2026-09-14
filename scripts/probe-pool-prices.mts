@@ -93,9 +93,9 @@ async function main() {
   const discovered = await discover();
   console.log(`  found ${discovered.length}\n`);
 
-  // Always probe $MERRYMEN and the tradable stocks — a known-good control.
+  // Always probe $OATHWALL and the tradable stocks — a known-good control.
   const controls: Candidate[] = [
-    { address: "0xa15cd06dd305269a0f48bebeb30aa3588fba7b32", symbol: "MERRYMEN", decimals: 18, holders: null },
+    { address: "0xa15cd06dd305269a0f48bebeb30aa3588fba7b32", symbol: "OATHWALL", decimals: 18, holders: null },
     ...TRADABLE_TOKENS.filter((t) => ["NVDA", "QQQ", "TSLA"].includes(t.symbol)).map((t) => ({
       address: t.address,
       symbol: t.symbol,

@@ -72,7 +72,7 @@ describe("the audit refuses to guess", () => {
     assert.ok(r.lines.some((l) => /account history/.test(l) && /COLLISION/.test(l)));
   });
 
-  it("one DID on two tenants is exactly the second-Merryman bug, and blocks", () => {
+  it("one DID on two tenants is exactly the second-Agent bug, and blocks", () => {
     const r = auditIdentity(
       [
         row({ tenant: T1, accounts: [A], privyDid: "did:privy:same" }),

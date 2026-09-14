@@ -1,7 +1,7 @@
 # Brain — a FOURTH image, and a Python one.
 #
 # The main Dockerfile builds a Node image that runs either the dashboard or the
-# orchestrator, chosen by MERRYMEN_START. Brain does not belong in it, for the
+# orchestrator, chosen by OATHWALL_START. Brain does not belong in it, for the
 # same reasons the browser does not:
 #
 #   - it is Python, and putting a Python runtime into the Node image would make
@@ -15,7 +15,7 @@
 #
 # WHAT THIS IMAGE MUST NOT CONTAIN, and does not: the worker, the wall, the
 # signers, the executor, or anything that can construct calldata. Brain computes
-# and answers; Merrymen owns the money and the database. The image is the first
+# and answers; Oathwall owns the money and the database. The image is the first
 # place that boundary is enforced — code that is not here cannot be called by
 # accident.
 FROM python:3.12-slim

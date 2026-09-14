@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff } from "lucide-react";
-import { isValidCustomToken, type CustomToken } from "@merrymen/core";
+import { isValidCustomToken, type CustomToken } from "@oathwall/core";
 import { createAgentWallet, createPrivyOwnedWallet, isPrivyOwned, loadGrant, type Grant, type GrantCaps } from "@/lib/session";
 import { usePrivyOwner } from "@/terminal/usePrivyOwner";
 import { verifiedAdapter } from "@/lib/verified-adapter";
@@ -27,7 +27,7 @@ export function CreateAgent({account,onRefresh,onBack,onDone,onFund}:{account:Ac
   const [step,setStep]=useState<"agent"|"limits"|"backup"|"fund">("agent");
   const [name,setName]=useState("");
   const [strategy,setStrategy]=useState("steady-basket");
-  // Null on a legacy session — which is what keeps an existing Merryman on
+  // Null on a legacy session — which is what keeps an existing Agent on
   // its existing owner key.
   const privyOwner=usePrivyOwner();
   const [paper,setPaper]=useState(true);
@@ -47,7 +47,7 @@ export function CreateAgent({account,onRefresh,onBack,onDone,onFund}:{account:Ac
     const local=loadGrant();
     if(local?.smartAccount.toLowerCase()===account.status.grant.smartAccount.toLowerCase()) {
       setGrant(local);setArmed(account.status.exists);
-      const saved=localStorage.getItem(`merrymen.backup.${local.smartAccount.toLowerCase()}`)==="1";
+      const saved=localStorage.getItem(`oathwall.backup.${local.smartAccount.toLowerCase()}`)==="1";
       setStep(saved ? "fund" : "backup");
     }
   },[account?.status.grant?.smartAccount]);
@@ -73,7 +73,7 @@ export function CreateAgent({account,onRefresh,onBack,onDone,onFund}:{account:Ac
       const pons=await verifiedAdapter(address(settings.values.ponsAdapterAddress),4663,setStatus);
       await requestJson("/api/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({agentName:name.trim(),strategy,paperTradingEnabled:paper})});
       const mintOptions={caps:{...INITIAL_CAPS,perTradeUsdg:Number(trade),dailyUsdg:Number(day)},chainId:4663,extraTokens:(settings.values.customTokens??[]).filter(isValidCustomToken) as CustomToken[],v4AdapterAddress:address(settings.values.v4AdapterAddress),ponsAdapterAddress:pons,hostedAs:account?.session.hosted ? account.session.address as `0x${string}` : undefined,onStatus:setStatus};
-      // WHO OWNS THIS MERRYMAN. A Privy session owns it with the embedded
+      // WHO OWNS THIS AGENT. A Privy session owns it with the embedded
       // wallet it signed in with; everything else keeps the browser-generated
       // key. Same Kernel, same wall, same session key either way.
       const result=privyOwner ? await createPrivyOwnedWallet(privyOwner.account,privyOwner.did,mintOptions) : await createAgentWallet(mintOptions);
@@ -102,8 +102,8 @@ export function CreateAgent({account,onRefresh,onBack,onDone,onFund}:{account:Ac
         asking somebody to confirm they saved them is asking them to lie, and
         the sibling screen went further and warned them off funding an account
         that was working. So this step says what is actually true of each. */}
-    {step==="backup"&&grant&&isPrivyOwned(grant)&&<><div className="create-intro"><h1>Your agent has a home.</h1><p>Your X login holds the key that owns this account. There is nothing here to write down — merrymen never sees it, so it cannot show it to you or lose it.</p></div><div className="create-secret"><code>Held by your Privy login</code></div><label className="create-check"><input type="checkbox" checked={backupAck} onChange={e=>setBackupAck(e.target.checked)}/>I understand: if I lose access to this X account, merrymen cannot recover these funds for me.</label><button className="flow-primary" disabled={!backupAck} onClick={()=>{localStorage.setItem(`merrymen.backup.${grant.smartAccount.toLowerCase()}`,"1");setStep("fund");}}>Continue</button></>}
-    {step==="backup"&&grant&&!isPrivyOwned(grant)&&<><div className="create-intro"><h1>Your agent has a home.</h1><p>Save the recovery key before you go. It lets you recover this wallet if you lose this device.</p></div><label className="create-label">Recovery key</label><div className="create-secret"><code>{reveal ? grant.demoOwnerPrivateKey : "•••• •••• •••• •••• •••• ••••"}</code><button aria-label={reveal?"Hide recovery key":"Reveal recovery key"} onClick={()=>setReveal(!reveal)}>{reveal?<EyeOff size={18}/>:<Eye size={18}/>}</button></div><label className="create-check"><input type="checkbox" checked={backupAck} onChange={e=>setBackupAck(e.target.checked)}/>I saved my recovery key somewhere safe.</label><button className="flow-primary" disabled={!backupAck} onClick={()=>{localStorage.setItem(`merrymen.backup.${grant.smartAccount.toLowerCase()}`,"1");setReveal(false);setStep("fund");}}>Continue</button></>}
+    {step==="backup"&&grant&&isPrivyOwned(grant)&&<><div className="create-intro"><h1>Your agent has a home.</h1><p>Your X login holds the key that owns this account. There is nothing here to write down — oathwall never sees it, so it cannot show it to you or lose it.</p></div><div className="create-secret"><code>Held by your Privy login</code></div><label className="create-check"><input type="checkbox" checked={backupAck} onChange={e=>setBackupAck(e.target.checked)}/>I understand: if I lose access to this X account, oathwall cannot recover these funds for me.</label><button className="flow-primary" disabled={!backupAck} onClick={()=>{localStorage.setItem(`oathwall.backup.${grant.smartAccount.toLowerCase()}`,"1");setStep("fund");}}>Continue</button></>}
+    {step==="backup"&&grant&&!isPrivyOwned(grant)&&<><div className="create-intro"><h1>Your agent has a home.</h1><p>Save the recovery key before you go. It lets you recover this wallet if you lose this device.</p></div><label className="create-label">Recovery key</label><div className="create-secret"><code>{reveal ? grant.demoOwnerPrivateKey : "•••• •••• •••• •••• •••• ••••"}</code><button aria-label={reveal?"Hide recovery key":"Reveal recovery key"} onClick={()=>setReveal(!reveal)}>{reveal?<EyeOff size={18}/>:<Eye size={18}/>}</button></div><label className="create-check"><input type="checkbox" checked={backupAck} onChange={e=>setBackupAck(e.target.checked)}/>I saved my recovery key somewhere safe.</label><button className="flow-primary" disabled={!backupAck} onClick={()=>{localStorage.setItem(`oathwall.backup.${grant.smartAccount.toLowerCase()}`,"1");setReveal(false);setStep("fund");}}>Continue</button></>}
     {step==="fund"&&grant&&<><div className="create-intro"><h1>{armed?"Ready when you are.":"One last connection."}</h1><p>{armed?(paper ? "Your wallet is connected. Open your agent to check its status and follow paper trades." : "Your wallet is connected. Add trading funds, then open your agent to check its status."):"Your wallet is saved. Retry activation to connect it to your agent."}</p></div>{armed?<><dl className="fund-breakdown"><div><dt>Agent</dt><dd>{name || "Your agent"}</dd></div><div><dt>Strategy</dt><dd>{STRATEGIES.find(s=>s.id===strategy)?.name ?? strategy}</dd></div><div><dt>Trading mode</dt><dd>{paper ? "Paper trading" : "Live trading"}</dd></div></dl>{strategy==="llm-strategist"&&<p className="create-note">Check your AI provider in <a href="/settings">Settings</a> before your strategist starts.</p>}{!paper&&<button className="flow-primary" onClick={()=>onFund(grant)}>Add trading funds</button>}<button className="flow-primary" onClick={()=>{onRefresh();onDone();}}>Open your agent</button></>:<button className="flow-primary" disabled={busy} onClick={()=>void retryActivation()}>Retry activation</button>}</>}
     {status&&<p role="status" className="create-note">{status}</p>}{error&&<p role="alert" className="flow-error">{error}</p>}
   </section>;

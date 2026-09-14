@@ -1,10 +1,10 @@
-# merrymen desktop — the one-click app
+# oathwall desktop — the one-click app
 
 A native app (`.exe` / `.dmg` / `.AppImage`) that bundles Node, so a user
-double-clicks and gets the merrymen dashboard in a window — **no terminal, no
+double-clicks and gets the oathwall dashboard in a window — **no terminal, no
 npm, no Node install.** It boots the same agent worker + dashboard as the CLI and
-shares the same home (`~/.merrymen`), so it's fully interchangeable with
-`npm i -g merrymen`.
+shares the same home (`~/.oathwall`), so it's fully interchangeable with
+`npm i -g oathwall`.
 
 ## How it works
 
@@ -14,7 +14,7 @@ Electron ships its own Node runtime. On launch, `main.js`:
 3. waits for `127.0.0.1:3100`,
 4. loads it in a native window.
 
-The `merrymen` npm package is a dependency, so `npm install` pulls the **prebuilt**
+The `oathwall` npm package is a dependency, so `npm install` pulls the **prebuilt**
 dashboard, the worker source, and every dep into `node_modules`. Nothing is fetched
 at runtime.
 
@@ -22,7 +22,7 @@ at runtime.
 
 ```bash
 cd desktop
-npm install        # pulls electron + the local merrymen (builds its dashboard once)
+npm install        # pulls electron + the local oathwall (builds its dashboard once)
 npm start          # opens the app window
 ```
 
@@ -30,9 +30,9 @@ npm start          # opens the app window
 
 ```bash
 cd desktop
-npm run dist:win     # → dist/merrymen Setup <v>.exe   (run on Windows)
-npm run dist:mac     # → dist/merrymen-<v>.dmg          (MUST run on macOS)
-npm run dist:linux   # → dist/merrymen-<v>.AppImage
+npm run dist:win     # → dist/oathwall Setup <v>.exe   (run on Windows)
+npm run dist:mac     # → dist/oathwall-<v>.dmg          (MUST run on macOS)
+npm run dist:linux   # → dist/oathwall-<v>.AppImage
 ```
 
 Cross-OS note: you can build the Windows `.exe` on Windows and the Linux
@@ -43,7 +43,7 @@ Cross-OS note: you can build the Windows `.exe` on Windows and the Linux
 Icons — add these (electron-builder needs them):
 - `build/icon.ico` (Windows, 256×256+)
 - `build/icon.icns` (macOS)
-- `build/icon.png` (Linux, 512×512) — you can reuse the merrymen logo.
+- `build/icon.png` (Linux, 512×512) — you can reuse the oathwall logo.
 
 **Code signing** — unsigned installers are the #1 reason a "one-click app" scares
 users off:
@@ -61,7 +61,7 @@ and I'll add it.
 
 ## Notes / knobs
 
-- Data home is `~/.merrymen` (shared with the CLI). Change `HOME` in `main.js` to
+- Data home is `~/.oathwall` (shared with the CLI). Change `HOME` in `main.js` to
   isolate the app's data instead.
 - Port is `3100`. If it's taken, the app waits and times out — make it configurable
   if you expect conflicts.

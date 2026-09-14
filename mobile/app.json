@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "merrymen",
-    "slug": "merrymen",
-    "owner": "merrymen",
+    "name": "oathwall",
+    "slug": "oathwall",
+    "owner": "oathwall",
     "version": "0.1.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "merrymen",
+    "scheme": "oathwall",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0d1512",
     "ios": {
-      "bundleIdentifier": "dev.merrymen.app"
+      "bundleIdentifier": "dev.oathwall.app"
     },
     "android": {
-      "package": "dev.merrymen.app",
+      "package": "dev.oathwall.app",
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",

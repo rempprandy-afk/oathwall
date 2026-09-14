@@ -1,5 +1,5 @@
 /**
- * merrymen worker — the 24/7 loop.
+ * oathwall worker — the 24/7 loop.
  *
  * tick: refresh settings → sync grant → snapshot → strategy intents → policy
  * check → simulate → execute via session key → record
@@ -14,7 +14,7 @@
  *                          rebuild the strategy in place. Env vars remain the
  *                          fallback; precedence is file > env > default.
  *
- * Persistence: SQLite at .data/merrymen.db (node:sqlite) — no service, no keys.
+ * Persistence: SQLite at .data/oathwall.db (node:sqlite) — no service, no keys.
  *
  * `--selftest` sends one policy-legal no-op UserOp (approve 0.000001 USDG)
  * through the FULL pipeline to prove grant → policy → bundler → on-chain
@@ -119,7 +119,7 @@ import {
   type AnchorVerdict,
   type ContributionTruth,
 } from "./bootstrap-state";
-import { ensureHome, homePaths, merrymenHome } from "./home";
+import { ensureHome, homePaths, oathwallHome } from "./home";
 import { startupSlotMs } from "./stagger";
 import { resolveLlm } from "./llm";
 import { applyPaperIntent, type PaperPosition } from "./paper";
@@ -389,7 +389,7 @@ async function main() {
    * real, each independently sufficient:
    *
    *  1. No signer. Nothing can be submitted.
-   *  2. Not a tradeable chain. Every token and router merrymen knows is a
+   *  2. Not a tradeable chain. Every token and router oathwall knows is a
    *     mainnet-4663 deployment, so on any other chain a swap has no venue to
    *     route through — preflight.ts calls this a hard blocker for the same
    *     reason.
@@ -744,7 +744,7 @@ async function main() {
       const mine = stranded.filter((r) => r.epoch === currentEpoch);
       const skipped = stranded.length - mine.length;
       if (skipped > 0) {
-        console.log(`[reconcile] ${skipped} submitted row(s) from an earlier epoch — left for 'merrymen verify'`);
+        console.log(`[reconcile] ${skipped} submitted row(s) from an earlier epoch — left for 'oathwall verify'`);
       }
       const resolved = await resolveSubmittedOps({
         chain,
@@ -870,7 +870,7 @@ async function main() {
       // old path stays authoritative and this cannot change a ledger, a budget
       // or an orphan.
       //
-      // Off unless MERRYMEN_RECONCILE_SHADOW names this account, because it
+      // Off unless OATHWALL_RECONCILE_SHADOW names this account, because it
       // costs one extra scan of the same range — which is the price of the
       // comparison, and the reason the canary is a small set.
       //
@@ -1285,7 +1285,7 @@ async function main() {
    * inference was correct there and stays. Hosted, the same directory is
    * discarded on every deploy, so emptiness means nothing at all and the only
    * durable record is the one the parent can see. Getting this boundary wrong
-   * in either direction is a money bug, so it is drawn on `MERRYMEN_HOSTED`,
+   * in either direction is a money bug, so it is drawn on `OATHWALL_HOSTED`,
    * which `childEnv` sets and nothing else does.
    */
   function applyAccountingAnchor(agentId: string, verdict: AnchorVerdict): void {
@@ -1364,7 +1364,7 @@ async function main() {
    */
   function anchorOnce(agentId: string): AnchorVerdict {
     if (anchorVerdict === null) {
-      anchorVerdict = readAnchor(merrymenHome(), { tenantId: agentId });
+      anchorVerdict = readAnchor(oathwallHome(), { tenantId: agentId });
     }
     return anchorVerdict;
   }
@@ -1466,7 +1466,7 @@ async function main() {
   let ledgerWritesAtSnapshot = 0;
   /** The last row recordTrade wrote — see the comment there for why this exists. */
   let lastTradeOutcome = null as { status: TradeRow["status"]; rejectRule?: string } | null;
-  // Merry Circle — the holder's $MERRYMEN tier, refreshed each tick; drives the
+  // Oathwall Circle — the holder's $OATHWALL tier, refreshed each tick; drives the
   // performance-fee discount. Starts as the outsider (no discount) until read.
   let holderTier: CircleTier = CIRCLE_TIERS[0]!;
   let lastTierId = holderTier.id;
@@ -1864,7 +1864,7 @@ async function main() {
       // The standalone token first, then the LLM key when the brain IS the
       // gateway — one claimed token opens both, but choosing the gateway for
       // discovery must not force choosing it for thinking as well.
-      merrymenToken: cfg.merrymenToken ?? (cfg.llmProvider === "merrymen" ? cfg.llmApiKey : undefined),
+      oathwallToken: cfg.oathwallToken ?? (cfg.llmProvider === "oathwall" ? cfg.llmApiKey : undefined),
     });
     if (!creds) return; // no key, no discovery — honest silence, not an error
     const nowSec = Math.floor(Date.now() / 1000);
@@ -1965,7 +1965,7 @@ async function main() {
   /**
    * RUN ONE COMMAND THE DASHBOARD ASKED FOR.
    *
-   * `merrymen selftest` is a CLI flag, and hosted spawns the worker without it
+   * `oathwall selftest` is a CLI flag, and hosted spawns the worker without it
    * (orchestrator.ts). So the one probe designed to answer "can this thing
    * actually transact" was unreachable for every hosted tenant — which is how a
    * fleet-wide arming failure stayed invisible for hours: the only way to find
@@ -1991,7 +1991,7 @@ async function main() {
       // different databases, and nothing would ever have been claimed. The
       // orchestrator ferries commands in as files, exactly as it already does
       // for grants and settings. See command-files.ts.
-      const cmd = claimCommandFile(merrymenHome());
+      const cmd = claimCommandFile(oathwallHome());
       if (!cmd) return;
       // The unlink above WAS the claim, so from here the command is ours and
       // will not be replayed — a lost probe is a button pressed again, a
@@ -1999,7 +1999,7 @@ async function main() {
       const outcome = cmd.kind === "selftest"
         ? await runSelftestProbe("dashboard")
         : { ok: false, line: `unknown command '${cmd.kind}'` };
-      writeCommandResult(merrymenHome(), { id: cmd.id, ok: outcome.ok, line: outcome.line, at: Date.now() });
+      writeCommandResult(oathwallHome(), { id: cmd.id, ok: outcome.ok, line: outcome.line, at: Date.now() });
       await addEvent(agentId, outcome.ok ? "ok" : "err", `selftest: ${outcome.line}`);
     } catch (e) {
       console.log(`[command] failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -2030,7 +2030,7 @@ async function main() {
       return {
         ok: false,
         line:
-          `grant is on chain ${a.grant.chainId}; every token and router merrymen knows is a chain ` +
+          `grant is on chain ${a.grant.chainId}; every token and router oathwall knows is a chain ` +
           `${TRADEABLE_CHAIN_ID} deployment, so an approve here calls an address with no code. ` +
           `That can prove the grant, the wall and the bundler — never a trade.`,
       };
@@ -2291,7 +2291,7 @@ async function main() {
     // name is in neither `connectionKey` nor `strategyKey` (settings.ts), so
     // renaming changes nothing that forces a re-arm — and for an agent that is
     // already armed, `unchanged` is true on every tick forever. The owner could
-    // save a name, watch the store accept it, and the soul would stay "Robin"
+    // save a name, watch the store accept it, and the soul would stay "Warden"
     // for the life of the process. Settings is the durable SEED and the soul is
     // the runtime seat, so the seed has to be able to reach the seat while the
     // agent is running, not only when its grant changes.
@@ -2551,7 +2551,7 @@ async function main() {
 
     // HAS THIS ACCOUNT EVER EXISTED?
     //
-    // Nothing in merrymen has ever asked. Every `getCode` in the repo is aimed
+    // Nothing in oathwall has ever asked. Every `getCode` in the repo is aimed
     // at a policy contract, a breaker, an adapter or a token — never at the
     // account itself — so "is the wall deployed" was answerable and "is the
     // thing the wall protects deployed" was not.
@@ -3678,7 +3678,7 @@ async function main() {
             await addEvent(
               agentId,
               "err",
-              `refused to sign a ${intent.kind}: ${fence.detail}. Nothing was sent. This is a merrymen ` +
+              `refused to sign a ${intent.kind}: ${fence.detail}. Nothing was sent. This is a oathwall ` +
                 `fault — the calldata did not match the trade that was approved.`,
             );
             await recordTrade({
@@ -4002,7 +4002,7 @@ async function main() {
           agentId,
           "err",
           `refused to broadcast a ${intent.kind}: the ledger would not accept the row that has to exist ` +
-            `before an operation goes out, so it was not sent. Nothing was spent. This is a merrymen ` +
+            `before an operation goes out, so it was not sent. Nothing was spent. This is a oathwall ` +
             `fault, not a configuration one.`,
         );
         await recordTrade({
@@ -4297,7 +4297,7 @@ async function main() {
     const blocking = verdict.mode === "live" ? null : verdict.rule;
     beatFile(mode, sponsorGas, blockNumber);
     // AND ON A CHANNEL THE DASHBOARD CAN ACTUALLY READ. The file above lives in
-    // this worker's own MERRYMEN_HOME; hosted, that is a different directory in
+    // this worker's own OATHWALL_HOME; hosted, that is a different directory in
     // a different container from the web service, which reads its own — so every
     // hosted tenant showed IDLE no matter what their agent was doing. `agents` is
     // already mirrored to the shared database, so the row carries it too.
@@ -4682,7 +4682,7 @@ async function main() {
       }
     }
 
-    // Merry Circle — refresh the holder's tier ($MERRYMEN on mainnet, read-only)
+    // Oathwall Circle — refresh the holder's tier ($OATHWALL on mainnet, read-only)
     // and note tier changes. The tier discounts the performance fee below.
     holderTier = (await readHolderStatus(cfg.rpcMainnet, cfg.holderAddress)).tier;
     if (holderTier.id !== lastTierId) {
@@ -4691,8 +4691,8 @@ async function main() {
         agentId,
         "ok",
         holderTier.id === "outsider"
-          ? "Merry Circle — no $MERRYMEN at your holder wallet; standard platform fee applies"
-          : `Merry Circle — ${holderTier.emoji} ${holderTier.name}: ${holderTier.feeDiscountBps / 100}% off the platform fee`,
+          ? "Oathwall Circle — no $OATHWALL at your holder wallet; standard platform fee applies"
+          : `Oathwall Circle — ${holderTier.emoji} ${holderTier.name}: ${holderTier.feeDiscountBps / 100}% off the platform fee`,
       );
     }
     const effFeeBps = effectivePerfFeeBps(cfg.perfFeeBps, holderTier);
@@ -4794,7 +4794,7 @@ async function main() {
             `drawdown breaker is unaffected.`,
         );
       }
-      // The Merry Circle discount is applied to the REAL fee here, so holders
+      // The Oathwall Circle discount is applied to the REAL fee here, so holders
       // actually accrue less — the perk is in the ledger, not just the marketing.
       const accrual = accrueAboveHwm(equityUsdg, highWaterMarkUsdg, feeBpsThisTick);
       // THE CURVE EXCLUSION THAT USED TO GUARD THIS IS GONE. `setAgentHwm` is
@@ -4892,14 +4892,14 @@ async function main() {
 
     // ── SHADOW BRAIN ─────────────────────────────────────────────────────
     //
-    // A Merryman thinks. NOTHING HAPPENS. There is no path from here to
+    // A Agent thinks. NOTHING HAPPENS. There is no path from here to
     // proposalsToIntents, checkPolicy, simulate or the executor — brain-shadow
     // does not import them, so connecting execution later is an ADDED import
     // somebody has to review rather than a flag somebody can flip.
     //
     // Guarded three ways, each of which alone would be enough to keep it off:
     // the house must have configured a Brain, the agent must be named in
-    // MERRYMEN_BRAIN_SHADOW, and the trigger must say something changed. The
+    // OATHWALL_BRAIN_SHADOW, and the trigger must say something changed. The
     // allowlist is what keeps this at ONE agent while we learn what it costs.
     //
     // Everything after the guard is best-effort. A Brain that is slow, refuses,
@@ -4968,7 +4968,7 @@ async function main() {
           // through the publication gate, into a file this child can read.
           // `readPeers` never throws: absent, unreadable and malformed all mean
           // "nothing this window", which is a correct state and not a fault.
-          const wire = readPeers(merrymenHome());
+          const wire = readPeers(oathwallHome());
 
           const focusView = {
             symbol: focus.symbol,
@@ -5014,7 +5014,7 @@ async function main() {
           // `coverage` is the honesty field: "we asked and the tape was quiet"
           // and "nobody ever asked" are both no-data to an analyst and are
           // completely different facts about us.
-          const research = readResearch(merrymenHome());
+          const research = readResearch(oathwallHome());
           const desk = newsDesk({
             symbol: focus.symbol,
             asOf: Math.floor(Date.now() / 1000),
@@ -5030,7 +5030,7 @@ async function main() {
             vaultUsdg: Number(balances.vaultUsdg),
             quarantinedUsdg: Number(quarantine.totalCostUsdg),
             positions: positions.map((pp) => ({
-              instrumentId: `merrymen:${pp.symbol.toLowerCase()}`,
+              instrumentId: `oathwall:${pp.symbol.toLowerCase()}`,
               symbol: pp.symbol,
               qtyRaw: String(pp.rawBalance),
               valueUsdg: Number(pp.valueUsdg),
@@ -5074,7 +5074,7 @@ async function main() {
               assessedAt: Math.floor(Date.now() / 1000),
             },
             market: {
-              instrumentId: `merrymen:${focus.symbol.toLowerCase()}`,
+              instrumentId: `oathwall:${focus.symbol.toLowerCase()}`,
               symbol: focus.symbol,
               // FROM THE TOKEN, not from an assumption.
               //
@@ -5128,14 +5128,14 @@ async function main() {
                 // block says in its first line that it is not social sentiment.
                 ...(desk.newsSentiment ? { "news-sentiment": desk.newsSentiment } : {}),
                 // The only genuine sentiment this fleet has: what other
-                // Merrymen actually published. OMITTED ENTIRELY when nobody
+                // Oathwall actually published. OMITTED ENTIRELY when nobody
                 // said anything — an empty section reads as "we looked and
                 // there was nothing", and the truth is that nobody spoke.
                 ...(sentiment ? { sentiment } : {}),
               },
             },
             expectedTradeGasUsdg: expectedTradeGasMicro === null ? null : Number(expectedTradeGasMicro),
-            persona: cfg.agentName ? `You are ${cfg.agentName}, a Merryman.` : "",
+            persona: cfg.agentName ? `You are ${cfg.agentName}, an Agent.` : "",
             // ITS OWN PUBLISHED THESES, and what came of them. Read from the
             // peer file rather than the child's `decisions` table because that
             // table is wiped by every redeploy — an agent reading memory from
@@ -5303,15 +5303,15 @@ async function main() {
     // the strategy stops proposing trades until resumed.
     if (isPaused()) return;
 
-    // Merry Circle strategies run only for holders (Merry Man+). A non-holder may
-    // select one, but it stays idle with a one-time note until they hold $MERRYMEN.
+    // Oathwall Circle strategies run only for holders (Delegate+). A non-holder may
+    // select one, but it stays idle with a one-time note until they hold $OATHWALL.
     if (isCircleStrategy(strategy.name) && !holderTier.bonusStrategies) {
       if (!circleBlockedNoted) {
         circleBlockedNoted = true;
         await addEvent(
           agentId,
           "warn",
-          `${strategy.name} is a Merry Circle strategy — hold $MERRYMEN (Merry Man tier) to run it; idle until then`,
+          `${strategy.name} is an Oathwall Circle strategy — hold $OATHWALL (Delegate tier) to run it; idle until then`,
         );
       }
       return;
@@ -5329,7 +5329,7 @@ async function main() {
     // readable now. `readPeers` never throws — absent, unreadable, malformed and
     // empty all mean the same thing here, which is that there is nothing from
     // peers this window, and the desk tool is simply not registered.
-    peerTheses = cfg.deskEnabled ? readPeers(merrymenHome()).theses : [];
+    peerTheses = cfg.deskEnabled ? readPeers(oathwallHome()).theses : [];
 
     // WHAT THE DESK MAY READ THIS WINDOW. Refreshed on its own slow clock and
     // wrapped whole: a metadata read that fails is a window with no pages to
@@ -5388,14 +5388,14 @@ async function main() {
   if (selftest) {
     const armed = await syncGrant();
     if (!armed || !active || !(active as ActiveAgent).executor) {
-      console.error("[selftest] needs a grant AND a bundler key (a Pimlico key in /settings, or MERRYMEN_BUNDLER_API_KEY / MERRYMEN_BUNDLER_URL)");
+      console.error("[selftest] needs a grant AND a bundler key (a Pimlico key in /settings, or OATHWALL_BUNDLER_API_KEY / OATHWALL_BUNDLER_URL)");
       process.exit(1);
     }
     // Say up front when the answer cannot mean what it looks like.
     if ((active as ActiveAgent).grant.chainId !== TRADEABLE_CHAIN_ID) {
       console.log(
         `[selftest] NOTE: this grant is on chain ${(active as ActiveAgent).grant.chainId}. ` +
-          `Every token and router address merrymen knows is a chain ${TRADEABLE_CHAIN_ID} deployment, so ` +
+          `Every token and router address oathwall knows is a chain ${TRADEABLE_CHAIN_ID} deployment, so ` +
           `an approve here calls an address with no code — it succeeds without approving anything. ` +
           `This can prove the grant, the wall and the bundler; it cannot prove a trade.`,
       );
@@ -5508,7 +5508,7 @@ async function main() {
     }
     await ensureDecision(intent, "chat", `owner asked to ${side} ${usdgAmount} USDG ${symbol} in chat`);
     await processIntent(intent, lastEquityUsdg, lastEquityKnown);
-    return `🏹 submitted ${side} ${usdgAmount} USDG ${symbol} — watch /trades for the result (it still passes the policy wall).`;
+    return `🛡 submitted ${side} ${usdgAmount} USDG ${symbol} — watch /trades for the result (it still passes the policy wall).`;
   }
 
   async function submitChatTransfer(to: `0x${string}`, usdgAmount: number): Promise<string> {
@@ -5563,7 +5563,7 @@ async function main() {
   // deliberately NOT gated on telegramEnabled. The poll loop used to be the only
   // minter and it returns early when Telegram is switched off, so the dashboard
   // could show a token as "connected" while the code stayed empty, with nothing
-  // the user could do about it. Now the code exists the moment merrymen runs, and
+  // the user could do about it. Now the code exists the moment oathwall runs, and
   // it's waiting the instant they flip the toggle on.
   //
   // The WORKER stays the single writer of telegram.json (state.ts documents that
@@ -5606,7 +5606,7 @@ async function main() {
         if (!loadGrantFile()) return { ok: false, reason: "no grant" };
         // ARCHIVE FIRST. grant.json is a single slot and, for a grant that has
         // never been replaced, the only on-disk copy of the owner key — the key
-        // `merrymen recover` needs to sweep the account. Deleting it without a
+        // `oathwall recover` needs to sweep the account. Deleting it without a
         // copy strands the funds permanently, and this path is reachable from a
         // Telegram message. The CLI and the web API have archived for months;
         // the worker was the one destructive route that did not.
@@ -5616,8 +5616,8 @@ async function main() {
           void addEvent(
             active?.agentId ?? archived,
             "warn",
-            `kill switch — grant destroyed. The owner key was archived to ~/.merrymen/grants/ first; ` +
-              `\`merrymen recover\` can still sweep the funds.`,
+            `kill switch — grant destroyed. The owner key was archived to ~/.oathwall/grants/ first; ` +
+              `\`oathwall recover\` can still sweep the funds.`,
           );
         }
         return { ok: true, archived };
@@ -5627,8 +5627,8 @@ async function main() {
     },
   });
 
-  // The merryman speaks first: trade pings, warnings, price alerts, the daily
-  // campfire report — pushed to the owner chat, gated by telegramNotifyEnabled.
+  // The agent speaks first: trade pings, warnings, price alerts, the daily
+  // daily report — pushed to the owner chat, gated by telegramNotifyEnabled.
   notifierHandle = startNotifier({
     getCfg: () => resolveConfig(), // fresh for the same reason as the poller
     note: strategyNote,
@@ -5679,7 +5679,7 @@ async function main() {
   });
 
   console.log(
-    `merrymen worker starting — strategy ${strategy.name}, venue ${cfg.swapVenue}, ` +
+    `oathwall worker starting — strategy ${strategy.name}, venue ${cfg.swapVenue}, ` +
       `tick ${cfg.tickSeconds}s, settings+grant re-synced every tick` +
       (cfg.telegramEnabled ? ", telegram ON" : ""),
   );
@@ -5710,9 +5710,9 @@ async function main() {
   // neighbour's slot each time and a log is comparable across deploys. It is
   // also bounded by the tick itself: nobody waits longer for their first tick
   // than they will routinely wait for their second.
-  // MERRYMEN_HOME is …/children/<tenant> on a hosted child and a fixed path
+  // OATHWALL_HOME is …/children/<tenant> on a hosted child and a fixed path
   // self-hosted, where a stagger is neither needed nor harmful.
-  const slot = startupSlotMs(merrymenHome(), cfg.tickSeconds * 1000);
+  const slot = startupSlotMs(oathwallHome(), cfg.tickSeconds * 1000);
   if (slot > 0) console.log(`[worker] first tick in ${Math.round(slot / 1000)}s — staggered so the fleet does not wake together`);
 
   /**

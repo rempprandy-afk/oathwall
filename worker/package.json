@@ -1,6 +1,6 @@
 {
-  "name": "merrymen-worker-marker",
+  "name": "oathwall-worker-marker",
   "private": true,
   "type": "module",
-  "description": "Marker only — the worker ships as part of the root merrymen package; deps live in the root package.json."
+  "description": "Marker only — the worker ships as part of the root oathwall package; deps live in the root package.json."
 }

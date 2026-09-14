@@ -11,7 +11,7 @@ import { GATE_COOKIE, GATE_PATH, gatePassword, isGatedPath, sameSecret } from "@
  *
  *   1. Host allowlist — reject any Host that isn't loopback or a private-LAN IP
  *      literal. DNS rebinding needs a PUBLIC domain name in the Host header, so
- *      this kills it, while still allowing the explicit MERRYMEN_HOST=0.0.0.0 LAN
+ *      this kills it, while still allowing the explicit OATHWALL_HOST=0.0.0.0 LAN
  *      opt-in (reached via a private IP like 192.168.x.x).
  *   2. Cross-site block — reject requests whose Sec-Fetch-Site is cross-site or
  *      same-site (a different site the browser labels as such). same-origin (the
@@ -64,10 +64,10 @@ function hostAllowed(hostHeader: string | null): boolean {
  * anything" — enforced by tenantOf()/requireTenant in each route handler, which
  * run in the node runtime with the signing secret. Middleware keeps the one
  * defence that still applies on a public origin: the cross-site block, which no
- * attacker page can forge past. Read `MERRYMEN_HOSTED` directly (edge runtime
+ * attacker page can forge past. Read `OATHWALL_HOSTED` directly (edge runtime
  * can't import node modules) rather than through isHostedMode().
  */
-const HOSTED = ["1", "true", "yes"].includes((process.env.MERRYMEN_HOSTED ?? "").trim().toLowerCase());
+const HOSTED = ["1", "true", "yes"].includes((process.env.OATHWALL_HOSTED ?? "").trim().toLowerCase());
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -151,5 +151,5 @@ export const config = {
   // it with the password page — which the browser rendered as a broken image at
   // the top of the sign-in dialog. An icon is not a secret; the gate exists to
   // keep people out of the app, not out of a PNG.
-  matcher: ["/api/:path*", "/((?!_next/static|_next/image|favicon.ico|icon-|apple-touch-icon|logo\.svg|merrymenlogo).*)"],
+  matcher: ["/api/:path*", "/((?!_next/static|_next/image|favicon.ico|icon-|apple-touch-icon|logo\.svg|oathwalllogo).*)"],
 };

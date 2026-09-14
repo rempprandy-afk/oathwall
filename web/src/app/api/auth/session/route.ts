@@ -3,7 +3,7 @@
  * or { address: null } when not logged in. Read-only, safe to poll.
  */
 import { NextResponse } from "next/server";
-import { isHostedMode } from "@merrymen/core";
+import { isHostedMode } from "@oathwall/core";
 import { tenantOf } from "@/lib/auth";
 
 export const runtime = "nodejs";

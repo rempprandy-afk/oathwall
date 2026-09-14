@@ -1,6 +1,6 @@
 /**
  * The daily budget is TWO books, proven against a real sqlite file (a throwaway
- * MERRYMEN_HOME) — same discipline as the decisions and brokerage tests.
+ * OATHWALL_HOME) — same discipline as the decisions and brokerage tests.
  *
  * These exist because of a real incident. On 2026-07-15 a paper run spent the
  * LIVE 48-op allowance: getOpsToday counted status IN ('landed','paper',
@@ -8,7 +8,7 @@
  * remaining 11.7 hours of the run are 1,242 identical 'ops-cap' rejections.
  * A unit test could not have caught it — the bug was in a SQL status list.
  *
- * MERRYMEN_HOME is set before any store import runs getDb(); node's --test runs
+ * OATHWALL_HOME is set before any store import runs getDb(); node's --test runs
  * each file in its own process, so the override never leaks.
  */
 import assert from "node:assert/strict";
@@ -17,8 +17,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-rails-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-rails-"));
+process.env.OATHWALL_HOME = HOME;
 
 const { initStore, addTrade, getOpsToday, getSpentTodayUsdg } = await import("./store");
 const { homePaths } = await import("./home");

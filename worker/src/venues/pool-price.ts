@@ -2,7 +2,7 @@
  * DEX price for assets with no Chainlink feed — the second step of memecoin
  * support, and the one that decides whether the safety wall stays real.
  *
- * WHY THIS IS DELICATE. Chainlink is what makes merrymen's valuation
+ * WHY THIS IS DELICATE. Chainlink is what makes oathwall's valuation
  * trustworthy: it's an external, expensive-to-move number. A DEX pool is not —
  * on a thin memecoin pool, anyone with moderate capital can push the spot price
  * for one block. That price would otherwise feed equity, P&L and the DRAWDOWN

@@ -106,7 +106,7 @@ export function msUntilNextSlot(nowMs: number, offsetMs: number, periodMs: numbe
 /**
  * Which tenant am I?
  *
- * MERRYMEN_TENANT is set explicitly by childEnv(). The MERRYMEN_HOME basename is
+ * OATHWALL_TENANT is set explicitly by childEnv(). The OATHWALL_HOME basename is
  * the fallback, because childHome() is `<home>/children/<lowercased tenant>` —
  * but it is ONLY a fallback, and the caller logs which one answered. If this
  * ever silently stopped resolving to a tenant address, every child would hash
@@ -118,11 +118,11 @@ export function tenantIdentity(
   env: NodeJS.ProcessEnv,
   homeDir: string,
 ): { id: string; source: string } {
-  const explicit = (env.MERRYMEN_TENANT ?? "").trim().toLowerCase();
-  if (/^0x[0-9a-f]{40}$/.test(explicit)) return { id: explicit, source: "MERRYMEN_TENANT" };
+  const explicit = (env.OATHWALL_TENANT ?? "").trim().toLowerCase();
+  if (/^0x[0-9a-f]{40}$/.test(explicit)) return { id: explicit, source: "OATHWALL_TENANT" };
   const base = String(homeDir).split(/[\\/]/).filter(Boolean).pop() ?? "";
   const low = base.trim().toLowerCase();
-  if (/^0x[0-9a-f]{40}$/.test(low)) return { id: low, source: "MERRYMEN_HOME basename" };
+  if (/^0x[0-9a-f]{40}$/.test(low)) return { id: low, source: "OATHWALL_HOME basename" };
   // Self-hosted: one process, nothing to spread against. Deterministic anyway.
   return { id: String(homeDir).toLowerCase(), source: "home path (not a tenant address)" };
 }

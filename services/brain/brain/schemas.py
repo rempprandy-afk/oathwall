@@ -1,5 +1,5 @@
 """
-WHAT A MERRYMAN'S DECISION IS, as a type rather than as prose.
+WHAT A AGENT'S DECISION IS, as a type rather than as prose.
 
 The contract is the whole point of this service. Upstream returns markdown from
 its structured-output helper — `invoke_structured_or_freetext` validates a
@@ -149,9 +149,9 @@ class AnalystSignal(BaseModel):
 
 class BrainDecision(BaseModel):
     """
-    The one object a Merryman's thinking produces.
+    The one object an Agent's thinking produces.
 
-    The thesis and the trade intention come from HERE, together. Merrymen never
+    The thesis and the trade intention come from HERE, together. Oathwall never
     trades first and asks a model to explain itself afterwards, so the public
     post and the execution intent are two readings of one decision rather than
     two separate model calls that can disagree.
@@ -371,7 +371,7 @@ class DecideRequest(BaseModel):
     portfolio: PortfolioState
     market: MarketState
 
-    # Personality and risk appetite, as Merrymen holds them.
+    # Personality and risk appetite, as Oathwall holds them.
     persona: str = ""
     risk_appetite: Literal["conservative", "balanced", "aggressive"] = "balanced"
 

@@ -193,7 +193,7 @@ export async function bestQuote(
  * Best executable quote allowing ONE intermediate hop through `via` (WETH).
  *
  * Direct-only execution was leaving real tokens untradable. Live pools on
- * Robinhood Chain (2026-07-27): of the tokens merrymen can price, nine — UP,
+ * Robinhood Chain (2026-07-27): of the tokens oathwall can price, nine — UP,
  * YOLO, APES, MUMU, WEN, TYGR, WISHBONE, KITSU, wire — have no direct USDG pool
  * at all. They could be valued perfectly and never bought or sold, which is the
  * same trapped-position shape the no-exit rule exists to prevent, arrived at

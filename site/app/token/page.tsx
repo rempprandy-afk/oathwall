@@ -3,9 +3,9 @@ import Link from "next/link";
 import { TokenCA } from "@/components/TokenCA";
 
 export const metadata: Metadata = {
-  title: "$MERRYMEN — the Merry Circle",
+  title: "$OATHWALL — the Oathwall Circle",
   description:
-    "What holding $MERRYMEN does: a lower platform fee, a holder tier, a vote on the roadmap, and a bonus strategy pack. Utility only — merrymen stays free and open.",
+    "What holding $OATHWALL does: a lower platform fee, a holder tier, a vote on the roadmap, and a bonus strategy pack. Utility only — oathwall stays free and open.",
 };
 
 /**
@@ -16,14 +16,14 @@ export const metadata: Metadata = {
 const TIERS = [
   {
     emoji: "🌱",
-    name: "Villager of Sherwood",
+    name: "Member",
     min: "10,000",
     discount: "10% off",
     perks: ["10% off the platform performance fee", "Circle badge in your dashboard", "1× vote on the roadmap"],
   },
   {
-    emoji: "🏹",
-    name: "Merry Man",
+    emoji: "🛡",
+    name: "Delegate",
     min: "100,000",
     discount: "25% off",
     perks: [
@@ -35,7 +35,7 @@ const TIERS = [
   },
   {
     emoji: "👑",
-    name: "Lord of Sherwood",
+    name: "Council",
     min: "1,000,000",
     discount: "50% off",
     perks: [
@@ -51,13 +51,13 @@ export default function TokenPage() {
   return (
     <div className="wrap" style={{ maxWidth: 820, padding: "40px 24px 80px" }}>
       <article className="doc-body">
-        <h1>The Merry Circle</h1>
+        <h1>The Oathwall Circle</h1>
         <p className="doc-lead">
-          What <strong>$MERRYMEN</strong> does — and, just as importantly, what it doesn&apos;t.
+          What <strong>$OATHWALL</strong> does — and, just as importantly, what it doesn&apos;t.
         </p>
 
         <div className="callout">
-          <strong>merrymen is free and open to everyone, whether you hold or not.</strong> The token
+          <strong>oathwall is free and open to everyone, whether you hold or not.</strong> The token
           buys <em>perks</em> — a lower fee, a badge, a vote, bonus strategies — never the product
           itself. There is no price talk, no promise of returns, no buyback or burn here. Just
           utility you can verify on-chain.
@@ -65,10 +65,10 @@ export default function TokenPage() {
 
         <h2>The one that matters: a lower fee</h2>
         <p>
-          merrymen charges a performance fee — and only ever on <em>profit above your high-water
+          oathwall charges a performance fee — and only ever on <em>profit above your high-water
           mark</em> (never on your deposit, never on a loss, never on merely recovering a past peak).
-          Holding $MERRYMEN lowers that fee by your tier&apos;s discount. It&apos;s applied to the real
-          accrual in the worker and shown live in your dashboard&apos;s Merry Circle panel — so the perk
+          Holding $OATHWALL lowers that fee by your tier&apos;s discount. It&apos;s applied to the real
+          accrual in the worker and shown live in your dashboard&apos;s Oathwall Circle panel — so the perk
           is in the ledger, not just on this page.
         </p>
 
@@ -78,7 +78,7 @@ export default function TokenPage() {
               <div className="tier-emoji">{t.emoji}</div>
               <div className="tier-name">{t.name}</div>
               <div className="tier-min">
-                {t.min}+ <span className="tier-sym">$MERRYMEN</span>
+                {t.min}+ <span className="tier-sym">$OATHWALL</span>
               </div>
               <div className="tier-discount">{t.discount} fees</div>
               <ul className="tier-perks">
@@ -90,7 +90,7 @@ export default function TokenPage() {
           ))}
         </div>
 
-        <h2>A say in where the band rides</h2>
+        <h2>A say in where the roadmap goes</h2>
         <p>
           Holders steer the roadmap — which stock tokens join the basket, which strategies ship next,
           and how the fee parameters are set. Your tier is your vote weight. Open proposals and how
@@ -103,7 +103,7 @@ export default function TokenPage() {
 
         <h2>The bonus strategy pack</h2>
         <p>
-          Merry Man tier and up unlock holder-only strategies, on top of every free one:
+          Delegate tier and up unlock holder-only strategies, on top of every free one:
         </p>
         <ul>
           <li>
@@ -124,20 +124,20 @@ export default function TokenPage() {
 
         <h2>How to join</h2>
         <ol>
-          <li>Hold $MERRYMEN in any wallet you control on Robinhood Chain.</li>
+          <li>Hold $OATHWALL in any wallet you control on Robinhood Chain.</li>
           <li>
-            In the dashboard, open the <strong>Merry Circle</strong> panel and paste that wallet
+            In the dashboard, open the <strong>Oathwall Circle</strong> panel and paste that wallet
             address (or set <code className="inline">holderAddress</code> in settings).
           </li>
           <li>
-            That&apos;s it — merrymen reads the balance <strong>read-only</strong> to set your tier. It
+            That&apos;s it — oathwall reads the balance <strong>read-only</strong> to set your tier. It
             never asks for, and never touches, that wallet&apos;s keys.
           </li>
         </ol>
 
         <h2>The token, on-chain</h2>
         <p>
-          $MERRYMEN lives on Robinhood Chain — the same chain the agents trade — and was launched via
+          $OATHWALL lives on Robinhood Chain — the same chain the agents trade — and was launched via
           Virtuals. Verify it yourself:
         </p>
         <div style={{ margin: "16px 0 8px" }}>
@@ -145,7 +145,7 @@ export default function TokenPage() {
         </div>
 
         <div className="callout danger" style={{ marginTop: 32 }}>
-          Nothing here is financial advice or a solicitation to buy anything. $MERRYMEN is a utility
+          Nothing here is financial advice or a solicitation to buy anything. $OATHWALL is a utility
           token for perks and access; it is not an investment, and no return is promised or implied.
           Digital assets are volatile and can lose all value. See the{" "}
           <Link className="link" href="/terms">

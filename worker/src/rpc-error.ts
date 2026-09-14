@@ -1,7 +1,7 @@
 /**
  * WHAT WENT WRONG, AND WHOSE FAULT IT IS.
  *
- * merrymen's whole doctrine is that "we could not read" must never render as
+ * oathwall's whole doctrine is that "we could not read" must never render as
  * "there is nothing there". Every module that gets this right — `delivery.ts`
  * on a balance, `read-candles.ts` on a chart, `recover.ts` on a token, the
  * three-way policy-contract probe in `index.ts` — reaches the same shape: a

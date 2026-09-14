@@ -7,7 +7,7 @@ import { isRecoveryShape } from "./recovery-shape";
  * THE DECODER IS PINNED AGAINST KERNEL'S OWN ENCODER, not against my idea of it.
  *
  * This validator decides whether the house relays an operation. Too strict and it
- * strands somebody's withdrawal; too loose and app.merrymen.dev becomes a free
+ * strands somebody's withdrawal; too loose and app.oathwall.dev becomes a free
  * transaction-submission service on the house's bundler account. Both failure
  * modes are silent, so the fixtures come from `@zerodev/sdk`'s own
  * `encodeExecuteBatchCall` / `encodeExecuteSingleCall` — the exact functions

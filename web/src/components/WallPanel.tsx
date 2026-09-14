@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { WallInfo } from "@/app/api/wall/route";
-import type { WallCase } from "@merrymen/wall-battery";
+import type { WallCase } from "@oathwall/wall-battery";
 
 /**
  * The trust layer, made first-class: the grant's caps and addresses with
@@ -56,7 +56,7 @@ export function WallPanel() {
       <p className="wall-sub">
         Don&apos;t trust us — verify it. Every address below is the chain&apos;s record on{" "}
         <b>{info.chainName}</b> ({info.chainId}), not ours. The chips marked{" "}
-        <b>on-chain</b> are enforced by your account contract; the rest are counters merrymen
+        <b>on-chain</b> are enforced by your account contract; the rest are counters oathwall
         keeps on this machine.
       </p>
 

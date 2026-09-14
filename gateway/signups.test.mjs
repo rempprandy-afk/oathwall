@@ -9,8 +9,8 @@ import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-const dir = await mkdtemp(path.join(tmpdir(), "merrymen-signups-"));
-process.env.MERRYMEN_DATA_DIR = dir;
+const dir = await mkdtemp(path.join(tmpdir(), "oathwall-signups-"));
+process.env.OATHWALL_DATA_DIR = dir;
 
 const { addSignup, signupCount, validateEmail, listSignups } = await import("./lib/signups.mjs");
 
@@ -71,12 +71,12 @@ test("survives a torn final line rather than losing the whole list", async () =>
 });
 
 test("counts zero on a directory that has never been written", async () => {
-  const fresh = await mkdtemp(path.join(tmpdir(), "merrymen-empty-"));
-  process.env.MERRYMEN_DATA_DIR = fresh;
+  const fresh = await mkdtemp(path.join(tmpdir(), "oathwall-empty-"));
+  process.env.OATHWALL_DATA_DIR = fresh;
   const mod = await import(`./lib/signups.mjs?fresh=${Date.now()}`);
   assert.equal(await mod.signupCount(), 0);
   await rm(fresh, { recursive: true, force: true });
-  process.env.MERRYMEN_DATA_DIR = dir;
+  process.env.OATHWALL_DATA_DIR = dir;
 });
 
 process.on("exit", () => {

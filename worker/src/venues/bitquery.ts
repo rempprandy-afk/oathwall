@@ -1,7 +1,7 @@
 /**
- * Bitquery — the eyes merrymen doesn't have.
+ * Bitquery — the eyes oathwall doesn't have.
  *
- * merrymen reads Uniswap **v3** directly: factory, pools, quoter. That is enough
+ * oathwall reads Uniswap **v3** directly: factory, pools, quoter. That is enough
  * to trade what already exists and blind to almost everything that's new. New
  * pairs on Robinhood Chain launch through Pons/Doppler on **Uniswap v4**, whose
  * pools live inside a singleton PoolManager with no per-pair contract to find by
@@ -26,7 +26,7 @@
  * caught, typed miss rather than a throw.
  */
 
-import { MERRYMEN_GATEWAY_ORIGIN } from "../../../packages/core/src/index";
+import { OATHWALL_GATEWAY_ORIGIN } from "../../../packages/core/src/index";
 import { readBoundedJson } from "../bounded-read";
 
 /** Bitquery's V2 (streaming) GraphQL endpoint — the one carrying EVM(network:). */
@@ -36,7 +36,7 @@ export const BITQUERY_DEFAULT_ENDPOINT = "https://streaming.bitquery.io/graphql"
 export const BITQUERY_NETWORK = "robinhood";
 
 /**
- * The shared holder gateway. A merryman with a Merry Circle token needs no
+ * The shared holder gateway. A agent with an Oathwall Circle token needs no
  * Bitquery account at all: the key lives server-side, exactly as the brain's
  * does, and the same claimed token opens both.
  *
@@ -46,14 +46,14 @@ export const BITQUERY_NETWORK = "robinhood";
  * runs it. So this client sends `{query: "<name>", variables}` when it's talking
  * to the gateway, and real GraphQL only when it's using the owner's own key.
  */
-export const MERRYMEN_GATEWAY_BITQUERY = `${MERRYMEN_GATEWAY_ORIGIN}/bitquery`;
+export const OATHWALL_GATEWAY_BITQUERY = `${OATHWALL_GATEWAY_ORIGIN}/bitquery`;
 
 export interface BitqueryCreds {
   apiKey: string;
   /** Override for self-hosted/enterprise endpoints, or if Bitquery moves it. */
   endpoint?: string;
   /**
-   * True when `apiKey` is a Merry Circle gateway token rather than a Bitquery
+   * True when `apiKey` is an Oathwall Circle gateway token rather than a Bitquery
    * key. Changes the protocol: named queries out, no raw GraphQL, and the
    * gateway's own rate limits apply.
    */
@@ -69,14 +69,14 @@ export interface BitqueryCreds {
  */
 export function resolveBitquery(cfg: {
   bitqueryApiKey?: string;
-  merrymenToken?: string;
+  oathwallToken?: string;
   gatewayUrl?: string;
 }): BitqueryCreds | null {
   if (cfg.bitqueryApiKey) return { apiKey: cfg.bitqueryApiKey };
-  if (cfg.merrymenToken) {
+  if (cfg.oathwallToken) {
     return {
-      apiKey: cfg.merrymenToken,
-      endpoint: cfg.gatewayUrl || MERRYMEN_GATEWAY_BITQUERY,
+      apiKey: cfg.oathwallToken,
+      endpoint: cfg.gatewayUrl || OATHWALL_GATEWAY_BITQUERY,
       viaGateway: true,
     };
   }
@@ -148,7 +148,7 @@ export async function bitqueryQuery<T = unknown>(
       const hint =
         res.status === 401 || res.status === 403
           ? creds.viaGateway
-            ? " — your Merry Circle token expired or your wallet no longer qualifies; re-claim it"
+            ? " — your Oathwall Circle token expired or your wallet no longer qualifies; re-claim it"
             : " — check the API key in /settings"
           : res.status === 429 && creds.viaGateway
             ? " — the shared holder quota is per-wallet; add your own Bitquery key in /settings to lift it"
@@ -176,7 +176,7 @@ export async function bitqueryQuery<T = unknown>(
 /**
  * Cheapest possible round-trip: is the key valid and is this chain indexed?
  *
- * Exists so an owner can find out their key is wrong from `merrymen doctor`,
+ * Exists so an owner can find out their key is wrong from `oathwall doctor`,
  * rather than from a discovery feed that is quietly always empty.
  */
 export async function bitqueryPing(creds: BitqueryCreds): Promise<BitqueryResult<{ blockHeight: number }>> {
@@ -236,7 +236,7 @@ export interface NewPair {
  *
  * Returns candidates, not recommendations. Everything downstream still has to
  * decide whether a pool minutes old can be priced at all — and by the standards
- * merrymen already applies, usually it cannot: a fresh pool has no TWAP history
+ * oathwall already applies, usually it cannot: a fresh pool has no TWAP history
  * and almost no depth, which is exactly the shape the guards refuse.
  */
 export async function recentPools(

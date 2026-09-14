@@ -31,7 +31,7 @@ import { isWhy, parseWhy, stampOf, takeFor, thesisLine, whyLine } from "./why";
 import type { Thesis } from "./live";
 
 const t = (over: Partial<Thesis> = {}): Thesis =>
-  ({ slug: "s", name: "Little John", action: null, symbol: null, sizeUsdg: null, reason: null, ...over }) as Thesis;
+  ({ slug: "s", name: "Atlas", action: null, symbol: null, sizeUsdg: null, reason: null, ...over }) as Thesis;
 
 describe("no line is ever invented", () => {
   it("INVARIANT: the app's why.ts holds no table of quotes", () => {

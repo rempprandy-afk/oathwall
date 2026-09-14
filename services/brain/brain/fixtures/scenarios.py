@@ -68,7 +68,7 @@ def _market(symbol: str, klass: str, price: str, signals: dict[str, str]) -> Mar
     return MarketState(
         snapshot_id="fix_market",
         as_of=1_788_000_000,
-        instrument_id=f"merrymen:{symbol.lower()}",
+        instrument_id=f"oathwall:{symbol.lower()}",
         symbol=symbol,
         instrument_class=klass,  # type: ignore[arg-type]
         price_usd=price,
@@ -100,7 +100,7 @@ def _req(key: str, portfolio: PortfolioState, market: MarketState, **kw) -> Deci
 
 
 TSLA_HOLDING = Position(
-    instrument_id="merrymen:tsla",
+    instrument_id="oathwall:tsla",
     symbol="TSLA",
     qty="0.004420417",
     value_usdg=int(6.55 * USDG),
@@ -163,7 +163,7 @@ def all_scenarios() -> list[Scenario]:
                     300.0,
                     positions=[
                         Position(
-                            instrument_id="merrymen:xyz",
+                            instrument_id="oathwall:xyz",
                             symbol="XYZ",
                             qty="120",
                             value_usdg=int(200 * USDG),
@@ -304,7 +304,7 @@ def all_scenarios() -> list[Scenario]:
                     100.0,
                     positions=[
                         Position(
-                            instrument_id="merrymen:nvda",
+                            instrument_id="oathwall:nvda",
                             symbol="NVDA",
                             qty="0.43",
                             value_usdg=int(92 * USDG),

@@ -11,7 +11,7 @@
  * the web service reads a Postgres nothing ever wrote to.
  *
  * The consequence was invisible and total: no trade tape, no positions, no
- * equity curve, no events and no reasoning on app.merrymen.dev, for anyone,
+ * equity curve, no events and no reasoning on app.oathwall.dev, for anyone,
  * whatever the agent was doing. Balances still appeared because the web reads
  * those from the chain directly, which is exactly why it looked like a working
  * dashboard with a quiet agent.
@@ -220,7 +220,7 @@ export interface MirrorReport {
  * the database is what makes forgetting it a thing you can see in the code.
  */
 export function openChildLedger(home: string): { db: Db; close: () => void } | null {
-  const file = path.join(home, "merrymen.db");
+  const file = path.join(home, "oathwall.db");
   if (!existsSync(file)) return null;
   try {
     // readOnly so a bug here can never corrupt a live agent's ledger, and so

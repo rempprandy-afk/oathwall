@@ -1,8 +1,8 @@
 /**
  * Example strategy — copy me and make me yours:
  *
- *   merrymen strategy new my-bot     # scaffolds ~/.merrymen/strategies/my-bot.mjs
- *   # edit it, pick "my-bot" in /settings (or `merrymen onboard`) — done
+ *   oathwall strategy new my-bot     # scaffolds ~/.oathwall/strategies/my-bot.mjs
+ *   # edit it, pick "my-bot" in /settings (or `oathwall onboard`) — done
  *
  * The contract: default-export { name, tick(snapshot, ctx) }. Every tick
  * (~60s) you get the world and return an array of intents — what you WANT.

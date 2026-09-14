@@ -8,7 +8,7 @@
  * our RPC/LLM at an arbitrary endpoint. Non-house fields (strategy, caps…) still
  * come from the file either way.
  *
- * MERRYMEN_HOSTED is toggled per-case and restored; node's --test isolates the
+ * OATHWALL_HOSTED is toggled per-case and restored; node's --test isolates the
  * file in its own process regardless.
  */
 import assert from "node:assert/strict";
@@ -16,7 +16,7 @@ import { afterEach, describe, it } from "node:test";
 import { mergeSettings, stripHouseKeys } from "./settings";
 
 afterEach(() => {
-  delete process.env.MERRYMEN_HOSTED;
+  delete process.env.OATHWALL_HOSTED;
 });
 
 describe("hosted mode strips house keys so server env wins", () => {
@@ -31,18 +31,18 @@ describe("hosted mode strips house keys so server env wins", () => {
   } as const;
 
   it("self-hosted: the file wins (unchanged)", () => {
-    delete process.env.MERRYMEN_HOSTED;
-    const c = mergeSettings(tenantFile, { MERRYMEN_BUNDLER_API_KEY: "server-bundler-key" });
+    delete process.env.OATHWALL_HOSTED;
+    const c = mergeSettings(tenantFile, { OATHWALL_BUNDLER_API_KEY: "server-bundler-key" });
     assert.equal(c.bundlerApiKey, "tenant-bundler-key", "file wins self-hosted");
     assert.equal(c.rpcMainnet, "https://tenant.example/rpc");
     assert.equal(c.strategy, "even-keel");
   });
 
   it("hosted: house keys come from the server env, not the tenant file", () => {
-    process.env.MERRYMEN_HOSTED = "1";
+    process.env.OATHWALL_HOSTED = "1";
     const c = mergeSettings(tenantFile, {
-      MERRYMEN_BUNDLER_API_KEY: "server-bundler-key",
-      MERRYMEN_RPC_MAINNET: "https://server/rpc",
+      OATHWALL_BUNDLER_API_KEY: "server-bundler-key",
+      OATHWALL_RPC_MAINNET: "https://server/rpc",
       GROQ_API_KEY: "server-groq-key",
     });
     assert.equal(c.bundlerApiKey, "server-bundler-key", "tenant bundler key ignored");

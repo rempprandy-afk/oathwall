@@ -10,7 +10,7 @@ import { DatabaseSync } from "node:sqlite";
 import { homePaths } from "../home";
 import { esc } from "./api";
 import { gasQualifier } from "../equity";
-// RELATIVE import only — the "@merrymen/core" alias exists solely in dev (see
+// RELATIVE import only — the "@oathwall/core" alias exists solely in dev (see
 // the note in service.ts). isHostedMode decides whether a missing agent id may
 // fall back to the single-tenant guess, or must refuse.
 import { priceSourceNote, priceSourceTag, isHostedMode, bnbTestnet } from "../../../packages/core/src/index";
@@ -30,7 +30,7 @@ function usd(n: number): string {
 }
 
 /**
- * Whose numbers these are. merrymen is one agent per install, but re-granting
+ * Whose numbers these are. oathwall is one agent per install, but re-granting
  * mints a NEW smart account and leaves the old one's rows in the same tables —
  * and every figure in this file used to read the lot, unfiltered, so two
  * agents' equity curves interleaved and last-minus-first spanned both.
@@ -158,7 +158,7 @@ export interface StatusContext {
    * tenant's book off another's screen once the ledger is shared.
    */
   agentId?: string | null;
-  /** The merryman's user-given name (soul IDENTITY.md). */
+  /** The agent's user-given name (soul IDENTITY.md). */
   name: string;
   strategy: string;
   venue: string;
@@ -176,7 +176,7 @@ export interface StatusContext {
 
 export function readStatus(ctx: StatusContext): string {
   const lines: string[] = [];
-  lines.push(`🏹 <b>${esc(ctx.name)} — status</b>`);
+  lines.push(`🛡 <b>${esc(ctx.name)} — status</b>`);
   const alive = ctx.workerAliveSec !== null && ctx.workerAliveSec < 90;
   lines.push(`• worker: ${alive ? "alive" : "not running"}${ctx.paused ? " · ⏸ paused" : ""}`);
   lines.push(`• strategy: ${esc(ctx.strategy)} · venue: ${esc(ctx.venue)}`);
@@ -190,7 +190,7 @@ export function readStatus(ctx: StatusContext): string {
       // there always return 0, and practice never spends those funds anyway.
       lines.push(`• chain: testnet ${bnbTestnet.id} — <b>practice only</b> (no real swaps)`);
       lines.push(
-        `• ℹ️ testnet funds you send are <b>not used and not shown</b> — merrymen only knows mainnet ` +
+        `• ℹ️ testnet funds you send are <b>not used and not shown</b> — oathwall only knows mainnet ` +
           `token addresses, so a funded balance reads 0 here. It paper-trades a simulated ` +
           `${ctx.paperStartUsdg ?? 1000} USDG book at live prices. Real trades → switch to mainnet, ` +
           `add a bundler key, fund the smart account.`,
@@ -233,7 +233,7 @@ export function readStatus(ctx: StatusContext): string {
 
 export function readPositions(agentId?: string | null): string {
   const db = openRO();
-  if (!db) return "no ledger yet — the band hasn't ridden.";
+  if (!db) return "no ledger yet — the agent hasn't traded yet.";
   try {
     const who = resolveAgent(db, agentId);
     if (!who) return "📖 no open positions — all in cash/vault.";
@@ -432,7 +432,7 @@ export function readPositionRaw(
   }
 }
 
-// ───────────────────────────────────────────── campfire report / brag / why ──
+// ──────────────────────────────────────────────── daily report / brag / why ──
 
 interface EquityPoint {
   equity_usdg: number;
@@ -465,9 +465,9 @@ function localMidnightUnix(now = new Date()): number {
 
 const trend = (delta: number) => (delta > 0.005 ? "📈" : delta < -0.005 ? "📉" : "➡️");
 
-/** The daily campfire report — also served on demand by /report. */
+/** The daily report — also served on demand by /report. */
 /**
- * The campfire report.
+ * The daily report.
  *
  * `publicSafe` STRIPS THE BALANCE SHEET. This report goes two places: to the
  * owner over Telegram, where their own numbers are exactly what they asked
@@ -485,8 +485,8 @@ const trend = (delta: number) => (delta > 0.005 ? "📈" : delta < -0.005 ? "�
  */
 export function readReport(ctx: StatusContext, publicSafe = false): string {
   const db = openRO();
-  const lines: string[] = ["🔥 <b>campfire report</b>"];
-  if (!db) return "🔥 no ledger yet — the band hasn't ridden. Nothing to report.";
+  const lines: string[] = ["🔥 <b>daily report</b>"];
+  if (!db) return "🔥 no ledger yet — the agent hasn't traded yet. Nothing to report.";
   try {
     const agentId = resolveAgent(db, ctx.agentId);
     if (!agentId) return "🔥 no agent yet — grant one at localhost:3100/grant.";
@@ -577,12 +577,12 @@ export function readReport(ctx: StatusContext, publicSafe = false): string {
 /** A shareable scorecard. */
 export function readBrag(ctx: StatusContext): string {
   const db = openRO();
-  if (!db) return "🏹 no ledger yet — nothing to brag about (yet).";
+  if (!db) return "🛡 no ledger yet — nothing to brag about (yet).";
   try {
     const agentId = resolveAgent(db, ctx.agentId);
-    if (!agentId) return "🏹 no agent yet — grant one at localhost:3100/grant.";
+    if (!agentId) return "🛡 no agent yet — grant one at localhost:3100/grant.";
     const all = equitySeries(db, agentId);
-    if (all.length < 2) return "🏹 the band just saddled up — give it a few ticks, then we'll brag.";
+    if (all.length < 2) return "🛡 the agent just got started — give it a few ticks, then we'll brag.";
     const first = all[0]!;
     const last = all[all.length - 1]!;
     // The scorecard people SHARE. Getting this one wrong doesn't just mislead
@@ -590,7 +590,7 @@ export function readBrag(ctx: StatusContext): string {
     // like every other figure rather than bragging about a deposit.
     const contributed = netContributions(db, agentId);
     if (contributed === null) {
-      return "🏹 nothing to brag about yet — this ledger has no record of what was put in, so there's no honest number to share.";
+      return "🛡 nothing to brag about yet — this ledger has no record of what was put in, so there's no honest number to share.";
     }
     const delta = last.equity_usdg - contributed;
     const pct = contributed > 0 ? (delta / contributed) * 100 : 0;
@@ -606,12 +606,12 @@ export function readBrag(ctx: StatusContext): string {
       /* no trades */
     }
     return [
-      `🏹 <b>my merryman's scorecard</b>`,
+      `🛡 <b>my agent's scorecard</b>`,
       `${bar}`,
       `• P&amp;L: <b>${usd(delta)}</b> (${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%) over ${days}d`,
       `• equity: ${last.equity_usdg.toFixed(2)} USDG · strategy: ${esc(ctx.strategy)}${best}`,
       ``,
-      `self-hosted on merrymen — your keys, your caps 🌳`,
+      `self-hosted on oathwall — your keys, your caps 🌳`,
     ].join("\n");
   } finally {
     db.close();
@@ -731,14 +731,14 @@ export function readLlmState(ctx: StatusContext): string {
  * rather than a dead end.
  */
 const WALLET_TEXT_LINES = [
-  "🏹 <b>your wallet lives in the dashboard</b> — not in chat.",
+  "🛡 <b>your wallet lives in the dashboard</b> — not in chat.",
   "",
-  "Open <b>http://localhost:3100/grant</b> on the machine running merrymen:",
+  "Open <b>http://localhost:3100/grant</b> on the machine running oathwall:",
   "• <b>new wallet</b> — create an agent wallet, then fund it. on <b>mainnet</b>: ETH (gas) + USDG (trading capital). on <b>testnet</b>: gas only — USDG sent to a testnet account is never shown and never traded",
-  "• <b>restore a funded wallet</b> — paste your owner key to bring an already-funded wallet back: same address, same funds, no gas (on testnet the USDG figure still reads 0 — merrymen only knows mainnet token addresses; the ETH figure is real)",
+  "• <b>restore a funded wallet</b> — paste your owner key to bring an already-funded wallet back: same address, same funds, no gas (on testnet the USDG figure still reads 0 — oathwall only knows mainnet token addresses; the ETH figure is real)",
   "• if it says <i>“this wallet isn’t active”</i> → hit <b>re-arm this wallet</b> (one click, no key needed)",
   "",
-  "To move funds <b>out</b>: the dashboard’s <b>recover funds</b> panel, or run <code>merrymen recover</code> in your terminal.",
+  "To move funds <b>out</b>: the dashboard’s <b>recover funds</b> panel, or run <code>oathwall recover</code> in your terminal.",
   "",
   "Heads-up: the address you funded is a <b>smart account</b>, not a MetaMask wallet — importing your owner key into MetaMask shows a different, empty address. That’s normal; your funds are safe at the account address.",
   "",
@@ -782,7 +782,7 @@ export function readWallet(agentId?: string | null, dashboardUrl?: string): stri
   }
   if (!who) return signpost.join("\n");
   return [
-    "🏹 <b>your agent's account</b> — this is where your money is:",
+    "🛡 <b>your agent's account</b> — this is where your money is:",
     `<code>${esc(who)}</code>`,
     "",
     "That address is a <b>smart account</b>. Your owner key CONTROLS it but is not",
@@ -796,21 +796,21 @@ export function readWallet(agentId?: string | null, dashboardUrl?: string): stri
 }
 
 export const HELP_TEXT = [
-  "🏹 <b>merryman — commands</b>",
-  "/status · /positions · /pnl · /trades — see what the band's doing",
+  "🛡 <b>agent — commands</b>",
+  "/status · /positions · /pnl · /trades — see what the agent's doing",
   "/depth &lt;SYM&gt; — where the money sits: liquidity, support and resistance, live from the chain",
-  "/report — today's campfire report · /brag — your scorecard",
+  "/report — today's report · /brag — your scorecard",
   "/why — why I made my last trade",
-  "/name &lt;name&gt; — christen your merryman · /soul — who I am &amp; what I know of you",
+  "/name &lt;name&gt; — christen your agent · /soul — who I am &amp; what I know of you",
   "/remember &lt;fact&gt; — tell me something to keep · /forget — wipe what I know",
-  "/pause · /resume — hold or ride",
+  "/pause · /resume — hold or go",
   "/strategy &lt;name&gt; — switch strategy (steady-basket, even-keel, llm-strategist, or your own)",
   "/cap &lt;usdg&gt; — set the per-action ceiling for chat trades",
   "/buy &lt;SYM&gt; &lt;usdg&gt; · /sell &lt;SYM&gt; &lt;usdg&gt; — trade (passes the policy wall)",
   "/transfer &lt;0x…&gt; &lt;usdg&gt; — send USDG out (asks you to /confirm; enable in dashboard)",
   "/alert &lt;SYM&gt; &gt; &lt;price&gt; — ping me at a price · /alerts · /unalert &lt;n&gt;",
   "/wallet — create, restore, or recover a wallet (points you to the dashboard)",
-  "/kill — destroy the grant, stand the band down",
+  "/kill — destroy the grant, stand the agent down",
   "",
   "🖥️ <b>your PC</b> (enable in dashboard → remote control):",
   "/shot — screenshot · /look &lt;q&gt; — what am I looking at? · /sys — system info",

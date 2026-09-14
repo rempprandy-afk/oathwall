@@ -20,7 +20,7 @@
  * 3. THE OPERATION MUST BE A WITHDRAWAL. Validating method, sender, entryPoint
  *    and paymaster fields never looks at what the operation DOES — without
  *    isRecoveryShape, any ticket holder could push swaps, approvals or arbitrary
- *    contract calls through app.merrymen.dev as a free transaction service on
+ *    contract calls through app.oathwall.dev as a free transaction service on
  *    the house's bundler account. This is the gate that makes the file's first
  *    sentence true.
  * 4. NO PAYMASTER, structurally. Recovery never uses one, so any op carrying
@@ -47,7 +47,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { pimlicoBundlerUrl, bnbChain, bnbTestnet, ENTRYPOINT } from "@merrymen/core";
+import { pimlicoBundlerUrl, bnbChain, bnbTestnet, ENTRYPOINT } from "@oathwall/core";
 import { readTicket } from "@/lib/recovery-ticket";
 import { isRecoveryShape } from "@/lib/recovery-shape";
 
@@ -150,7 +150,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ chainId: strin
   // reach inside viem's transport to add one, which means patching global
   // fetch — not something to do around a money path.
   const ticket = readTicket(
-    req.headers.get("cookie")?.match(/(?:^|;\s*)merrymen_recovery=([^;]+)/)?.[1],
+    req.headers.get("cookie")?.match(/(?:^|;\s*)oathwall_recovery=([^;]+)/)?.[1],
   );
   if (!ticket) return bad(401, "no valid recovery ticket — sign the challenge first");
   if (ticket.chainId !== chainId) return bad(401, "this ticket is for a different chain");
@@ -200,7 +200,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ chainId: strin
     }
   }
 
-  const key = process.env.MERRYMEN_BUNDLER_API_KEY;
+  const key = process.env.OATHWALL_BUNDLER_API_KEY;
   if (!key) return bad(503, "this deployment has no bundler configured");
 
   let upstream: Response;

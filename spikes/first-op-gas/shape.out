@@ -6,7 +6,7 @@ signer.signerContractAddress      = 0x6A6F069E2a08c2468e7724Ab3250CdBFBA14D4FF  
 
 ── 1. REAL DEPLOYED ACCOUNTS + A FRESH PERMISSION VALIDATOR ─────────────────
 
-0x032da6a0ccf866474e45854e7fdef9afd1509036  (merrymen's own account, kernel v3.3, deployed block 51207025)
+0x032da6a0ccf866474e45854e7fdef9afd1509036  (oathwall's own account, kernel v3.3, deployed block 51207025)
   code: 61 bytes   isDeployed() would return: TRUE
   full wall, session key A                       pId 0x454fb2c7  perms 18  mode 0x01 vType 0x02  ENABLE   permissionConfig calls 1  isFirstEnable true   PR#56 firstEnable false  ceiling 3,000,000
   full wall, session key A (repeat, identical)   pId 0x454fb2c7  perms 18  mode 0x01 vType 0x02  ENABLE   permissionConfig calls 1  isFirstEnable true   PR#56 firstEnable false  ceiling 3,000,000
@@ -120,15 +120,15 @@ signer.signerContractAddress      = 0x6A6F069E2a08c2468e7724Ab3250CdBFBA14D4FF  
         The dangerous case is 3b: the EntryPoint getNonce read succeeds while the
         permissionConfig read fails, which is one flaky call, not an outage.
 
-── 3d. DOES MERRYMEN HAVE A DEPLOYED ACCOUNT WITH A LIVE WALL? ──────────────
+── 3d. DOES OATHWALL HAVE A DEPLOYED ACCOUNT WITH A LIVE WALL? ──────────────
 
    NO — and the section-2 subjects are therefore other people's accounts, not ours.
-   merrymen's own account 0x032da6a0…9036 has executed exactly ONE UserOperation in
+   oathwall's own account 0x032da6a0…9036 has executed exactly ONE UserOperation in
    its life: mode 0x00 / vType 0x00 (SUDO, DEFAULT), seq 0, block 51207025, success.
    Source: per-sender UserOperationEvent scan over all 2,208 ZeroDev-factory accounts
    on 4663 (spikes/first-op-gas/perm-ops.json, 0 accounts unreadable) — that account
    appears exactly once and never with vType 0x02.
-   So no merrymen wall has ever been installed on chain, and the steady-state DEFAULT
+   So no oathwall wall has ever been installed on chain, and the steady-state DEFAULT
    branch is demonstrated on the closest available subjects: real Kernel v3.3 accounts
    on the same chain whose permission validators DID land. That is a property of the
    Kernel/SDK mechanism, not of who owns the account.

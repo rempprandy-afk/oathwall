@@ -16,7 +16,7 @@ import {
   TRADEABLE_V2,
   uncoveredBasketSymbols,
   type CustomToken,  PONS_SELFTRADE_ABI,
-} from "@merrymen/core";
+} from "@oathwall/core";
 import {
   clearGrant,
   createAgentWallet,
@@ -35,7 +35,7 @@ import {
   type OwnerPreview,
   type SavedWallet,
 } from "@/lib/session";
-import { conceptTooltip } from "@merrymen/core";
+import { conceptTooltip } from "@oathwall/core";
 import { canStart } from "@/lib/can-start";
 import { usePrivyOwner } from "@/terminal/usePrivyOwner";
 // QUARANTINED, not fixed. This page moves real money, holds owner private keys
@@ -61,17 +61,17 @@ const PRESETS: { id: string; icon: string; label: string; blurb: string; caps: G
     caps: { perTradeUsdg: 10, dailyUsdg: 50, expiryDays: 7, maxDrawdownPct: 5, maxOpsPerDay: 24 },
   },
   {
-    id: "outlaw",
+    id: "steady",
     icon: "target",
-    label: "balanced · the outlaw",
+    label: "balanced · steady",
     blurb: "the sensible default",
     caps: DEFAULTS,
   },
   {
-    id: "warlord",
+    id: "aggressive",
     icon: "bolt",
-    label: "bold · the warlord",
-    blurb: "bigger arrows, wider walls",
+    label: "bold · aggressive",
+    blurb: "bigger trades, wider limits",
     caps: { perTradeUsdg: 200, dailyUsdg: 2000, expiryDays: 30, maxDrawdownPct: 15, maxOpsPerDay: 96 },
   },
 ];
@@ -139,7 +139,7 @@ function GI({ d, size = 15 }: { d: string; size?: number }) {
 const sameCaps = (a: GrantCaps, b: GrantCaps) =>
   (Object.keys(a) as (keyof GrantCaps)[]).every((k) => a[k] === b[k]);
 
-const BACKUP_KEY = "merrymen.grant.backedup.v1";
+const BACKUP_KEY = "oathwall.grant.backedup.v1";
 const TESTNET = bnbTestnet.id; // 46630 — the sandbox
 
 /**
@@ -279,9 +279,9 @@ function WalletRow({ w }: { w: SavedWallet }) {
 
 export default function GrantPage() {
   /*
-    THE SCOUT, not the outlaw. Caps are sealed into the signature BEFORE the
+    THE SCOUT, not steady. Caps are sealed into the signature BEFORE the
     account has any money in it, so the default cannot be sized to capital
-    nobody has deposited yet. The outlaw's 50/trade x 48 ops is a four-figure
+    nobody has deposited yet. Steady's 50/trade x 48 ops is a four-figure
     ceiling to hand someone who has not yet seen the thing trade once.
 
     Raising a cap is a free, instant re-sign from the panel further down, so
@@ -293,7 +293,7 @@ export default function GrantPage() {
     MAINNET BY DEFAULT, because the old default produced an agent that could
     never trade. preflight.ts classifies a non-4663 grant as a hard BLOCKER for
     a reason that is not a policy choice: every token and router address
-    merrymen knows is a mainnet deployment, so on testnet a balance reads as
+    oathwall knows is a mainnet deployment, so on testnet a balance reads as
     zero and every route is refused. The most common outcome of the old default
     was a user who did everything right and got an agent that does nothing —
     and a new user on a faucet asking "how to do leave testnet?", which is what
@@ -324,7 +324,7 @@ export default function GrantPage() {
   // Whether the SERVER still holds this grant (grant.json). null = still checking.
   // The browser copy and the server file can desync — a kill switch or CLI kill
   // deletes the server file but not this localStorage — so the dashboard shows
-  // "no merryman" while this page would happily show a wallet the worker ignores.
+  // "no agent" while this page would happily show a wallet the worker ignores.
   const [serverArmed, setServerArmed] = useState<boolean | null>(null);
   /** {hosted,address} from /api/auth/session. null until it resolves. */
   const [session, setSession] = useState<{ hosted: boolean; address: `0x${string}` | null } | null>(null);
@@ -593,7 +593,7 @@ export default function GrantPage() {
    *
    * Two owners, one control. A legacy agent re-signs from the owner key in this
    * browser's localStorage; a Privy agent re-signs from the embedded wallet,
-   * which merrymen never holds and never can. Both land in `renewKey` below, so
+   * which oathwall never holds and never can. Both land in `renewKey` below, so
    * there is still exactly ONE signing control with one set of conditions —
    * the thing this file already learned the hard way.
    *
@@ -701,7 +701,7 @@ export default function GrantPage() {
         `This wallet still holds ${amt} USDG.\n\n` +
           `Discarding it here does NOT move the funds — they stay in the smart account and can ` +
           `only be reached with THIS wallet's owner key. Back that key up first, or sweep the ` +
-          `funds out now by running:  merrymen recover\n\n` +
+          `funds out now by running:  oathwall recover\n\n` +
           `Discard anyway?`,
       );
       if (!okToDrop) return;
@@ -835,9 +835,9 @@ export default function GrantPage() {
             <h1 className="grant-title">this wallet isn&apos;t active</h1>
             <p className="grant-sub">
               Your browser still has this wallet, but the worker no longer holds its grant — so the
-              dashboard shows no merryman and it won&apos;t trade. This happens after a{" "}
-              <b>kill switch</b> or a <code>merrymen kill</code> — or because the server refused the
-              grant, in which case the reason is below. Re-arm it to make the band obey it again, or
+              dashboard shows no agent and it won&apos;t trade. This happens after a{" "}
+              <b>kill switch</b> or a <code>oathwall kill</code> — or because the server refused the
+              grant, in which case the reason is below. Re-arm it to make the agent obey it again, or
               discard it and start fresh.
             </p>
             {/* THE REASON, ON THE SCREEN THAT REPORTS THE PROBLEM. The shared
@@ -946,7 +946,7 @@ export default function GrantPage() {
             <p className="grant-sub">
               {mode === "create" ? (
                 <>
-                  No wallet to connect. merrymen makes a fresh wallet and gives <b>you</b> the key.
+                  No wallet to connect. oathwall makes a fresh wallet and gives <b>you</b> the key.
                   You set the spending limits below — and the blockchain itself{" "}
                   <Info>
                     Not honor-system limits. The size of each trade, how many it may make, how long
@@ -1127,7 +1127,7 @@ export default function GrantPage() {
               that value can only land back in your own account. Those the agent cannot exceed no
               matter what happens to the software. The <b>daily total</b>, the{" "}
               <b>drawdown breaker</b> and the <b>trades-per-day</b> count are counters kept by
-              merrymen, so a tampered-with agent could ignore all three — which is why the lever
+              oathwall, so a tampered-with agent could ignore all three — which is why the lever
               that bounds a loss is the <b>per-trade cap</b> and a <b>short expiry</b>, not the
               daily figure.
               {/*
@@ -1157,7 +1157,7 @@ export default function GrantPage() {
                   The default is the scout preset, so the silent direction is now
                   NARROWER than most people's previous wall, which is the safe way
                   round. Saying so is still better than relying on that: someone
-                  restoring a warlord wallet should know their caps just shrank,
+                  restoring an aggressive-preset wallet should know their caps just shrank,
                   and someone who had tighter limits should know to set them again.
                 */}
                 <p className="field-lead" style={{ marginTop: 12 }}>
@@ -1217,7 +1217,7 @@ export default function GrantPage() {
                       did not happen, on the screen where being wrong costs the
                       most. */}
                   {isPrivyOwned(grant)
-                    ? "held by your Privy login — merrymen never sees it"
+                    ? "held by your Privy login — oathwall never sees it"
                     : reveal
                       ? (grant.demoOwnerPrivateKey ??
                         "couldn't read your owner key — don't fund this account, and tell us")
@@ -1280,7 +1280,7 @@ export default function GrantPage() {
                 sealed into the signature when you sign it, so neither adding a token nor a new pool
                 appearing can widen it.
                 <br />
-                Your merryman <b>won&apos;t buy {uncoveredNames.length === 1 ? "it" : "them"}</b> until
+                Your agent <b>won&apos;t buy {uncoveredNames.length === 1 ? "it" : "them"}</b> until
                 you re-sign — buying something it can&apos;t sell back would leave you holding a
                 position with no way out, and no cap protects you from that.
                 <br />
@@ -1352,7 +1352,7 @@ export default function GrantPage() {
               {grantIsTestnet ? (
                 <>
                   Send <b>testnet gas (ETH)</b> to the account address below — that&apos;s the only
-                  thing worth sending here. <b>Don&apos;t send USDG:</b> merrymen only knows the
+                  thing worth sending here. <b>Don&apos;t send USDG:</b> oathwall only knows the
                   mainnet token addresses, so testnet USDG reads 0 and is never traded. Practice
                   trades a simulated book instead.
                 </>
@@ -1397,7 +1397,7 @@ export default function GrantPage() {
               Your owner key controls it, but that key&apos;s <i>own</i> address is different — import
               the key into MetaMask and you&apos;ll see an empty wallet, not these funds. To move the
               money out anytime — even after a kill switch — run{" "}
-              <span className="mono">merrymen recover</span>, which sweeps the balance to any address
+              <span className="mono">oathwall recover</span>, which sweeps the balance to any address
               you choose.
             </div>
 
@@ -1429,7 +1429,7 @@ export default function GrantPage() {
                 </span>
                 <span className="fund-bal-s">
                   {grantIsTestnet
-                    ? "not tracked on practice — merrymen only knows the mainnet USDG address"
+                    ? "not tracked on practice — oathwall only knows the mainnet USDG address"
                     : usdgFunded
                       ? "funded ✓"
                       : "the agent's trading capital"}
@@ -1464,9 +1464,9 @@ export default function GrantPage() {
                   <>
                     gas landed —{" "}
                     {session?.hosted ? (
-                      <>your band is <b>already riding</b></>
+                      <>your agent is <b>already running</b></>
                     ) : (
-                      <>run <b>merrymen start</b> and the band rides</>
+                      <>run <b>oathwall start</b> and your agent runs</>
                     )}{" "}
                     its <b>paper book</b>: live prices, simulated fills. testnet has no trading
                     venues, so no real swap can route here, and the USDG line above stays blank
@@ -1478,13 +1478,13 @@ export default function GrantPage() {
                         per tenant on its own clock. Telling a hosted owner to run a
                         CLI they never installed is the first instruction the product
                         gives them, and it does not apply. */}
-                    funded — {session?.hosted ? <>your band is <b>already riding</b></> : <>run <b>merrymen start</b> and your band rides</>}. balances
+                    funded — {session?.hosted ? <>your agent is <b>already running</b></> : <>run <b>oathwall start</b> and your agent runs</>}. balances
                     refresh here every few seconds.
                   </>
                 ) : (
                   <>
                     gas landed — still waiting on <b>USDG</b>, the agent&apos;s trading capital.
-                    until it arrives the band stays on its paper book.
+                    until it arrives the agent stays on its paper book.
                   </>
                 )}
                 {/*
@@ -1493,7 +1493,7 @@ export default function GrantPage() {
                   The rail across the top promises CHOOSE → BACK UP → FUND → RIDE,
                   and RIDE was not a place you could get to: funding is an external
                   action with no completion event, so the wizard just sat on step
-                  three forever. The only exit was "back to the band" at the very
+                  three forever. The only exit was "back to the dashboard" at the very
                   bottom of the page, below the fold, in a row it shares with
                   "switch to another wallet" and a red "discard & start over" — so
                   the nearest thing to a next step looked like one of two ways to
@@ -1550,7 +1550,7 @@ export default function GrantPage() {
               cannot drift apart into two different explanations of one number.
 
               The tooltips are not decoration. Two of these four caps are
-              enforced by merrymen's own software rather than by the chain, and
+              enforced by oathwall's own software rather than by the chain, and
               the entries say so — which is the single most important thing an
               owner can know about a row that otherwise reads as four equally
               hard guarantees.
@@ -1594,7 +1594,7 @@ export default function GrantPage() {
                 <li>
                   <b>USDG out</b> — none. No withdrawal address is registered, so the key you are about
                   to sign carries no transfer permission at all; moving money out is the owner
-                  key&apos;s job (<code>merrymen recover</code>). Wallets signed before this changed keep
+                  key&apos;s job (<code>oathwall recover</code>). Wallets signed before this changed keep
                   the free-form transfer permission they were signed with.
                 </li>
                 <li>
@@ -1682,7 +1682,7 @@ export default function GrantPage() {
                     MOVING A KEY BETWEEN CHAINS, as a first-class action.
 
                     Testnet cannot trade anything. Every token and router address
-                    merrymen knows is a mainnet-4663 deployment (preflight.ts's
+                    oathwall knows is a mainnet-4663 deployment (preflight.ts's
                     chain guard says so in as many words), so a grant on 46630 is
                     a rehearsal that can never become a performance. The only way
                     off it was a control labelled "switch to another wallet",
@@ -1710,7 +1710,7 @@ export default function GrantPage() {
                         {grant.chainId === MAINNET ? (
                           <>Move this key to <b>practice (testnet {TESTNET})</b> — it will stop being able to trade.</>
                         ) : (
-                          <>Move this key to <b>real money (mainnet {MAINNET})</b>. Practice mode cannot trade at all: every token merrymen knows is a mainnet deployment, so a testnet balance reads as zero and every route is refused.</>
+                          <>Move this key to <b>real money (mainnet {MAINNET})</b>. Practice mode cannot trade at all: every token oathwall knows is a mainnet deployment, so a testnet balance reads as zero and every route is refused.</>
                         )}
                       </span>
                     </label>
@@ -1790,7 +1790,7 @@ export default function GrantPage() {
                     <>
                       This browser does not hold the owner key for {short(grant.smartAccount)}, and
                       re-signing needs it. Use <b>switch to another wallet</b> below and paste the
-                      key in, or run <code>merrymen recover</code> to sweep the funds somewhere you
+                      key in, or run <code>oathwall recover</code> to sweep the funds somewhere you
                       control.
                     </>
                   )}
@@ -1800,7 +1800,7 @@ export default function GrantPage() {
 
             <div className="grant-actions">
               <Link href="/" className="grant-btn" style={{ textAlign: "center", textDecoration: "none" }}>
-                back to the band
+                back to the dashboard
               </Link>
               <button
                 className="copy-btn"

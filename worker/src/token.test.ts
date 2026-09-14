@@ -11,7 +11,7 @@ import {
 /** raw 18-dp balance for a whole-token count. */
 const T = (whole: number) => BigInt(whole) * 10n ** 18n;
 
-describe("Merry Circle tiers", () => {
+describe("Oathwall Circle tiers", () => {
   it("tiers are sorted ascending by minTokens (tierForBalance relies on it)", () => {
     for (let i = 1; i < CIRCLE_TIERS.length; i++) {
       assert.ok(CIRCLE_TIERS[i]!.minTokens > CIRCLE_TIERS[i - 1]!.minTokens);
@@ -26,8 +26,8 @@ describe("Merry Circle tiers", () => {
   it("maps balances to the highest tier they qualify for", () => {
     assert.equal(tierForBalance(T(10_000)).id, "villager");
     assert.equal(tierForBalance(T(99_999)).id, "villager");
-    assert.equal(tierForBalance(T(100_000)).id, "merryman");
-    assert.equal(tierForBalance(T(999_999)).id, "merryman");
+    assert.equal(tierForBalance(T(100_000)).id, "delegate");
+    assert.equal(tierForBalance(T(999_999)).id, "delegate");
     assert.equal(tierForBalance(T(1_000_000)).id, "lord");
     assert.equal(tierForBalance(T(50_000_000)).id, "lord");
   });
@@ -36,7 +36,7 @@ describe("Merry Circle tiers", () => {
     const base = 1_000; // 10%
     assert.equal(effectivePerfFeeBps(base, tierForBalance(0n)), 1_000); // outsider: no change
     assert.equal(effectivePerfFeeBps(base, tierForBalance(T(10_000))), 900); // villager: 10% off
-    assert.equal(effectivePerfFeeBps(base, tierForBalance(T(100_000))), 750); // merryman: 25% off
+    assert.equal(effectivePerfFeeBps(base, tierForBalance(T(100_000))), 750); // delegate: 25% off
     assert.equal(effectivePerfFeeBps(base, tierForBalance(T(1_000_000))), 500); // lord: 50% off
   });
 
@@ -49,7 +49,7 @@ describe("Merry Circle tiers", () => {
 
   it("nextTier walks up and stops at the top", () => {
     assert.equal(nextTier(tierForBalance(0n))?.id, "villager");
-    assert.equal(nextTier(tierForBalance(T(10_000)))?.id, "merryman");
+    assert.equal(nextTier(tierForBalance(T(10_000)))?.id, "delegate");
     assert.equal(nextTier(tierForBalance(T(100_000)))?.id, "lord");
     assert.equal(nextTier(tierForBalance(T(1_000_000))), null);
   });

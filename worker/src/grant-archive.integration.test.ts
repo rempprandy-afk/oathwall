@@ -2,7 +2,7 @@
  * The owner key must survive the kill switch.
  *
  * `grant.json` is a single slot. For a grant that has never been replaced it is
- * the ONLY on-disk copy of the owner key — the key `merrymen recover` needs to
+ * the ONLY on-disk copy of the owner key — the key `oathwall recover` needs to
  * sweep funds out of the smart account. The CLI and the web API have archived
  * before deleting for months; the worker's own kill switch, reachable from a
  * Telegram message, did not, because the worker package had no archive path.
@@ -16,10 +16,10 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync 
 import os from "node:os";
 import path from "node:path";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-archive-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-archive-"));
+process.env.OATHWALL_HOME = HOME;
 // loadGrantFile/archiveCurrentGrant prefer this when set; keep them on HOME.
-delete process.env.MERRYMEN_GRANT_FILE;
+delete process.env.OATHWALL_GRANT_FILE;
 
 const { archiveCurrentGrant, loadGrantFile } = await import("./grant");
 const { homePaths } = await import("./home");

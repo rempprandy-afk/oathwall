@@ -83,7 +83,7 @@ import {
   type CustomToken,
   type GrantCaps,
   type StoredGrant,
-} from "@merrymen/core";
+} from "@oathwall/core";
 import { findInjectedProvider, requestAccount } from "./wallet";
 
 export type { GrantCaps, StoredGrant };
@@ -107,7 +107,7 @@ export type Grant = StoredGrant;
  *   legacy grant, no key    something went wrong. The key WAS generated in this
  *                           browser and should be here. Do not fund this
  *                           account; tell somebody.
- *   privy grant, no key     nothing went wrong. There is no key for merrymen to
+ *   privy grant, no key     nothing went wrong. There is no key for oathwall to
  *                           hold, which is the point of the design.
  *
  * Reading absence alone conflates them, and the screens then told a Privy user
@@ -119,7 +119,7 @@ export function isPrivyOwned(grant: Pick<Grant, "binding"> | null | undefined): 
   return grant?.binding?.version === "privy-did-owner-v1";
 }
 
-const STORAGE_KEY = "merrymen.grant.v1";
+const STORAGE_KEY = "oathwall.grant.v1";
 
 export function loadGrant(): Grant | null {
   try {
@@ -170,11 +170,11 @@ const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
  * funded wallet can be re-armed with a brand-new session key.
  */
 /**
- * WHO OWNS A MERRYMAN'S KERNEL ACCOUNT.
+ * WHO OWNS A AGENT'S KERNEL ACCOUNT.
  *
  * This used to be a private key, because there was only one kind of owner: a
  * keypair generated in this browser and kept in localStorage. Privy adds a
- * second — an embedded wallet whose key merrymen never sees and cannot export
+ * second — an embedded wallet whose key oathwall never sees and cannot export
  * — so the parameter had to become the thing both actually are, which is a
  * SIGNER. The Kernel derivation, the wall and the session key are untouched by
  * the change; only where the signature comes from differs.
@@ -194,7 +194,7 @@ export type OwnerSigner =
        * NOT an EIP-1193 provider. ZeroDev's `toSigner` resolves a provider's
        * address with `Promise.any([eth_requestAccounts, eth_accounts])` and
        * takes [0] — whichever RPC answers first. The owner address decides the
-       * ACCOUNT address, so that race would decide which Merryman you get.
+       * ACCOUNT address, so that race would decide which Agent you get.
        */
       account: LocalAccount;
       binding: "legacy-wallet-owner-v1";
@@ -416,7 +416,7 @@ async function mintGrant(
     //
     // The marker is minted BY THE PERMISSION. It belongs here only if a
     // destination is registered above, and until this signer offers that,
-    // money leaves through the owner key (`merrymen recover`) — which is what
+    // money leaves through the owner key (`oathwall recover`) — which is what
     // /grant already tells the owner, and which no wall can block.
     // GRANT_V4_ADAPTER is minted ONLY when the permission was — marker and
     // wall move together, the same lockstep rule as GRANT_V4 above. The sealed
@@ -433,7 +433,7 @@ async function mintGrant(
     demoSessionPrivateKey: sessionPrivateKey,
     // THE CUSTODY LINE. Self-hosted keeps the owner key on the grant object: it
     // is a localhost round-trip to a 0600 file on the user's own machine, which
-    // is not a leak, and it is what the local `merrymen recover` reads. HOSTED
+    // is not a leak, and it is what the local `oathwall recover` reads. HOSTED
     // omits it entirely — the grant that goes to the server is session-key-only
     // (the shape the mobile signer has always used), so the server is never
     // custodian of a single owner key. The owner key still lives in this
@@ -441,7 +441,7 @@ async function mintGrant(
     // work with no server involvement.
     // ONLY A BROWSER-GENERATED OWNER HAS A KEY TO OMIT. A Privy owner has none
     // to carry in the first place, which is the point: there is no copy of it
-    // anywhere in merrymen to leak, back up, or forget to strip.
+    // anywhere in oathwall to leak, back up, or forget to strip.
     ...(hostedAs || ownerSigner.binding !== "legacy-wallet-owner-v1"
       ? {}
       : { demoOwnerPrivateKey: ownerSigner.privateKey }),
@@ -593,7 +593,7 @@ async function signBinding(args: {
 }
 
 /** Where a superseded grant is parked, keyed by the account it controls. */
-const ARCHIVE_PREFIX = "merrymen.grant.archive.";
+const ARCHIVE_PREFIX = "oathwall.grant.archive.";
 
 /** An agent account this browser holds the owner key for. */
 export interface SavedWallet {
@@ -830,7 +830,7 @@ export async function createAgentWallet(o: MintOptions): Promise<MintedGrant> {
 }
 
 /**
- * CREATE A MERRYMAN OWNED BY A PRIVY EMBEDDED WALLET.
+ * CREATE A AGENT OWNED BY A PRIVY EMBEDDED WALLET.
  *
  * Everything downstream is the SAME code the browser-key path runs: the same
  * Kernel v3.3 derivation, the same permission wall, the same session key, the
@@ -839,12 +839,12 @@ export async function createAgentWallet(o: MintOptions): Promise<MintedGrant> {
  * executor, and no Privy account abstraction anywhere in the path.
  *
  * WHAT IS GONE, DELIBERATELY: `demoOwnerPrivateKey`. A Privy owner has no key
- * for merrymen to hold, back up, strip at the boundary, or lose — which
+ * for oathwall to hold, back up, strip at the boundary, or lose — which
  * removes the localStorage custody this file's header has always flagged as
  * the weak point, and replaces it with Privy's own recovery. The consequence
- * to be honest about is the mirror image: merrymen cannot sweep this account
+ * to be honest about is the mirror image: oathwall cannot sweep this account
  * from a backed-up key, because there is no such key. Recovery for a
- * Privy-owned Merryman is signer-based and is NOT yet built.
+ * Privy-owned Agent is signer-based and is NOT yet built.
  */
 export async function createPrivyOwnedWallet(
   owner: LocalAccount,

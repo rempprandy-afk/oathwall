@@ -13,17 +13,17 @@ describe("the gate is off unless somebody turns it on", () => {
     // Every local and self-hosted install depends on this. An unset variable
     // must mean "no gate", not "gate with an empty password", which would lock
     // out everyone running this on their own machine.
-    const before = process.env.MERRYMEN_SITE_PASSWORD;
+    const before = process.env.OATHWALL_SITE_PASSWORD;
     try {
-      delete process.env.MERRYMEN_SITE_PASSWORD;
+      delete process.env.OATHWALL_SITE_PASSWORD;
       assert.equal(gatePassword(), null);
-      process.env.MERRYMEN_SITE_PASSWORD = "   ";
+      process.env.OATHWALL_SITE_PASSWORD = "   ";
       assert.equal(gatePassword(), null, "whitespace is not a password");
-      process.env.MERRYMEN_SITE_PASSWORD = "bellyache";
+      process.env.OATHWALL_SITE_PASSWORD = "bellyache";
       assert.equal(gatePassword(), "bellyache");
     } finally {
-      if (before === undefined) delete process.env.MERRYMEN_SITE_PASSWORD;
-      else process.env.MERRYMEN_SITE_PASSWORD = before;
+      if (before === undefined) delete process.env.OATHWALL_SITE_PASSWORD;
+      else process.env.OATHWALL_SITE_PASSWORD = before;
     }
   });
 
@@ -31,7 +31,7 @@ describe("the gate is off unless somebody turns it on", () => {
     // The password is read from the environment so it can be changed without a
     // deploy and so a git history never carries it.
     const src = readFileSync(new URL("./site-gate.ts", import.meta.url), "utf8");
-    assert.match(src, /process\.env\.MERRYMEN_SITE_PASSWORD/);
+    assert.match(src, /process\.env\.OATHWALL_SITE_PASSWORD/);
     assert.ok(!/bellyache/i.test(src), "no password literal belongs in the source");
   });
 });

@@ -1,7 +1,7 @@
 /**
- * The Merry Circle — the dashboard's holder-tier lookup.
+ * The Oathwall Circle — the dashboard's holder-tier lookup.
  *
- * Reads the $MERRYMEN balance at the user's configured holder wallet (read-only,
+ * Reads the $OATHWALL balance at the user's configured holder wallet (read-only,
  * on mainnet where the token lives) and returns their tier + perks + the live
  * fee they'd pay. Utility only: no price, no returns. Setting the holder wallet
  * goes through the normal settings PUT; this route just reads + resolves.
@@ -9,10 +9,10 @@
 
 import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
-import { homePaths } from "@merrymen/home";
+import { homePaths } from "@oathwall/home";
 import {
   CIRCLE_TIERS,
-  MERRYMEN_TOKEN,
+  OATHWALL_TOKEN,
   SETTINGS_DEFAULTS,
   effectivePerfFeeBps,
   nextTier,
@@ -20,16 +20,16 @@ import {
   tierForBalance,
   wholeTokens,
   type CircleTier,
-  type MerrymenSettings,
-} from "@merrymen/core";
+  type OathwallSettings,
+} from "@oathwall/core";
 import { createPublicClient, erc20Abi, http } from "viem";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-async function readSettings(): Promise<MerrymenSettings> {
+async function readSettings(): Promise<OathwallSettings> {
   try {
-    return JSON.parse((await readFile(homePaths.settings(), "utf8")).replace(/^﻿/, "")) as MerrymenSettings;
+    return JSON.parse((await readFile(homePaths.settings(), "utf8")).replace(/^﻿/, "")) as OathwallSettings;
   } catch {
     return {};
   }
@@ -52,10 +52,10 @@ export async function GET() {
   const settings = await readSettings();
   const baseFeeBps = SETTINGS_DEFAULTS.perfFeeBps;
   const token = {
-    symbol: MERRYMEN_TOKEN.symbol,
-    address: MERRYMEN_TOKEN.address,
-    chainId: MERRYMEN_TOKEN.chainId,
-    explorer: `${bnbChain.blockExplorers!.default.url}/token/${MERRYMEN_TOKEN.address}`,
+    symbol: OATHWALL_TOKEN.symbol,
+    address: OATHWALL_TOKEN.address,
+    chainId: OATHWALL_TOKEN.chainId,
+    explorer: `${bnbChain.blockExplorers!.default.url}/token/${OATHWALL_TOKEN.address}`,
   };
   const tiers = CIRCLE_TIERS.map((t) => ({
     ...tierView(t),
@@ -74,7 +74,7 @@ export async function GET() {
   try {
     const client = createPublicClient({ chain: bnbChain, transport: http(settings.rpcMainnet) });
     const raw = (await client.readContract({
-      address: MERRYMEN_TOKEN.address,
+      address: OATHWALL_TOKEN.address,
       abi: erc20Abi,
       functionName: "balanceOf",
       args: [holderAddress],

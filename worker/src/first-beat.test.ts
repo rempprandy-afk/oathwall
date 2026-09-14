@@ -105,7 +105,7 @@ describe("the supervisor's patience covers the stagger", () => {
     const grace = firstBeatGraceSec(HOSTED_TICK_SEC) * 1000;
     let worst = 0;
     for (let i = 0; i < 1000; i += 1) {
-      const slot = startupSlotMs(`/root/.merrymen/children/0x${i.toString(16).padStart(40, "0")}`, HOSTED_TICK_SEC * 1000);
+      const slot = startupSlotMs(`/root/.oathwall/children/0x${i.toString(16).padStart(40, "0")}`, HOSTED_TICK_SEC * 1000);
       if (slot > worst) worst = slot;
       assert.ok(slot < grace, `slot ${slot}ms exceeds the ${grace}ms first-beat grace`);
     }

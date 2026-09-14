@@ -272,7 +272,7 @@ describe("the policy cannot drift from the strategies", () => {
 });
 
 /**
- * A MERRYMAN THAT CANNOT TRADE MUST NOT SAY IT IS TRADING.
+ * A AGENT THAT CANNOT TRADE MUST NOT SAY IT IS TRADING.
  *
  * Brain runs in shadow: it thinks, its decision is persisted, and there is no
  * path from it into `proposalsToIntents` or the executor — a separate test

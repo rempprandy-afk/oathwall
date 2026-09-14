@@ -1,5 +1,5 @@
 /**
- * READ-ONLY: of the tokens merrymen can PRICE, which can it actually TRADE —
+ * READ-ONLY: of the tokens oathwall can PRICE, which can it actually TRADE —
  * and, the question that matters, can it SELL them back?
  *
  * These are different questions and conflating them is how people lose money.
@@ -42,7 +42,7 @@ async function main() {
   console.log(`\nBNB Chain ${bnbChain.id} @ block ${await client.getBlockNumber()}`);
   console.log(`PancakeSwap QuoterV2 ${PANCAKE.v3QuoterV2} · SmartRouter ${PANCAKE.smartRouter}`);
   console.log(`quotes routed through worker/src/venues/pancake.ts — the executor's own path`);
-  console.log(`can merrymen TRADE what it can PRICE? (buy size $10, both directions)\n`);
+  console.log(`can oathwall TRADE what it can PRICE? (buy size $10, both directions)\n`);
 
   const tradable: string[] = [];
   const trapped: string[] = [];

@@ -11,7 +11,7 @@
  * That is also why this is worth more here than in the tool it is borrowed from.
  * Vex (github.com/Vex-Foundation/Vex, used with its author's permission) maps
  * revert strings to a taxonomy so a PERSON is told which parameter to change.
- * merrymen has no person in the loop, so the classification has to feed back
+ * oathwall has no person in the loop, so the classification has to feed back
  * into the next decision itself — see `retryable`.
  *
  * THE RULE FOR THIS TABLE, taken from theirs verbatim: **add nothing from
@@ -161,12 +161,12 @@ const PATTERNS: readonly { re: RegExp; rule: RevertClass; retryable: boolean; de
     rule: "allowance",
     retryable: false,
     detail:
-      "the router was not approved for this amount. merrymen batches the approve and the swap into one operation, so " +
+      "the router was not approved for this amount. oathwall batches the approve and the swap into one operation, so " +
       "seeing this means the batch did not carry the approve it should have — a wiring fault, not a market one.",
   },
   {
     // ERC-4337 EntryPoint 0.7 codes: AA21 (no prefund), AA31 (paymaster deposit).
-    // merrymen uses no paymaster, so AA21 is the one that fires.
+    // oathwall uses no paymaster, so AA21 is the one that fires.
     re: /AA21|didn'?t pay prefund|insufficient funds for gas/i,
     rule: "prefund",
     retryable: false,
@@ -234,7 +234,7 @@ export function classifyRevert(message: string): RevertVerdict {
     // Says what it does not know. A sentence claiming more than that is how a
     // table like this stops being trustworthy.
     detail:
-      "the chain refused this operation and merrymen does not recognise the reason. It is left retryable, because " +
+      "the chain refused this operation and oathwall does not recognise the reason. It is left retryable, because " +
       "suppressing a trade on an unfamiliar message would hide the failure rather than explain it. The raw text is in " +
       "the event log.",
     retryable: true,

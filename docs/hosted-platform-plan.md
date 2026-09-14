@@ -1,4 +1,4 @@
-# Hosted merrymen — the multi-tenant platform build
+# Hosted oathwall — the multi-tenant platform build
 
 Turning the self-hosted single-tenant app into a live, multi-tenant service on
 Railway that anyone can use from a URL. Owner decision: **live from day one,
@@ -58,7 +58,7 @@ per-tenant encrypted grant store (`94cd881`).
 
 ### Phase A — testnet vertical slice
 - [x] **A1. One home map** (`537d734`) — web + worker share one `homePaths` via
-  `@merrymen/home`; the drifted `web/src/lib/home.ts` is deleted.
+  `@oathwall/home`; the drifted `web/src/lib/home.ts` is deleted.
 - [x] **A2. Tenant-scope reads + fail-close spend writes** (the one-way door) —
   worker reads (`8bef933`): every telegram read + notifier/streamer cursor
   scoped to the process's own agent, hosted never falls back to the global

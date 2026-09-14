@@ -2,7 +2,7 @@
  * READ-ONLY. For every ENABLE that ran on an ALREADY-DEPLOYED account,
  * decode the SIGNED gas limits and the enable-blob size from the landed
  * handleOps calldata. Relates enable-blob bytes -> verificationGasLimit,
- * which is what a merrymen renewal estimate has to be compared against.
+ * which is what a oathwall renewal estimate has to be compared against.
  */
 import fs from "node:fs";
 import { decodeFunctionData, parseAbi } from "viem";

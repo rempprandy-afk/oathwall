@@ -130,12 +130,12 @@ export function PrivySignIn({ onDone }: { onDone: () => void }) {
         {LABEL[phase]}
       </button>
       {phase === "provisioning" && (
-        <p className="flow-note">Setting up the wallet that will own your Merryman. This happens once.</p>
+        <p className="flow-note">Setting up the wallet that will own your Agent. This happens once.</p>
       )}
       {error && (
         <>
           <p role="alert" className="flow-error">{error}</p>
-          {/* A failed prove leaves a Privy session with no merrymen session —
+          {/* A failed prove leaves a Privy session with no oathwall session —
               signing out is the only way back to a clean start, and hiding
               that would strand somebody on a button that no longer works. */}
           <button className="flow-secondary" onClick={() => void logout()}>Start over</button>

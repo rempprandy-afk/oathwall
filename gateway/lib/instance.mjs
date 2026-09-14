@@ -8,20 +8,20 @@ import { createPublicClient, defineChain, http } from "viem";
 import { createGateway, clientIp } from "./core.mjs";
 import { createStore, hasRedis } from "./store.mjs";
 
-const TOKEN_ADDRESS = "0xa15cd06dd305269a0f48bebeb30aa3588fba7b32"; // $MERRYMEN
+const TOKEN_ADDRESS = "0xa15cd06dd305269a0f48bebeb30aa3588fba7b32"; // $OATHWALL
 const CHAIN_ID = 4663; // Robinhood Chain
 
 let _gw = null;
 export function getGateway() {
   if (_gw) return _gw;
-  const UPSTREAM_KEY = process.env.MERRYMEN_GATEWAY_UPSTREAM_KEY;
-  const SECRET = process.env.MERRYMEN_GATEWAY_SECRET;
-  const RPC = process.env.MERRYMEN_GATEWAY_RPC;
-  const missing = Object.entries({ MERRYMEN_GATEWAY_UPSTREAM_KEY: UPSTREAM_KEY, MERRYMEN_GATEWAY_SECRET: SECRET, MERRYMEN_GATEWAY_RPC: RPC })
+  const UPSTREAM_KEY = process.env.OATHWALL_GATEWAY_UPSTREAM_KEY;
+  const SECRET = process.env.OATHWALL_GATEWAY_SECRET;
+  const RPC = process.env.OATHWALL_GATEWAY_RPC;
+  const missing = Object.entries({ OATHWALL_GATEWAY_UPSTREAM_KEY: UPSTREAM_KEY, OATHWALL_GATEWAY_SECRET: SECRET, OATHWALL_GATEWAY_RPC: RPC })
     .filter(([, v]) => !v)
     .map(([k]) => k);
   if (missing.length) throw new Error(`gateway misconfigured: set ${missing.join(", ")} in the Vercel project env`);
-  if (Buffer.byteLength(SECRET, "utf8") < 32) throw new Error("gateway misconfigured: MERRYMEN_GATEWAY_SECRET must be >= 32 bytes");
+  if (Buffer.byteLength(SECRET, "utf8") < 32) throw new Error("gateway misconfigured: OATHWALL_GATEWAY_SECRET must be >= 32 bytes");
   if (!hasRedis) throw new Error("gateway misconfigured: a KV store is required on serverless — add Upstash/Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN)");
 
   const chain = defineChain({
@@ -32,14 +32,14 @@ export function getGateway() {
   });
   _gw = createGateway({
     secret: SECRET,
-    upstreamUrl: process.env.MERRYMEN_GATEWAY_UPSTREAM || "https://api.groq.com/openai/v1/chat/completions",
+    upstreamUrl: process.env.OATHWALL_GATEWAY_UPSTREAM || "https://api.groq.com/openai/v1/chat/completions",
     upstreamKey: UPSTREAM_KEY,
     // THE SAME DEFAULT AS server.mjs, and it has to stay the same: this is the
     // serverless path (gateway/api/*), so fixing only server.mjs leaves the
     // Vercel deploy answering 404 for every completion.
-    model: process.env.MERRYMEN_GATEWAY_MODEL || "qwen/qwen3.8-27b",
-    domain: process.env.MERRYMEN_GATEWAY_DOMAIN || "merrymen.dev",
-    minTokens: BigInt(process.env.MERRYMEN_GATEWAY_MIN_TOKENS || "10000"),
+    model: process.env.OATHWALL_GATEWAY_MODEL || "qwen/qwen3.8-27b",
+    domain: process.env.OATHWALL_GATEWAY_DOMAIN || "oathwall.dev",
+    minTokens: BigInt(process.env.OATHWALL_GATEWAY_MIN_TOKENS || "10000"),
     tokenAddress: TOKEN_ADDRESS,
     publicClient: createPublicClient({ chain, transport: http(RPC) }),
     store: createStore(),

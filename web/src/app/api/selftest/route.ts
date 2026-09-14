@@ -1,7 +1,7 @@
 /**
  * Ask the worker to run its pipeline probe, and report what came back.
  *
- * WHY THIS EXISTS. `merrymen selftest` is a CLI flag, and hosted spawns the
+ * WHY THIS EXISTS. `oathwall selftest` is a CLI flag, and hosted spawns the
  * worker without it (orchestrator.ts) — so the one command designed to answer
  * "can this agent actually transact" was unreachable for every hosted tenant.
  * That is how a fleet-wide arming failure stayed invisible for hours: the only
@@ -19,9 +19,9 @@
  * their own wall check — the channel is deliberately dumb.
  */
 import { NextResponse } from "next/server";
-import { merrymenHome } from "@merrymen/home";
-import { isHostedMode } from "@merrymen/core";
-import { writeCommand } from "@merrymen/command-files";
+import { oathwallHome } from "@oathwall/home";
+import { isHostedMode } from "@oathwall/core";
+import { writeCommand } from "@oathwall/command-files";
 import { withReadDb } from "@/lib/ledger";
 import { hostedAgentFor, diskAgent } from "@/lib/agent-for";
 
@@ -42,11 +42,11 @@ export async function POST(req: Request) {
   const id = crypto.randomUUID();
 
   // SELF-HOSTED SKIPS THE DATABASE ENTIRELY. The web process and the worker
-  // share one MERRYMEN_HOME, so the command can be dropped straight into the
+  // share one OATHWALL_HOME, so the command can be dropped straight into the
   // directory the worker drains — no table, no ferry, no shared handle.
   if (!isHostedMode()) {
     try {
-      writeCommand(merrymenHome(), { id, kind: "selftest", at: Date.now() });
+      writeCommand(oathwallHome(), { id, kind: "selftest", at: Date.now() });
       return NextResponse.json({ id, queued: true });
     } catch (e) {
       return NextResponse.json(

@@ -2,7 +2,7 @@
  * The audit format, and the verifier for it.
  *
  * The premise: someone who does not trust the operator, has never installed
- * merrymen, and has only a public RPC should be able to check every performance
+ * oathwall, and has only a public RPC should be able to check every performance
  * claim the software makes. Until this existed they could not — the ledger is a
  * plain sqlite file on the operator's own disk, the equity curve is a series of
  * balance readings written by the process being audited, and nothing
@@ -23,7 +23,7 @@
  *      marks — rather than read back, and compared against what was published.
  *
  * Everything here is pure and takes its inputs as data, so the verifier can run
- * against a file it did not produce, with no access to ~/.merrymen.
+ * against a file it did not produce, with no access to ~/.oathwall.
  */
 
 import { createHash } from "node:crypto";

@@ -5,7 +5,7 @@
  * The `!accountLive` half assumes ENABLE-mode nonces only ever come from accounts
  * with no code. This spike tests that assumption against the chain.
  *
- * The subject is a REAL, ALREADY-DEPLOYED merrymen Kernel v3.3 account on 4663 —
+ * The subject is a REAL, ALREADY-DEPLOYED oathwall Kernel v3.3 account on 4663 —
  * 0x032da6a0…, deployed at block 51207025 by tx 0xc6562c38…, which is the same
  * landed deploy probe.ts anchors its numbers to. We point a FRESH permission
  * validator (new session key, real wall policies) at that live address and read
@@ -33,7 +33,7 @@ import { buildWallPolicies, chainForId } from "../../packages/core/src/index";
 const RPC = "https://rpc.mainnet.chain.robinhood.com";
 const CAPS = { perTradeUsdg: 50, dailyUsdg: 500, expiryDays: 14, maxDrawdownPct: 10, maxOpsPerDay: 48 };
 
-/** A real deployed merrymen Kernel v3.3 account (EntryPoint 0.7 AccountDeployed log). */
+/** A real deployed oathwall Kernel v3.3 account (EntryPoint 0.7 AccountDeployed log). */
 const LIVE_ACCOUNT = "0x032da6a0ccf866474e45854e7fdef9afd1509036" as Address;
 const LIVE_NOTE = "deployed block 51207025, tx 0xc6562c389d676471e09b56b01a129ef31f816b659f7322c452dcf9bcf43c4a60";
 

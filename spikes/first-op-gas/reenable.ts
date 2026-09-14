@@ -57,10 +57,10 @@ const CAPS = { perTradeUsdg: 50, dailyUsdg: 500, expiryDays: 14, maxDrawdownPct:
 const ECDSA_VALIDATOR = "0x845ADb2C711129d4f3966735eD98a9F09fC4cE57" as Address;
 
 /** REAL, already-deployed Kernel v3.3 accounts on 4663 (phase 1, impl-slot
- *  verified). The first is merrymen's own; the second is the account whose
+ *  verified). The first is oathwall's own; the second is the account whose
  *  landed deploy+wall-enable signed 8,972,828 verification gas. */
 const TARGETS: Array<{ label: string; address: Address }> = [
-  { label: "merrymen's own account (deployed block 51,207,025)", address: "0x032Da6A0Ccf866474e45854E7fDEF9afd1509036" },
+  { label: "oathwall's own account (deployed block 51,207,025)", address: "0x032Da6A0Ccf866474e45854E7fDEF9afd1509036" },
   { label: "a second live v3.3 account (deployed block 51,847,124)", address: "0xa48cE91e2F3237E69660C1543042c007B8D33e75" },
 ];
 
@@ -113,8 +113,8 @@ const modeOf = (n: bigint) => `0x${((n >> 248n) & 0xffn).toString(16).padStart(2
 const vTypeOf = (n: bigint) => `0x${((n >> 240n) & 0xffn).toString(16).padStart(2, "0")}`;
 
 async function main() {
-  const apiKey = process.env.MERRYMEN_BUNDLER_API_KEY;
-  if (!apiKey) { console.error("no MERRYMEN_BUNDLER_API_KEY — run under `railway run --service orchestrator --`"); process.exit(1); }
+  const apiKey = process.env.OATHWALL_BUNDLER_API_KEY;
+  if (!apiKey) { console.error("no OATHWALL_BUNDLER_API_KEY — run under `railway run --service orchestrator --`"); process.exit(1); }
   const bundler = pimlicoBundlerUrl(CHAIN_ID, apiKey);
   const chain = chainForId(CHAIN_ID);
   const publicClient = createPublicClient({ chain, transport: http(RPC) });

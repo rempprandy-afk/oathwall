@@ -9,7 +9,7 @@ import "./first-visit.css";
 const STOPS = ["Welcome", "Markets", "Your agent", "Conversation", "Portfolio", "Your controls", "The community"];
 type Progress = { step:number; hidden:boolean; completed:boolean };
 const INITIAL:Progress = {step:0,hidden:false,completed:false};
-const PREFIX = "merrymen.guide.v1.";
+const PREFIX = "oathwall.guide.v1.";
 
 export function FirstVisit({account,screen,replies,onScreen,onQuestion}:{account:AccountState|null;screen:Screen;replies:number;onScreen:(screen:Screen)=>void;onQuestion:()=>void}) {
   const key = account ? PREFIX + (account.session.hosted ? account.session.address?.toLowerCase() || "visitor" : "local") : null;
@@ -35,7 +35,7 @@ export function FirstVisit({account,screen,replies,onScreen,onQuestion}:{account
   const isTab=(tab:string)=>screen.kind==="tab"&&screen.tab===tab;
   const action=(label:string,run:()=>void)=><button className="guide-primary" onClick={run}>{label}<ArrowRight size={15}/></button>;
   let title="",copy="",controls:ReactNode=null;
-  if(step===0){title="Welcome to merrymen.";copy="Give an agent a strategy, set its limits, and follow its decisions. Let’s find your way around.";
+  if(step===0){title="Welcome to oathwall.";copy="Give an agent a strategy, set its limits, and follow its decisions. Let’s find your way around.";
     controls=<>{action("Explore first",()=>{next();go({kind:"tab",tab:"home"});})}<button onClick={()=>{save({...progress,step:2});go(hasAgent?{kind:"tab",tab:"agent"}:{kind:"create"});}}>{hasAgent ? "Meet my agent" : "Set up my agent"}</button></>;
   } else if(step===1){title=screen.kind==="token"?"A closer look.":"Start with a stock you know.";copy=screen.kind==="token"?"The chart shows price history. Agent activity shows recorded trades when available. A watchlist keeps tokens you want to revisit.":"Open a token from Markets, or use search to find one. You can explore prices and agent activity before creating an agent.";
     controls=screen.kind==="token"?action("Meet my agent",()=>{next();go(hasAgent?{kind:"tab",tab:"agent"}:{kind:"create"});}):action("Find a token",()=>go({kind:"search"}));

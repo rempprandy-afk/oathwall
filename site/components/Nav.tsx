@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Logo } from "./Logo";
 import { Icon } from "./Icon";
 
-const GITHUB = "https://github.com/millw14/merrymen";
-const HOSTED_APP = "https://app.merrymen.dev";
-const X_URL = "https://x.com/MerrymenAI";
+const GITHUB = "https://github.com/millw14/oathwall";
+const HOSTED_APP = "https://app.oathwall.dev";
+const X_URL = "https://x.com/OathwallAI";
 
 function XMark({ size = 15 }: { size?: number }) {
   return (
@@ -20,7 +20,7 @@ export function Nav() {
       <div className="wrap nav-inner">
         <Link href="/" className="brand">
           <Logo size={22} />
-          <span>merrymen</span>
+          <span>oathwall</span>
         </Link>
         <nav className="nav-links">
           <Link href="/#features" data-text="Features"><span>Features</span></Link>
@@ -33,7 +33,7 @@ export function Nav() {
           <Link href="/docs" data-text="Docs"><span>Docs</span></Link>
         </nav>
         <div className="nav-right">
-          <a href={X_URL} target="_blank" rel="noreferrer" className="nav-ghost nav-social" aria-label="merrymen on X">
+          <a href={X_URL} target="_blank" rel="noreferrer" className="nav-ghost nav-social" aria-label="oathwall on X">
             <XMark />
           </a>
           <a href={GITHUB} target="_blank" rel="noreferrer" className="nav-ghost">

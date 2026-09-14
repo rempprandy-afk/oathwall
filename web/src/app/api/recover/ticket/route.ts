@@ -31,7 +31,7 @@ import { recoverMessageAddress } from "viem";
 import { consumeChallengeNonce, issueChallengeNonce, requestOrigin } from "@/lib/auth";
 import { deriveKernelAccountAddress } from "@/lib/derive-account";
 import { mintTicket, recoveryChallengeMessage, TICKET_TTL_MS } from "@/lib/recovery-ticket";
-import { bnbChain, bnbTestnet } from "@merrymen/core";
+import { bnbChain, bnbTestnet } from "@oathwall/core";
 
 export const runtime = "nodejs";
 
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
   // so no other site can cause it to be sent; and short-lived by the ticket's
   // own expiry, which is what actually bounds it.
   const res = NextResponse.json({ smartAccount, expiresInMs: TICKET_TTL_MS });
-  res.cookies.set("merrymen_recovery", mintTicket({ smartAccount, chainId }), {
+  res.cookies.set("oathwall_recovery", mintTicket({ smartAccount, chainId }), {
     httpOnly: true,
     secure: true,
     sameSite: "strict",

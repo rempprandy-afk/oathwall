@@ -1,5 +1,5 @@
 /**
- * Even Keel — a Merry Circle (holder-only) strategy.
+ * Even Keel — an Oathwall Circle (holder-only) strategy.
  *
  * Keeps the basket at equal weight: trims whatever has run ahead and tops up
  * whatever has lagged, so the book quietly harvests mean reversion instead of

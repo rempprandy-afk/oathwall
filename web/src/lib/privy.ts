@@ -2,7 +2,7 @@
  * THE PRIVY TRUST BOUNDARY. Server-only.
  *
  * A browser sends an access token. Everything downstream — which tenant it is,
- * which Merryman it opens, whether a grant may be installed — hangs on the DID
+ * which Agent it opens, whether a grant may be installed — hangs on the DID
  * inside it, so the DID is only ever read from a token this file has VERIFIED.
  * A `privyUserId`, a wallet address or a tenant supplied in a request body is
  * decoration; it never becomes an identity.

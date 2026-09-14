@@ -1,7 +1,7 @@
 /**
  * User-written strategies — the plugin surface. Drop a file in strategies/
  * (repo root) exporting the Strategy contract and select it by filename in
- * /settings or `merrymen onboard`. Like every built-in, a custom strategy
+ * /settings or `oathwall onboard`. Like every built-in, a custom strategy
  * only PROPOSES: each returned intent is shape-validated here, then faces
  * checkPolicy → quote simulation → the on-chain session-key wall. A buggy or
  * hostile strategy file can waste its own tick; it cannot exceed the caps.
@@ -23,12 +23,12 @@ import type { Snapshot, Strategy } from "./types";
 const EXTENSIONS = [".ts", ".mts", ".mjs", ".js"];
 
 export function customStrategiesDir(): string {
-  return process.env.MERRYMEN_STRATEGIES_DIR ?? homePaths.strategies();
+  return process.env.OATHWALL_STRATEGIES_DIR ?? homePaths.strategies();
 }
 
 /**
  * Everything a user strategy needs, injected as tick's second argument so
- * strategy files stay dependency-free (they live in ~/.merrymen/strategies,
+ * strategy files stay dependency-free (they live in ~/.oathwall/strategies,
  * outside any node_modules). Addresses come from the verified registry.
  */
 export interface StrategyCtx {
@@ -127,9 +127,9 @@ interface LoadedModule {
  * chain liveness.
  *
  * `sequencerUp` was renamed `chainLive` in Phase 5 and every builtin strategy
- * moved with it. User files cannot: they live in ~/.merrymen/strategies,
+ * moved with it. User files cannot: they live in ~/.oathwall/strategies,
  * outside the repo, are dynamically imported with no typecheck, and both the
- * shipped example and the `merrymen strategy new` scaffold told people to open
+ * shipped example and the `oathwall strategy new` scaffold told people to open
  * with `if (!snap.sequencerUp) return [];`. Without this, that line reads
  * `undefined`, returns nothing on every tick, and raises no error — an agent
  * that goes quiet forever with nothing in the activity feed to say why.

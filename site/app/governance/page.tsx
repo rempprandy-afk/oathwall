@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Governance — the Merry Circle",
+  title: "Governance — the Oathwall Circle",
   description:
-    "How $MERRYMEN holders steer the merrymen roadmap: tier-weighted signalling on which tokens join the basket, which strategies ship, and how fees are set.",
+    "How $OATHWALL holders steer the oathwall roadmap: tier-weighted signalling on which tokens join the basket, which strategies ship, and how fees are set.",
 };
 
 const WEIGHTS = [
-  { emoji: "🌱", name: "Villager of Sherwood", weight: "1× vote" },
-  { emoji: "🏹", name: "Merry Man", weight: "3× vote" },
-  { emoji: "👑", name: "Lord of Sherwood", weight: "10× vote" },
+  { emoji: "🌱", name: "Member", weight: "1× vote" },
+  { emoji: "🛡", name: "Delegate", weight: "3× vote" },
+  { emoji: "👑", name: "Council", weight: "10× vote" },
 ];
 
 // Illustrative open proposals — the kind of thing holders decide. Not a live tally.
@@ -23,7 +23,7 @@ const PROPOSALS = [
   {
     tag: "Strategy",
     title: "Promote a community strategy to a builtin",
-    body: "Which well-tested community strategy should ship as a first-class builtin (or as the next Merry Circle bonus strategy)?",
+    body: "Which well-tested community strategy should ship as a first-class builtin (or as the next Oathwall Circle bonus strategy)?",
   },
   {
     tag: "Parameters",
@@ -38,7 +38,7 @@ export default function GovernancePage() {
       <article className="doc-body">
         <h1>Governance</h1>
         <p className="doc-lead">
-          The band rides where the Circle points it. $MERRYMEN holders steer the roadmap; your tier is
+          The roadmap goes where the Circle points it. $OATHWALL holders steer the roadmap; your tier is
           your weight.
         </p>
 
@@ -57,7 +57,7 @@ export default function GovernancePage() {
           </li>
           <li>
             <strong>Strategies</strong> — which community strategies get promoted to builtins, and
-            what joins the Merry Circle bonus pack.
+            what joins the Oathwall Circle bonus pack.
           </li>
           <li>
             <strong>Parameters</strong> — tier thresholds, fee discounts, and other tunables in{" "}
@@ -76,7 +76,7 @@ export default function GovernancePage() {
           ))}
         </div>
         <p style={{ marginTop: 8 }}>
-          Weight is read from the $MERRYMEN balance at your holder wallet — verifiable, not
+          Weight is read from the $OATHWALL balance at your holder wallet — verifiable, not
           self-reported. See the tiers in full on the{" "}
           <Link className="link" href="/token">
             token page
@@ -100,10 +100,10 @@ export default function GovernancePage() {
 
         <h2>How to take part</h2>
         <ol>
-          <li>Hold $MERRYMEN and set your holder wallet in the dashboard&apos;s Merry Circle panel.</li>
+          <li>Hold $OATHWALL and set your holder wallet in the dashboard&apos;s Oathwall Circle panel.</li>
           <li>
             Join the discussion on{" "}
-            <a className="link" href="https://x.com/MerrymenAI" target="_blank" rel="noreferrer">
+            <a className="link" href="https://x.com/OathwallAI" target="_blank" rel="noreferrer">
               X
             </a>{" "}
             and in the holders&apos; channel, and weigh in on the open round.

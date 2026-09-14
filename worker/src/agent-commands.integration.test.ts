@@ -23,8 +23,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-cmd-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-cmd-"));
+process.env.OATHWALL_HOME = HOME;
 
 const { initStore, enqueueCommand, claimCommand, finishCommand, latestCommand } = await import("./store");
 const { homePaths } = await import("./home");

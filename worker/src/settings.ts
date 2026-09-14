@@ -18,7 +18,7 @@ import {
   isHostedMode,
   isValidCustomToken,
   type CustomToken,
-  type MerrymenSettings,
+  type OathwallSettings,
 } from "../../packages/core/src/index";
 import { ensureHome, homePaths } from "./home";
 
@@ -27,10 +27,10 @@ import { ensureHome, homePaths } from "./home";
  * field list is HOUSE_KEY_FIELDS in core, shared with the settings API so the
  * worker's "strip before merge" and the API's "refuse to write" can't drift.
  */
-export function stripHouseKeys(file: MerrymenSettings): MerrymenSettings {
+export function stripHouseKeys(file: OathwallSettings): OathwallSettings {
   const copy = { ...file } as Record<string, unknown>;
   for (const k of HOUSE_KEY_FIELDS) delete copy[k];
-  return copy as MerrymenSettings;
+  return copy as OathwallSettings;
 }
 
 export interface ResolvedConfig {
@@ -100,13 +100,13 @@ export interface ResolvedConfig {
   llmModel: string;
   llmIntervalMin: number;
   llmMaxActionUsdg: number;
-  /** Wallet holding $MERRYMEN — sets the Merry Circle tier / fee discount. */
+  /** Wallet holding $OATHWALL — sets the Oathwall Circle tier / fee discount. */
   holderAddress: `0x${string}` | undefined;
   /** Virtuals API key (secret) — streams agent activity to its Virtuals page. */
   virtualsApiKey: string | undefined;
   bitqueryApiKey: string | undefined;
-  /** Merry Circle gateway token — opens the gateway brain AND its Bitquery route. */
-  merrymenToken: string | undefined;
+  /** Oathwall Circle gateway token — opens the gateway brain AND its Bitquery route. */
+  oathwallToken: string | undefined;
   /** Master switch for Virtuals Terminal streaming (off by default). */
   virtualsEnabled: boolean;
   telegramBotToken: string | undefined;
@@ -200,7 +200,7 @@ export function strArray(file: unknown, env: string | undefined, fallback: strin
 
 /** Pure merge — exported for tests. `env` defaults to process.env at the call site. */
 export function mergeSettings(
-  file: MerrymenSettings,
+  file: OathwallSettings,
   env: Record<string, string | undefined>,
 ): ResolvedConfig {
   const d = SETTINGS_DEFAULTS;
@@ -213,22 +213,22 @@ export function mergeSettings(
   // keys, but a shell on our server is never a tenant's to enable).
   if (hosted) file = stripHouseKeys(file);
 
-  const rawBreaker = str(file.breakerAddress, env.MERRYMEN_BREAKER_ADDRESS);
+  const rawBreaker = str(file.breakerAddress, env.OATHWALL_BREAKER_ADDRESS);
   const breakerAddress =
     rawBreaker && /^0x[0-9a-fA-F]{40}$/.test(rawBreaker) ? (rawBreaker as `0x${string}`) : undefined;
 
-  const agentName = str(file.agentName, env.MERRYMEN_AGENT_NAME);
-  const xHandle = str(file.xHandle, env.MERRYMEN_X_HANDLE);
+  const agentName = str(file.agentName, env.OATHWALL_AGENT_NAME);
+  const xHandle = str(file.xHandle, env.OATHWALL_X_HANDLE);
 
-  const rawAdapter = str(file.v4AdapterAddress, env.MERRYMEN_V4_ADAPTER_ADDRESS);
+  const rawAdapter = str(file.v4AdapterAddress, env.OATHWALL_V4_ADAPTER_ADDRESS);
   const v4AdapterAddress =
     rawAdapter && /^0x[0-9a-fA-F]{40}$/.test(rawAdapter) ? (rawAdapter as `0x${string}`) : undefined;
 
-  const rawPons = str(file.ponsAdapterAddress, env.MERRYMEN_PONS_ADAPTER_ADDRESS);
+  const rawPons = str(file.ponsAdapterAddress, env.OATHWALL_PONS_ADAPTER_ADDRESS);
   const ponsAdapterAddress =
     rawPons && /^0x[0-9a-fA-F]{40}$/.test(rawPons) ? (rawPons as `0x${string}`) : undefined;
 
-  const rawHolder = str(file.holderAddress, env.MERRYMEN_HOLDER_ADDRESS);
+  const rawHolder = str(file.holderAddress, env.OATHWALL_HOLDER_ADDRESS);
   const holderAddress =
     rawHolder && /^0x[0-9a-fA-F]{40}$/.test(rawHolder) ? (rawHolder as `0x${string}`) : undefined;
 
@@ -261,108 +261,108 @@ export function mergeSettings(
   const basketSymbols = fileSymbols.length > 0 ? fileSymbols : d.basketSymbols;
 
   return {
-    bundlerApiKey: str(file.bundlerApiKey, env.MERRYMEN_BUNDLER_API_KEY),
-    bundlerUrl: str(file.bundlerUrl, env.MERRYMEN_BUNDLER_URL),
-    rpcMainnet: str(file.rpcMainnet, env.MERRYMEN_RPC_MAINNET),
-    rpcTestnet: str(file.rpcTestnet, env.MERRYMEN_RPC_TESTNET),
+    bundlerApiKey: str(file.bundlerApiKey, env.OATHWALL_BUNDLER_API_KEY),
+    bundlerUrl: str(file.bundlerUrl, env.OATHWALL_BUNDLER_URL),
+    rpcMainnet: str(file.rpcMainnet, env.OATHWALL_RPC_MAINNET),
+    rpcTestnet: str(file.rpcTestnet, env.OATHWALL_RPC_TESTNET),
     groqApiKey: str(file.groqApiKey, env.GROQ_API_KEY),
-    groqModel: str(file.groqModel, env.MERRYMEN_GROQ_MODEL, d.groqModel)!,
+    groqModel: str(file.groqModel, env.OATHWALL_GROQ_MODEL, d.groqModel)!,
     anthropicApiKey: str(file.anthropicApiKey, env.ANTHROPIC_API_KEY),
-    llmProvider: str(file.llmProvider, env.MERRYMEN_LLM_PROVIDER),
-    llmApiKey: str(file.llmApiKey, env.MERRYMEN_LLM_API_KEY),
-    llmBaseUrl: str(file.llmBaseUrl, env.MERRYMEN_LLM_BASE_URL),
-    llmProviderModel: str(file.llmProviderModel, env.MERRYMEN_LLM_PROVIDER_MODEL),
-    rialtoApiKey: str(file.rialtoApiKey, env.MERRYMEN_RIALTO_API_KEY),
-    rialtoApiKeyHeader: str(file.rialtoApiKeyHeader, env.MERRYMEN_RIALTO_API_KEY_HEADER, d.rialtoApiKeyHeader)!,
+    llmProvider: str(file.llmProvider, env.OATHWALL_LLM_PROVIDER),
+    llmApiKey: str(file.llmApiKey, env.OATHWALL_LLM_API_KEY),
+    llmBaseUrl: str(file.llmBaseUrl, env.OATHWALL_LLM_BASE_URL),
+    llmProviderModel: str(file.llmProviderModel, env.OATHWALL_LLM_PROVIDER_MODEL),
+    rialtoApiKey: str(file.rialtoApiKey, env.OATHWALL_RIALTO_API_KEY),
+    rialtoApiKeyHeader: str(file.rialtoApiKeyHeader, env.OATHWALL_RIALTO_API_KEY_HEADER, d.rialtoApiKeyHeader)!,
     breakerAddress,
     agentName,
     xHandle,
     v4AdapterAddress,
     ponsAdapterAddress,
-    paperTradingEnabled: bool(file.paperTradingEnabled, env.MERRYMEN_PAPER_TRADING, d.paperTradingEnabled),
-    paperStartUsdg: num(file.paperStartUsdg, env.MERRYMEN_PAPER_START_USDG, d.paperStartUsdg, 1, 10_000_000),
+    paperTradingEnabled: bool(file.paperTradingEnabled, env.OATHWALL_PAPER_TRADING, d.paperTradingEnabled),
+    paperStartUsdg: num(file.paperStartUsdg, env.OATHWALL_PAPER_START_USDG, d.paperStartUsdg, 1, 10_000_000),
     // Any sane token is a valid strategy name — builtins resolve directly,
     // everything else resolves to strategies/<name>.* (missing file = honest
     // no-trades with the reason in the event feed, decided at tick time).
     strategy: (() => {
-      const v = str(file.strategy, env.MERRYMEN_STRATEGY);
+      const v = str(file.strategy, env.OATHWALL_STRATEGY);
       return v && /^[A-Za-z0-9_-]{1,64}$/.test(v) ? v : d.strategy;
     })(),
     swapVenue: resolveSwapVenue(
-      oneOf(file.swapVenue, env.MERRYMEN_SWAP_VENUE, ["pancakeswap", "uniswap", "rialto"], d.swapVenue),
+      oneOf(file.swapVenue, env.OATHWALL_SWAP_VENUE, ["pancakeswap", "uniswap", "rialto"], d.swapVenue),
     ),
-    slippageBps: num(file.slippageBps, env.MERRYMEN_SLIPPAGE_BPS, d.slippageBps, 1, SLIPPAGE_BPS_MAX),
+    slippageBps: num(file.slippageBps, env.OATHWALL_SLIPPAGE_BPS, d.slippageBps, 1, SLIPPAGE_BPS_MAX),
     // Floor of 0 is meaningful here: it turns the guard off. Ceiling of 10_000
     // is 100% impact, past which the number stops meaning anything.
-    maxImpactBps: num(file.maxImpactBps, env.MERRYMEN_MAX_IMPACT_BPS, d.maxImpactBps, 0, 10_000),
-    perfFeeBps: num(file.perfFeeBps, env.MERRYMEN_PERF_FEE_BPS, d.perfFeeBps, 0, 5_000),
-    tickSeconds: num(file.tickSeconds, env.MERRYMEN_TICK_SECONDS, d.tickSeconds, 15, 3_600),
+    maxImpactBps: num(file.maxImpactBps, env.OATHWALL_MAX_IMPACT_BPS, d.maxImpactBps, 0, 10_000),
+    perfFeeBps: num(file.perfFeeBps, env.OATHWALL_PERF_FEE_BPS, d.perfFeeBps, 0, 5_000),
+    tickSeconds: num(file.tickSeconds, env.OATHWALL_TICK_SECONDS, d.tickSeconds, 15, 3_600),
     basketSymbols,
     customTokens,
-    minPoolLiquidityUsdg: num(file.minPoolLiquidityUsdg, env.MERRYMEN_MIN_POOL_LIQUIDITY_USDG, d.minPoolLiquidityUsdg, 0, 100_000_000),
-    maxPriceDivergenceBps: num(file.maxPriceDivergenceBps, env.MERRYMEN_MAX_PRICE_DIVERGENCE_BPS, d.maxPriceDivergenceBps, 10, 10_000),
-    discoveryEnabled: bool(file.discoveryEnabled, env.MERRYMEN_DISCOVERY_ENABLED, d.discoveryEnabled),
-    discoveryIntervalMin: num(file.discoveryIntervalMin, env.MERRYMEN_DISCOVERY_INTERVAL_MIN, d.discoveryIntervalMin, 1, 1440),
-    trencherLiveEnabled: bool(file.trencherLiveEnabled, env.MERRYMEN_TRENCHER_LIVE, d.trencherLiveEnabled),
-    sponsorGasEnabled: bool(file.sponsorGasEnabled, env.MERRYMEN_SPONSOR_GAS, d.sponsorGasEnabled),
-    sponsorshipPolicyId: str(file.sponsorshipPolicyId, env.MERRYMEN_SPONSORSHIP_POLICY_ID),
-    depositScanEnabled: bool(file.depositScanEnabled, env.MERRYMEN_DEPOSIT_SCAN, d.depositScanEnabled),
-    deskEnabled: bool(file.deskEnabled, env.MERRYMEN_DESK, d.deskEnabled),
-    deskMaxSteps: num(file.deskMaxSteps, env.MERRYMEN_DESK_MAX_STEPS, d.deskMaxSteps, 1, 12),
-    browserUrl: str(file.browserUrl, env.MERRYMEN_BROWSER_URL),
-    browserToken: str(file.browserToken, env.MERRYMEN_BROWSER_TOKEN),
-    brainUrl: str(file.brainUrl, env.MERRYMEN_BRAIN_URL),
-    brainToken: str(file.brainToken, env.MERRYMEN_BRAIN_TOKEN),
-    scoutEnabled: bool(file.scoutEnabled, env.MERRYMEN_SCOUT_ENABLED, d.scoutEnabled),
-    scoutBudgetUsdg: num(file.scoutBudgetUsdg, env.MERRYMEN_SCOUT_BUDGET_USDG, d.scoutBudgetUsdg, 0, 1_000_000),
-    scoutPerTokenUsdg: num(file.scoutPerTokenUsdg, env.MERRYMEN_SCOUT_PER_TOKEN_USDG, d.scoutPerTokenUsdg, 0, 1_000_000),
-    buyPerTickUsdg: num(file.buyPerTickUsdg, env.MERRYMEN_BUY_PER_TICK_USDG, d.buyPerTickUsdg, 1, 100_000),
-    idleFloorUsdg: num(file.idleFloorUsdg, env.MERRYMEN_IDLE_FLOOR_USDG, d.idleFloorUsdg, 0, 1_000_000),
-    gapEnterBudgetUsdg: num(file.gapEnterBudgetUsdg, env.MERRYMEN_GAP_BUDGET_USDG, d.gapEnterBudgetUsdg, 1, 1_000_000),
-    llmModel: str(file.llmModel, env.MERRYMEN_LLM_MODEL, d.llmModel)!,
-    llmIntervalMin: num(file.llmIntervalMin, env.MERRYMEN_LLM_INTERVAL_MIN, d.llmIntervalMin, 1, 1_440),
-    llmMaxActionUsdg: num(file.llmMaxActionUsdg, env.MERRYMEN_LLM_MAX_ACTION_USDG, d.llmMaxActionUsdg, 1, 100_000),
+    minPoolLiquidityUsdg: num(file.minPoolLiquidityUsdg, env.OATHWALL_MIN_POOL_LIQUIDITY_USDG, d.minPoolLiquidityUsdg, 0, 100_000_000),
+    maxPriceDivergenceBps: num(file.maxPriceDivergenceBps, env.OATHWALL_MAX_PRICE_DIVERGENCE_BPS, d.maxPriceDivergenceBps, 10, 10_000),
+    discoveryEnabled: bool(file.discoveryEnabled, env.OATHWALL_DISCOVERY_ENABLED, d.discoveryEnabled),
+    discoveryIntervalMin: num(file.discoveryIntervalMin, env.OATHWALL_DISCOVERY_INTERVAL_MIN, d.discoveryIntervalMin, 1, 1440),
+    trencherLiveEnabled: bool(file.trencherLiveEnabled, env.OATHWALL_TRENCHER_LIVE, d.trencherLiveEnabled),
+    sponsorGasEnabled: bool(file.sponsorGasEnabled, env.OATHWALL_SPONSOR_GAS, d.sponsorGasEnabled),
+    sponsorshipPolicyId: str(file.sponsorshipPolicyId, env.OATHWALL_SPONSORSHIP_POLICY_ID),
+    depositScanEnabled: bool(file.depositScanEnabled, env.OATHWALL_DEPOSIT_SCAN, d.depositScanEnabled),
+    deskEnabled: bool(file.deskEnabled, env.OATHWALL_DESK, d.deskEnabled),
+    deskMaxSteps: num(file.deskMaxSteps, env.OATHWALL_DESK_MAX_STEPS, d.deskMaxSteps, 1, 12),
+    browserUrl: str(file.browserUrl, env.OATHWALL_BROWSER_URL),
+    browserToken: str(file.browserToken, env.OATHWALL_BROWSER_TOKEN),
+    brainUrl: str(file.brainUrl, env.OATHWALL_BRAIN_URL),
+    brainToken: str(file.brainToken, env.OATHWALL_BRAIN_TOKEN),
+    scoutEnabled: bool(file.scoutEnabled, env.OATHWALL_SCOUT_ENABLED, d.scoutEnabled),
+    scoutBudgetUsdg: num(file.scoutBudgetUsdg, env.OATHWALL_SCOUT_BUDGET_USDG, d.scoutBudgetUsdg, 0, 1_000_000),
+    scoutPerTokenUsdg: num(file.scoutPerTokenUsdg, env.OATHWALL_SCOUT_PER_TOKEN_USDG, d.scoutPerTokenUsdg, 0, 1_000_000),
+    buyPerTickUsdg: num(file.buyPerTickUsdg, env.OATHWALL_BUY_PER_TICK_USDG, d.buyPerTickUsdg, 1, 100_000),
+    idleFloorUsdg: num(file.idleFloorUsdg, env.OATHWALL_IDLE_FLOOR_USDG, d.idleFloorUsdg, 0, 1_000_000),
+    gapEnterBudgetUsdg: num(file.gapEnterBudgetUsdg, env.OATHWALL_GAP_BUDGET_USDG, d.gapEnterBudgetUsdg, 1, 1_000_000),
+    llmModel: str(file.llmModel, env.OATHWALL_LLM_MODEL, d.llmModel)!,
+    llmIntervalMin: num(file.llmIntervalMin, env.OATHWALL_LLM_INTERVAL_MIN, d.llmIntervalMin, 1, 1_440),
+    llmMaxActionUsdg: num(file.llmMaxActionUsdg, env.OATHWALL_LLM_MAX_ACTION_USDG, d.llmMaxActionUsdg, 1, 100_000),
     holderAddress,
-    virtualsApiKey: str(file.virtualsApiKey, env.MERRYMEN_VIRTUALS_API_KEY),
+    virtualsApiKey: str(file.virtualsApiKey, env.OATHWALL_VIRTUALS_API_KEY),
     bitqueryApiKey: str(file.bitqueryApiKey, env.BITQUERY_API_KEY),
-    merrymenToken: str(file.merrymenToken, env.MERRYMEN_TOKEN),
-    virtualsEnabled: bool(file.virtualsEnabled, env.MERRYMEN_VIRTUALS_ENABLED, d.virtualsEnabled),
-    telegramBotToken: str(file.telegramBotToken, env.MERRYMEN_TELEGRAM_BOT_TOKEN),
-    telegramEnabled: bool(file.telegramEnabled, env.MERRYMEN_TELEGRAM_ENABLED, d.telegramEnabled),
-    telegramControlEnabled: bool(file.telegramControlEnabled, env.MERRYMEN_TELEGRAM_CONTROL, d.telegramControlEnabled),
-    telegramAllowlist: numArray(file.telegramAllowlist, env.MERRYMEN_TELEGRAM_ALLOWLIST, d.telegramAllowlist),
-    telegramMaxActionUsdg: num(file.telegramMaxActionUsdg, env.MERRYMEN_TELEGRAM_MAX_ACTION_USDG, d.telegramMaxActionUsdg, 1, 100_000),
-    telegramTransferEnabled: bool(file.telegramTransferEnabled, env.MERRYMEN_TELEGRAM_TRANSFER, d.telegramTransferEnabled),
-    telegramTransferDailyUsdg: num(file.telegramTransferDailyUsdg, env.MERRYMEN_TELEGRAM_TRANSFER_DAILY_USDG, d.telegramTransferDailyUsdg, 1, 1_000_000),
-    telegramNotifyEnabled: bool(file.telegramNotifyEnabled, env.MERRYMEN_TELEGRAM_NOTIFY, d.telegramNotifyEnabled),
-    telegramNotifyEveryMin: num(file.telegramNotifyEveryMin, env.MERRYMEN_TELEGRAM_NOTIFY_EVERY_MIN, d.telegramNotifyEveryMin, 0, 1440),
-    telegramDigestHour: num(file.telegramDigestHour, env.MERRYMEN_TELEGRAM_DIGEST_HOUR, d.telegramDigestHour, 0, 23),
+    oathwallToken: str(file.oathwallToken, env.OATHWALL_TOKEN),
+    virtualsEnabled: bool(file.virtualsEnabled, env.OATHWALL_VIRTUALS_ENABLED, d.virtualsEnabled),
+    telegramBotToken: str(file.telegramBotToken, env.OATHWALL_TELEGRAM_BOT_TOKEN),
+    telegramEnabled: bool(file.telegramEnabled, env.OATHWALL_TELEGRAM_ENABLED, d.telegramEnabled),
+    telegramControlEnabled: bool(file.telegramControlEnabled, env.OATHWALL_TELEGRAM_CONTROL, d.telegramControlEnabled),
+    telegramAllowlist: numArray(file.telegramAllowlist, env.OATHWALL_TELEGRAM_ALLOWLIST, d.telegramAllowlist),
+    telegramMaxActionUsdg: num(file.telegramMaxActionUsdg, env.OATHWALL_TELEGRAM_MAX_ACTION_USDG, d.telegramMaxActionUsdg, 1, 100_000),
+    telegramTransferEnabled: bool(file.telegramTransferEnabled, env.OATHWALL_TELEGRAM_TRANSFER, d.telegramTransferEnabled),
+    telegramTransferDailyUsdg: num(file.telegramTransferDailyUsdg, env.OATHWALL_TELEGRAM_TRANSFER_DAILY_USDG, d.telegramTransferDailyUsdg, 1, 1_000_000),
+    telegramNotifyEnabled: bool(file.telegramNotifyEnabled, env.OATHWALL_TELEGRAM_NOTIFY, d.telegramNotifyEnabled),
+    telegramNotifyEveryMin: num(file.telegramNotifyEveryMin, env.OATHWALL_TELEGRAM_NOTIFY_EVERY_MIN, d.telegramNotifyEveryMin, 0, 1440),
+    telegramDigestHour: num(file.telegramDigestHour, env.OATHWALL_TELEGRAM_DIGEST_HOUR, d.telegramDigestHour, 0, 23),
     // Remote-execution surface — FORCED OFF hosted, regardless of file or env.
     // Self-hosted these mean "a shell / PC control on the owner's own machine";
     // hosted they would mean "a shell on OUR server", with an allowlist the
     // attacker picked. The settings route also refuses to write them, and the
     // agent gate refuses to run them — this is the config-resolution boundary of
     // the same defence, the one that wins even for a value already on disk.
-    telegramPcControlEnabled: hosted ? false : bool(file.telegramPcControlEnabled, env.MERRYMEN_TELEGRAM_PC_CONTROL, d.telegramPcControlEnabled),
-    telegramCapabilities: hosted ? [] : strArray(file.telegramCapabilities, env.MERRYMEN_TELEGRAM_CAPABILITIES, d.telegramCapabilities),
-    telegramFilesRoot: hosted ? undefined : str(file.telegramFilesRoot, env.MERRYMEN_TELEGRAM_FILES_ROOT),
-    telegramShellAllowlist: hosted ? [] : strArray(file.telegramShellAllowlist, env.MERRYMEN_TELEGRAM_SHELL_ALLOWLIST, d.telegramShellAllowlist),
-    telegramAppAllowlist: hosted ? [] : strArray(file.telegramAppAllowlist, env.MERRYMEN_TELEGRAM_APP_ALLOWLIST, d.telegramAppAllowlist),
-    telegramTranscribeKey: str(file.telegramTranscribeKey, env.MERRYMEN_TELEGRAM_TRANSCRIBE_KEY),
-    telegramTranscribeBase: str(file.telegramTranscribeBase, env.MERRYMEN_TELEGRAM_TRANSCRIBE_BASE, d.telegramTranscribeBase)!,
-    telegramAgentEnabled: hosted ? false : bool(file.telegramAgentEnabled, env.MERRYMEN_TELEGRAM_AGENT, d.telegramAgentEnabled),
-    telegramAgentAutoShell: hosted ? false : bool(file.telegramAgentAutoShell, env.MERRYMEN_TELEGRAM_AGENT_AUTOSHELL, d.telegramAgentAutoShell),
-    telegramAgentMaxSteps: num(file.telegramAgentMaxSteps, env.MERRYMEN_TELEGRAM_AGENT_MAX_STEPS, d.telegramAgentMaxSteps, 1, 60),
+    telegramPcControlEnabled: hosted ? false : bool(file.telegramPcControlEnabled, env.OATHWALL_TELEGRAM_PC_CONTROL, d.telegramPcControlEnabled),
+    telegramCapabilities: hosted ? [] : strArray(file.telegramCapabilities, env.OATHWALL_TELEGRAM_CAPABILITIES, d.telegramCapabilities),
+    telegramFilesRoot: hosted ? undefined : str(file.telegramFilesRoot, env.OATHWALL_TELEGRAM_FILES_ROOT),
+    telegramShellAllowlist: hosted ? [] : strArray(file.telegramShellAllowlist, env.OATHWALL_TELEGRAM_SHELL_ALLOWLIST, d.telegramShellAllowlist),
+    telegramAppAllowlist: hosted ? [] : strArray(file.telegramAppAllowlist, env.OATHWALL_TELEGRAM_APP_ALLOWLIST, d.telegramAppAllowlist),
+    telegramTranscribeKey: str(file.telegramTranscribeKey, env.OATHWALL_TELEGRAM_TRANSCRIBE_KEY),
+    telegramTranscribeBase: str(file.telegramTranscribeBase, env.OATHWALL_TELEGRAM_TRANSCRIBE_BASE, d.telegramTranscribeBase)!,
+    telegramAgentEnabled: hosted ? false : bool(file.telegramAgentEnabled, env.OATHWALL_TELEGRAM_AGENT, d.telegramAgentEnabled),
+    telegramAgentAutoShell: hosted ? false : bool(file.telegramAgentAutoShell, env.OATHWALL_TELEGRAM_AGENT_AUTOSHELL, d.telegramAgentAutoShell),
+    telegramAgentMaxSteps: num(file.telegramAgentMaxSteps, env.OATHWALL_TELEGRAM_AGENT_MAX_STEPS, d.telegramAgentMaxSteps, 1, 60),
   };
 }
 
 /** Read + merge. A missing or corrupt file is just "no overrides". */
 export function resolveConfig(): ResolvedConfig {
-  const SETTINGS_FILE = process.env.MERRYMEN_SETTINGS_FILE ?? homePaths.settings();
-  let file: MerrymenSettings = {};
+  const SETTINGS_FILE = process.env.OATHWALL_SETTINGS_FILE ?? homePaths.settings();
+  let file: OathwallSettings = {};
   try {
     // BOM-strip: editors and PowerShell write UTF-8 BOMs that break JSON.parse.
-    file = JSON.parse(readFileSync(SETTINGS_FILE, "utf8").replace(/^﻿/, "")) as MerrymenSettings;
+    file = JSON.parse(readFileSync(SETTINGS_FILE, "utf8").replace(/^﻿/, "")) as OathwallSettings;
   } catch {
     // no settings file yet — env + defaults
   }
@@ -370,10 +370,10 @@ export function resolveConfig(): ResolvedConfig {
 }
 
 /** Read the raw settings file (unresolved), tolerating BOM/missing. */
-export function readSettingsFile(): MerrymenSettings {
-  const file = process.env.MERRYMEN_SETTINGS_FILE ?? homePaths.settings();
+export function readSettingsFile(): OathwallSettings {
+  const file = process.env.OATHWALL_SETTINGS_FILE ?? homePaths.settings();
   try {
-    return JSON.parse(readFileSync(file, "utf8").replace(/^﻿/, "")) as MerrymenSettings;
+    return JSON.parse(readFileSync(file, "utf8").replace(/^﻿/, "")) as OathwallSettings;
   } catch {
     return {};
   }
@@ -385,8 +385,8 @@ export function readSettingsFile(): MerrymenSettings {
  * file on its next tick, so the change applies without a restart. Returns the
  * merged object.
  */
-export function patchSettingsFile(patch: Partial<MerrymenSettings>): MerrymenSettings {
-  const file = process.env.MERRYMEN_SETTINGS_FILE ?? homePaths.settings();
+export function patchSettingsFile(patch: Partial<OathwallSettings>): OathwallSettings {
+  const file = process.env.OATHWALL_SETTINGS_FILE ?? homePaths.settings();
   const next = { ...readSettingsFile(), ...patch };
   ensureHome();
   // settings.json holds plaintext API keys — owner-only perms (0600).
@@ -416,7 +416,7 @@ export function connectionKey(cfg: ResolvedConfig): string {
 
 /**
  * Bundler URLs from Pimlico/Alchemy embed the chain id in the path (…/v2/97/rpc)
- * or a query param. If the URL names a chain id merrymen knows that ISN'T the
+ * or a query param. If the URL names a chain id oathwall knows that ISN'T the
  * grant's, every UserOp will fail with opaque errors — warn loudly at arm time.
  * Heuristic and advisory only: returns the mismatched id found in the URL, or
  * null when the URL is absent, matches, or names no known chain id.

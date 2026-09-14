@@ -6,14 +6,14 @@
  * point on — nothing the client sends may override it.
  */
 import { NextResponse } from "next/server";
-import { isHostedMode } from "@merrymen/core";
+import { isHostedMode } from "@oathwall/core";
 import { SESSION_COOKIE, mintSession, sessionCookieOptions, verifySignedChallenge } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function originOf(req: Request): string {
-  const configured = process.env.MERRYMEN_PUBLIC_ORIGIN;
+  const configured = process.env.OATHWALL_PUBLIC_ORIGIN;
   if (configured) return configured.replace(/\/$/, "");
   return new URL(req.url).origin;
 }

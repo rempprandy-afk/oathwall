@@ -1,6 +1,6 @@
-# merrymen.dev — marketing + docs site
+# oathwall.dev — marketing + docs site
 
-Standalone Next.js (App Router) site for merrymen. Independent of the CLI/dashboard
+Standalone Next.js (App Router) site for oathwall. Independent of the CLI/dashboard
 package — it is **not** shipped to npm and has its own dependencies.
 
 Pages: `/` (landing), `/docs`, `/terms`, `/privacy`. Original design; fonts are
@@ -22,7 +22,7 @@ This folder deploys on its own. In the Vercel project settings set the
 
 - CLI: `cd site && npx vercel` (first run links/creates the project), then
   `npx vercel --prod` to promote.
-- Dashboard: New Project → import the `millw14/merrymen` repo → set Root
+- Dashboard: New Project → import the `millw14/oathwall` repo → set Root
   Directory = `site` → Deploy.
 
 Set your real domain in `app/layout.tsx` (`metadataBase`) once you have one, so

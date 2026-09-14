@@ -44,7 +44,7 @@ const RPC = "https://rpc.mainnet.chain.robinhood.com";
 const CAPS = { perTradeUsdg: 50, dailyUsdg: 500, expiryDays: 14, maxDrawdownPct: 10, maxOpsPerDay: 48 };
 const ECDSA_VALIDATOR = "0x845ADb2C711129d4f3966735eD98a9F09fC4cE57" as Address;
 
-/** merrymen's own live Kernel v3.3 account, 61 bytes of code, deployed block 51,207,025. */
+/** oathwall's own live Kernel v3.3 account, 61 bytes of code, deployed block 51,207,025. */
 const LIVE = "0x032Da6A0Ccf866474e45854E7fDEF9afd1509036" as Address;
 /** A second live v3.3 account that ALREADY carries an installed permission id. */
 const LIVE_WITH_PERM = "0xa48cE91e2F3237E69660C1543042c007B8D33e75" as Address;
@@ -88,8 +88,8 @@ const bound = (c: bigint, v: bigint, p: bigint) => (c * 20_000n) / 10_000n + (v 
 const slotOf = (a: Address): Hex => keccak256(encodeAbiParameters([{ type: "address" }, { type: "uint256" }], [a, 0n]));
 
 async function main() {
-  const apiKey = process.env.MERRYMEN_BUNDLER_API_KEY;
-  if (!apiKey) { console.error("no MERRYMEN_BUNDLER_API_KEY — run under `railway run --service orchestrator --`"); process.exit(1); }
+  const apiKey = process.env.OATHWALL_BUNDLER_API_KEY;
+  if (!apiKey) { console.error("no OATHWALL_BUNDLER_API_KEY — run under `railway run --service orchestrator --`"); process.exit(1); }
   const bundler = pimlicoBundlerUrl(CHAIN_ID, apiKey);
   const chain = chainForId(CHAIN_ID);
   const pc = createPublicClient({ chain, transport: http(RPC) });

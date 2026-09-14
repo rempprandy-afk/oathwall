@@ -11,7 +11,7 @@ const fileFlagIdx = rest.indexOf("--file");
 
 const SUPPORTED = ["steady-basket", "even-keel"];
 if (!name || !SUPPORTED.includes(name)) {
-  console.error(`usage: merrymen strategy backtest <name> --file bars.json  (supported: ${SUPPORTED.join(", ")})`);
+  console.error(`usage: oathwall strategy backtest <name> --file bars.json  (supported: ${SUPPORTED.join(", ")})`);
   process.exit(1);
 }
 

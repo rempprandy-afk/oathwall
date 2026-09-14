@@ -6,7 +6,7 @@
 type IconName =
   | "globe" | "key" | "shield" | "beaker" | "chart" | "ledger"
   | "cpu" | "calendar" | "transfer" | "bell" | "eye" | "mic"
-  | "power" | "terminal" | "desktop" | "chat" | "feather" | "wallet"
+  | "power" | "terminal" | "desktop" | "chat" | "wallet"
   | "lock" | "bolt" | "arrow" | "check" | "spark" | "sound";
 
 const P: Record<IconName, React.ReactNode> = {
@@ -112,13 +112,6 @@ const P: Record<IconName, React.ReactNode> = {
       <circle cx="9" cy="10" r="0.75" fill="currentColor" stroke="none" />
       <circle cx="12" cy="10" r="0.75" fill="currentColor" stroke="none" />
       <circle cx="15" cy="10" r="0.75" fill="currentColor" stroke="none" />
-    </>
-  ),
-  feather: (
-    <>
-      <path d="M20 5c-6 0-11 3-13 9-.7 2-.5 3.6-.5 4.5" />
-      <path d="M6.5 18.5 18 7" />
-      <path d="M9 16c1.5-3 4-5.6 8-6.6M7.6 13.6c1-2 2.6-3.6 4.6-4.6" />
     </>
   ),
   wallet: (

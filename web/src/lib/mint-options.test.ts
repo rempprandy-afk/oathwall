@@ -124,7 +124,7 @@ describe("the backup gate gets the copy with the key", () => {
     assert.match(SESSION_SRC, /return \{ grant, local: localGrant, handoff:/);
     // And the server copy still omits the key when hosted — the property that
     // made them different in the first place, and worth keeping. The condition
-    // gained a second arm: a PRIVY owner has no key to omit, because merrymen
+    // gained a second arm: a PRIVY owner has no key to omit, because oathwall
     // never holds one. Both arms must be present, or a Privy grant would try to
     // attach a `privateKey` field that does not exist on its signer.
     assert.match(SESSION_SRC, /hostedAs \|\| ownerSigner\.binding !== "legacy-wallet-owner-v1"/);

@@ -246,7 +246,7 @@ export const LEGACY_TRADEABLE_SYMBOLS = ["WBNB", "BTCB", "ETH", "CAKE", "USDC"] 
 export const DEFAULT_BASKET_SYMBOLS = ["WBNB", "BTCB", "ETH"] as const;
 
 /**
- * Minimal ERC-20 ABI — the surface merrymen reads.
+ * Minimal ERC-20 ABI — the surface oathwall reads.
  *
  * ⚠ CARRIES DEAD ENTRIES UNTIL PHASE 5. `uiMultiplier`, `newUIMultiplier`,
  * `effectiveAt`, `balanceOfUI`, `totalSupplyUI` and the pause reads are
@@ -343,7 +343,7 @@ export function priceSourceNote(source: string): string {
 }
 
 /**
- * The research desks Brain can run. Merrymen decides this, never the model.
+ * The research desks Brain can run. Oathwall decides this, never the model.
  *
  * A desk is a set of analyst lenses: a major has on-chain flow and macro, a
  * memecoin has liquidity and a crowd. Running the wrong lens produces confident

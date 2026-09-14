@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { isHostedMode } from "@merrymen/core";
+import { isHostedMode } from "@oathwall/core";
 import { tenantOf } from "@/lib/auth";
 import { withReadDb, fmtEpoch } from "@/lib/ledger";
 import { hostedAgentFor } from "@/lib/agent-for";
@@ -241,7 +241,7 @@ export async function GET(req: Request) {
 
       return {
         smart_account: account,
-        name: (row.name as string) ?? "Robin",
+        name: (row.name as string) ?? "Warden",
         status: row.status as string,
         chain_id: row.chain_id as number,
         caps,

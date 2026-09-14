@@ -10,7 +10,7 @@ import { bnbChain, bnbTestnet } from "../../packages/core/src/index";
  *
  * /grant defaulted to the TESTNET id, and preflight classifies exactly that as a
  * hard BLOCKER — not as a policy choice but as a fact: every token and router
- * address merrymen knows is a mainnet deployment, so on testnet a balance reads
+ * address oathwall knows is a mainnet deployment, so on testnet a balance reads
  * as zero and every route is refused. The most likely outcome of accepting every
  * default was an agent that could never trade, and a user asking why.
  */
@@ -74,8 +74,8 @@ test("the same install on the OLD default is blocked — which is the point", ()
 
 test("the caps default is the scout, sized for an account with nothing in it yet", () => {
   // Caps are sealed BEFORE funding, so the default cannot be sized to capital
-  // nobody has deposited. The outlaw's 50 x 48 is a four-figure ceiling to hand
-  // someone who has not seen the thing trade once.
+  // nobody has deposited. The steady preset's 50 x 48 is a four-figure ceiling
+  // to hand someone who has not seen the thing trade once.
   const src = readFileSync("web/src/terminal/screens/Wallet.tsx", "utf8");
   assert.match(src, /useState<GrantCaps>\(PRESETS\[0\]!\.caps\)/);
   assert.equal(/useState<GrantCaps>\(DEFAULTS\)/.test(src), false);

@@ -3,7 +3,7 @@
  *
  * Method A could never estimate the case that matters. A renewal is an ENABLE-mode
  * op sent from an account that ALREADY HAS CODE, and you cannot estimate one
- * against a real merrymen account without that account's real owner key. So
+ * against a real oathwall account without that account's real owner key. So
  * method A measured the UNDEPLOYED enable and subtracted a deploy, i.e. inferred.
  *
  * THIS SCRIPT DOES NOT SUBTRACT ANYTHING. It manufactures a deployed Kernel v3.3
@@ -16,7 +16,7 @@
  *                              balance   = enough to clear the prefund check
  *   on the shared ECDSAValidator: stateDiff = ecdsaValidatorStorage[S] -> MY owner EOA
  *
- * S then behaves, to the EVM, exactly like a deployed merrymen account that has
+ * S then behaves, to the EVM, exactly like a deployed oathwall account that has
  * never installed a permission validator — which is precisely the renewal state.
  * No factory, no initCode, real code, empty permissionConfig.
  *
@@ -139,7 +139,7 @@ const readEst = (r: { result?: unknown }) => {
 const fmt = (n: bigint) => n.toLocaleString("en-US");
 
 async function main() {
-  const apiKey = process.env.MERRYMEN_BUNDLER_API_KEY;
+  const apiKey = process.env.OATHWALL_BUNDLER_API_KEY;
   const bundler = apiKey ? pimlicoBundlerUrl(CHAIN_ID, apiKey) : null;
   console.log(`bundler: ${bundler ? `${new URL(bundler).host} (key present, ${apiKey!.length} chars)` : "NO KEY — oracle 1 will be skipped and reported as UNREAD"}`);
 
@@ -148,7 +148,7 @@ async function main() {
   const entryPoint = getEntryPoint("0.7");
   const ep = entryPoint.address as Address;
 
-  // ── the account under test: throwaway owner, real merrymen wall shape ──────
+  // ── the account under test: throwaway owner, real oathwall wall shape ──────
   const owner = privateKeyToAccount(generatePrivateKey());
   const ecdsa = await signerToEcdsaValidator(publicClient, { signer: owner, entryPoint, kernelVersion: KERNEL_V3_3 });
   console.log(`\nECDSAValidator in use: ${ecdsa.address}  ${ecdsa.address.toLowerCase() === ECDSA_VALIDATOR.toLowerCase() ? "== the one live on 4663 (2,110 accounts)" : "!! DIFFERS from the chain's — overrides below would be aimed at the wrong contract"}`);
@@ -164,7 +164,7 @@ async function main() {
   });
   const S = account.address as Address;
   console.log(`wall: ${policies.length} policies · permissionId ${permission.getIdentifier()}`);
-  console.log(`account S = ${S}   (sudo-only derivation ${sudoOnly.address} — ${sudoOnly.address === S ? "SAME address, as merrymen asserts" : "DIFFERENT (unexpected)"})`);
+  console.log(`account S = ${S}   (sudo-only derivation ${sudoOnly.address} — ${sudoOnly.address === S ? "SAME address, as oathwall asserts" : "DIFFERENT (unexpected)"})`);
 
   const realCode = await publicClient.getCode({ address: S }).catch(() => "UNREAD" as const);
   console.log(`S on chain: ${realCode === "UNREAD" ? "UNREAD (getCode failed)" : realCode && realCode !== "0x" ? `${(realCode.length - 2) / 2} bytes (UNEXPECTED)` : "no code — counterfactual, as required"}`);

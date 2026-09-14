@@ -13,8 +13,8 @@ import test from "node:test";
 
 import { walletBrowserLinks } from "./wallet";
 
-const URL_ = "https://app.merrymen.dev/app?x=1";
-const ORIGIN = "https://app.merrymen.dev";
+const URL_ = "https://app.oathwall.dev/app?x=1";
+const ORIGIN = "https://app.oathwall.dev";
 
 const linkFor = (id: "phantom" | "metamask") => {
   const found = walletBrowserLinks(URL_, ORIGIN).find((w) => w.id === id);
@@ -55,7 +55,7 @@ test("metamask: the opposite convention — scheme stripped, NOT encoded", () =>
   const tail = href.slice("https://link.metamask.io/dapp/".length);
   // Documented shape is /dapp/app.uniswap.org — a bare host+path. Encoding it
   // (or leaving https:// on) is the mistake this pins.
-  assert.equal(tail, "app.merrymen.dev/app?x=1");
+  assert.equal(tail, "app.oathwall.dev/app?x=1");
   assert.ok(!tail.startsWith("https"), "scheme must be stripped for MetaMask");
   assert.ok(!tail.includes("%3A"), "MetaMask's path is not percent-encoded");
 });

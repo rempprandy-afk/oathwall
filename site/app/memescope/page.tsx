@@ -18,7 +18,7 @@ export default function Memescope() {
           <p className="watch-lede" data-reveal="up">
             The most recent pools opened on Robinhood Chain, newest first. Launches here come fast
             enough that this is often only the last few minutes — the timestamps say exactly how far
-            back the list reaches. It&apos;s the same feed a merryman watches when scouting; the
+            back the list reaches. It&apos;s the same feed an agent watches when scouting; the
             difference is that an agent then has to get past its own guards before it can touch any
             of it.
           </p>
@@ -43,7 +43,7 @@ export default function Memescope() {
             An address that won&apos;t answer at all shows as <em>unreadable</em>, which is itself
             worth knowing.
           </p>
-          <h3>What a merryman does with this</h3>
+          <h3>What an agent does with this</h3>
           <p>
             In <strong>scout mode</strong> an agent may take small positions in tokens it can price,
             inside a separate budget it cannot exceed, and only when it can also confirm it would be

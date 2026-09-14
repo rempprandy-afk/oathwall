@@ -9,7 +9,7 @@
  * WHY A FLOOR. In ERC-4337 an under-estimated `callGasLimit` does not bounce the
  * operation. The EntryPoint runs it, the inner call runs out of gas,
  * `success=false`, and the account is charged the full `actualGasCost` anyway.
- * merrymen then books that as `reverted` with the reason "reverted on-chain" —
+ * oathwall then books that as `reverted` with the reason "reverted on-chain" —
  * indistinguishable from a slippage revert, so nothing ever learns and the same
  * trade is retried at tick cadence. You pay, repeatedly, for an estimate that
  * was slightly wrong about a route that was fine.
@@ -24,7 +24,7 @@
  * permission): four KyberSwap swaps mined-reverted on Base having burned ~97.3%
  * of their limit with zero logs, and re-estimating that exact calldata across
  * twelve consecutive blocks returned 804,028–1,660,619 — a 2.07x spread on an
- * unchanged input. merrymen's swaps are `exactInputSingle`, the same calldata
+ * unchanged input. oathwall's swaps are `exactInputSingle`, the same calldata
  * shape they measured.
  *
  * WHERE IT PLUGS IN. viem's `prepareUserOperation` fills each gas field only
@@ -110,7 +110,7 @@ export const GAS_BOUNDS: GasBounds = {
   // Two of the three fail free and loud — which is the outcome boundGas already
   // chooses deliberately everywhere else. Only one fails silently and charges.
   //
-  // And the cost of getting it wrong was measured. A merrymen first operation
+  // And the cost of getting it wrong was measured. A oathwall first operation
   // estimates at verif 7,418,031 · preVerif 243,443 · call 50,180 (Pimlico,
   // chain 4663, 2026-09-03). Under a blanket 2x that signs 15,423,308 and is
   // refused as gas-absurd — while the RAW total, 7,711,654, clears the ceiling
@@ -132,7 +132,7 @@ export const GAS_BOUNDS: GasBounds = {
 /**
  * THE ONE-TIME CEILING, FOR THE ONE OPERATION THAT EARNS IT.
  *
- * A merrymen session key installs its permission validator LAZILY: the enable
+ * A oathwall session key installs its permission validator LAZILY: the enable
  * data rides in the signature of the first operation that key signs, so that one
  * operation carries the whole wall — every policy, both ONE_OF lists, and the
  * owner's EIP-712 enable signature — and Kernel installs all of it inside

@@ -22,7 +22,7 @@
  * the difference and the page is expected to branch on it.
  */
 import { cache } from "react";
-import { TRADABLE_TOKENS, type TokenKind } from "@merrymen/core";
+import { TRADABLE_TOKENS, type TokenKind } from "@oathwall/core";
 import { fetchMarket, type MarketToken } from "@/lib/market";
 import { readPoolFor, type DiscoveryRow } from "@/lib/read-discoveries";
 

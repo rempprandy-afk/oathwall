@@ -6,7 +6,7 @@ web/.next
 
 # Local state, never an artifact — a hosted deploy keeps state in Postgres.
 .data
-**/.merrymen
+**/.oathwall
 children
 tenants
 tenant-settings

@@ -30,7 +30,7 @@ async function rpc(url: string, params: unknown[]) {
 }
 
 async function main() {
-  const apiKey = process.env.MERRYMEN_BUNDLER_API_KEY;
+  const apiKey = process.env.OATHWALL_BUNDLER_API_KEY;
   if (!apiKey) { console.error("run under railway run"); process.exit(1); }
   const bundler = pimlicoBundlerUrl(4663, apiKey);
   const publicClient = createPublicClient({ chain: chainForId(4663), transport: http("https://rpc.mainnet.chain.robinhood.com") });

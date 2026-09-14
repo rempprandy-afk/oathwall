@@ -34,7 +34,7 @@ import {
 export const PEER_WINDOW_SEC = 24 * 3600;
 
 /**
- * Sources whose text merrymen wrote, DERIVED rather than copied.
+ * Sources whose text oathwall wrote, DERIVED rather than copied.
  *
  * A hand-kept second list would drift the moment a strategy is added, and the
  * drift would be silent and in the wrong direction: the SQL would stop selecting

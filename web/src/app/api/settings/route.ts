@@ -10,7 +10,7 @@
 
 import { chmod, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
-import { homePaths, merrymenHome } from "@merrymen/home";
+import { homePaths, oathwallHome } from "@oathwall/home";
 import {
   HOSTED_FORBIDDEN_SETTING_FIELDS,
   LLM_PROVIDER_IDS,
@@ -22,14 +22,14 @@ import {
   isHostedMode,
   isValidCustomToken,
   type LlmProviderInfo,
-  type MerrymenSettings,
-} from "@merrymen/core";
+  type OathwallSettings,
+} from "@oathwall/core";
 import { tenantOf } from "@/lib/auth";
-import { getSettingsStore } from "@merrymen/settings-store";
+import { getSettingsStore } from "@oathwall/settings-store";
 
 export const dynamic = "force-dynamic";
 
-const DATA_DIR = merrymenHome();
+const DATA_DIR = oathwallHome();
 const SETTINGS_FILE = homePaths.settings();
 
 export interface SecretView {
@@ -48,9 +48,9 @@ export interface SettingsView {
   telegramTranscribeKey: SecretView;
   virtualsApiKey: SecretView;
   bitqueryApiKey: SecretView;
-  merrymenToken: SecretView;
+  oathwallToken: SecretView;
   // everything else, verbatim (undefined = using env/default)
-  values: Omit<MerrymenSettings, "bundlerApiKey" | "groqApiKey" | "anthropicApiKey" | "llmApiKey" | "rialtoApiKey" | "telegramBotToken" | "telegramTranscribeKey" | "virtualsApiKey" | "bitqueryApiKey" | "merrymenToken">;
+  values: Omit<OathwallSettings, "bundlerApiKey" | "groqApiKey" | "anthropicApiKey" | "llmApiKey" | "rialtoApiKey" | "telegramBotToken" | "telegramTranscribeKey" | "virtualsApiKey" | "bitqueryApiKey" | "oathwallToken">;
   defaults: typeof SETTINGS_DEFAULTS;
   knownSymbols: string[];
   strategies: { builtin: string[]; custom: string[] };
@@ -59,8 +59,8 @@ export interface SettingsView {
 }
 
 const STRATEGIES_DIR = homePaths.strategies();
-// Free + Merry Circle (holder-gated) builtins — both selectable; the worker runs
-// the Circle ones only for $MERRYMEN holders. Mirrors worker/src/strategies/registry.ts.
+// Free + Oathwall Circle (holder-gated) builtins — both selectable; the worker runs
+// the Circle ones only for $OATHWALL holders. Mirrors worker/src/strategies/registry.ts.
 const BUILTIN_STRATEGIES = ["steady-basket", "llm-strategist", "trencher", "even-keel", "dip-hunter"];
 
 async function listCustomStrategies(): Promise<string[]> {
@@ -76,13 +76,13 @@ async function listCustomStrategies(): Promise<string[]> {
   }
 }
 
-async function readStored(tenant?: `0x${string}` | null): Promise<MerrymenSettings> {
+async function readStored(tenant?: `0x${string}` | null): Promise<OathwallSettings> {
   // Hosted: a tenant's settings live in the per-tenant store, not the global
   // settings.json (which the child workers each have their own copy of).
   if (tenant) return (await getSettingsStore().get(tenant)) ?? {};
   try {
     // BOM-strip: hand-edited or PowerShell-written files may carry a UTF-8 BOM.
-    return JSON.parse((await readFile(SETTINGS_FILE, "utf8")).replace(/^﻿/, "")) as MerrymenSettings;
+    return JSON.parse((await readFile(SETTINGS_FILE, "utf8")).replace(/^﻿/, "")) as OathwallSettings;
   } catch {
     return {};
   }
@@ -117,8 +117,8 @@ export async function GET(req: Request) {
   // Hosted: show the signed-in tenant's own settings (a signed-out caller sees
   // defaults — nothing personal, no secrets). Self-hosted: the single file.
   const tenant = isHostedMode() ? tenantOf(req) : null;
-  const stored: MerrymenSettings = isHostedMode() && !tenant ? {} : await readStored(tenant);
-  const { bundlerApiKey, groqApiKey, anthropicApiKey, llmApiKey, rialtoApiKey, telegramBotToken, telegramTranscribeKey, virtualsApiKey, bitqueryApiKey, merrymenToken, ...values } = stored;
+  const stored: OathwallSettings = isHostedMode() && !tenant ? {} : await readStored(tenant);
+  const { bundlerApiKey, groqApiKey, anthropicApiKey, llmApiKey, rialtoApiKey, telegramBotToken, telegramTranscribeKey, virtualsApiKey, bitqueryApiKey, oathwallToken, ...values } = stored;
   // These URL fields can embed API keys — redact before they leave the server.
   const safeValues = {
     ...values,
@@ -137,7 +137,7 @@ export async function GET(req: Request) {
     telegramTranscribeKey: mask(telegramTranscribeKey),
     virtualsApiKey: mask(virtualsApiKey),
     bitqueryApiKey: mask(bitqueryApiKey),
-    merrymenToken: mask(merrymenToken),
+    oathwallToken: mask(oathwallToken),
     values: safeValues,
     defaults: SETTINGS_DEFAULTS,
     knownSymbols: TRADABLE_TOKENS.map((t) => t.symbol),
@@ -203,7 +203,7 @@ const STR_ARRAY_FIELDS: Record<string, number> = {
 };
 
 export async function PUT(req: Request) {
-  let body: Partial<Record<keyof MerrymenSettings, unknown>>;
+  let body: Partial<Record<keyof OathwallSettings, unknown>>;
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -229,12 +229,12 @@ export async function PUT(req: Request) {
 
   const errors: string[] = [];
   const stored = await readStored(tenant);
-  const next: MerrymenSettings = { ...stored };
+  const next: OathwallSettings = { ...stored };
 
   // Every settings key this request actually processed. Used at the end to
   // name what was DROPPED — see the note above the `ignored` computation.
   const touched = new Set<string>();
-  const setOrClear = <K extends keyof MerrymenSettings>(key: K, value: MerrymenSettings[K] | undefined) => {
+  const setOrClear = <K extends keyof OathwallSettings>(key: K, value: OathwallSettings[K] | undefined) => {
     touched.add(key as string);
     if (value === undefined) delete next[key];
     else next[key] = value;
@@ -268,7 +268,7 @@ export async function PUT(req: Request) {
 
   // ── numbers ─────────────────────────────────────────────────────────────
   for (const [key, [min, max]] of Object.entries(NUM_FIELDS)) {
-    const k = key as keyof MerrymenSettings;
+    const k = key as keyof OathwallSettings;
     if (!(k in body)) continue;
     const v = body[k];
     if (v === "" || v === null || v === undefined) {
@@ -325,7 +325,7 @@ export async function PUT(req: Request) {
     // THAT INCLUDES THE NORMALISATION, not just the regex. `setName` stores
     // `raw.trim().replace(/\s+/g, " ")` while this stored a bare `.trim()`, and
     // the shared regex admits internal double spaces — so "Little  John" was
-    // kept verbatim here and collapsed to "Little John" by the soul. The two
+    // kept verbatim here and collapsed to "Atlas" by the soul. The two
     // then never agree, which makes `cfg.agentName !== getName()` true forever:
     // harmless while the reconcile only ran on re-arm, an identity-file rewrite
     // every tick once it runs unconditionally. Normalise once, at the door.
@@ -361,14 +361,14 @@ export async function PUT(req: Request) {
     if (v === "" || v === null || v === undefined) {
       setOrClear("strategy", undefined);
     } else if (typeof v === "string" && BUILTIN_STRATEGIES.includes(v)) {
-      setOrClear("strategy", v as MerrymenSettings["strategy"]);
+      setOrClear("strategy", v as OathwallSettings["strategy"]);
     } else if (!isHostedMode() && typeof v === "string" && (await listCustomStrategies()).includes(v)) {
       // Custom strategy files are self-hosted ONLY. Hosted, the loader refuses to
       // execute them (registry.ts fail-closed); rejecting the name here too means
       // the control plane never even stores it — the write-time half of the gate.
-      setOrClear("strategy", v as MerrymenSettings["strategy"]);
+      setOrClear("strategy", v as OathwallSettings["strategy"]);
     } else if (isHostedMode()) {
-      errors.push("strategy: only built-in strategies are available on hosted merrymen");
+      errors.push("strategy: only built-in strategies are available on hosted oathwall");
     } else {
       errors.push(`strategy: not a builtin and no strategies/${String(v)}.ts file exists`);
     }
@@ -377,7 +377,7 @@ export async function PUT(req: Request) {
     const v = body.swapVenue;
     if (v === "" || v === null || v === undefined) setOrClear("swapVenue", undefined);
     else if (["pancakeswap", "uniswap", "rialto"].includes(v as string))
-      setOrClear("swapVenue", v as MerrymenSettings["swapVenue"]);
+      setOrClear("swapVenue", v as OathwallSettings["swapVenue"]);
     else errors.push("swapVenue: unknown venue");
   }
 
@@ -409,7 +409,7 @@ export async function PUT(req: Request) {
       setOrClear("ponsAdapterAddress", v.trim());
     else errors.push("ponsAdapterAddress: must be a 0x… address");
   }
-  // $MERRYMEN holder wallet — a read-only address for the Merry Circle fee tier.
+  // $OATHWALL holder wallet — a read-only address for the Oathwall Circle fee tier.
   if ("holderAddress" in body) {
     const v = body.holderAddress;
     if (v === "" || v === null || v === undefined) setOrClear("holderAddress", undefined);
@@ -509,7 +509,7 @@ export async function PUT(req: Request) {
 
   // ── telegram PC string allowlists (capabilities / shell / app) ──────────
   for (const [key, maxLen] of Object.entries(STR_ARRAY_FIELDS)) {
-    const k = key as keyof MerrymenSettings;
+    const k = key as keyof OathwallSettings;
     if (!(k in body)) continue;
     const v = body[k];
     if (v === null || v === undefined) {

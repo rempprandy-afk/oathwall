@@ -12,8 +12,8 @@
  */
 import { existsSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
-import { homePaths } from "@merrymen/home";
-import { wrapSqlite, makePgDb, type Db } from "@merrymen/db";
+import { homePaths } from "@oathwall/home";
+import { wrapSqlite, makePgDb, type Db } from "@oathwall/db";
 
 let pgDriver: Db | null = null;
 

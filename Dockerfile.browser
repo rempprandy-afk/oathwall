@@ -1,7 +1,7 @@
 # The research browser — a THIRD image, deliberately.
 #
 # The main Dockerfile builds one image that runs either the dashboard or the
-# orchestrator, chosen by MERRYMEN_START. Chromium does not belong in it:
+# orchestrator, chosen by OATHWALL_START. Chromium does not belong in it:
 #
 #   - It adds ~400MB and an apt layer to an image whose other two roles never
 #     open a browser, so every web deploy would carry and pull it for nothing.

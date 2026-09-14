@@ -205,7 +205,7 @@ describe("dedupe", () => {
  * a memory can do. Storage-side sanitizers are tested in soul.test.ts — this
  * pins the boundary that ranking itself confers no capability.
  */
-describe("describeGap — the merryman knows how long it's been", () => {
+describe("describeGap — the agent knows how long it's been", () => {
   const at = (secsAgo: number) => NOW - secsAgo;
 
   it("returns null with no previous message, so a first hello has no phantom gap", () => {

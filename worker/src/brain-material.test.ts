@@ -99,7 +99,7 @@ describe("the technical lens says what the worker knows", () => {
   });
 });
 
-describe("the sentiment lens is other Merrymen, or nothing", () => {
+describe("the sentiment lens is other Oathwall, or nothing", () => {
   it("is absent rather than empty when nobody spoke", () => {
     // An empty section reads as "we looked and there was nothing to find". The
     // truth is that nobody said anything, and Brain's own NO DATA AVAILABLE

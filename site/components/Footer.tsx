@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Logo } from "./Logo";
 import { TokenCA } from "./TokenCA";
 
-const GITHUB = "https://github.com/millw14/merrymen";
-const NPM = "https://www.npmjs.com/package/merrymen";
-const X_URL = "https://x.com/MerrymenAI";
-const SUPPORT = "support@merrymen.dev";
+const GITHUB = "https://github.com/millw14/oathwall";
+const NPM = "https://www.npmjs.com/package/oathwall";
+const X_URL = "https://x.com/OathwallAI";
+const SUPPORT = "support@oathwall.dev";
 /**
  * The beta testers' room. Labelled "Beta group" rather than "Telegram" on
  * purpose — the Product and Docs columns already say "Telegram", meaning the
@@ -23,7 +23,7 @@ export function Footer() {
           <div className="foot-brand">
             <Link href="/" className="brand">
               <Logo size={20} />
-              <span>merrymen</span>
+              <span>oathwall</span>
             </Link>
             <p>Trading agents you never have to trust. Non-custodial on-chain trading: your owner key, your caps, your call.</p>
           </div>
@@ -32,7 +32,7 @@ export function Footer() {
             <h5>Product</h5>
             <Link href="/#features">Features</Link>
             <Link href="/memescope">Memescope</Link>
-            <Link href="/dashboard">Your merryman, live</Link>
+            <Link href="/dashboard">Your agent, live</Link>
             <Link href="/watch">Watch it trade</Link>
             <Link href="/#telegram">Telegram</Link>
             <Link href="/#install">Install</Link>
@@ -54,7 +54,7 @@ export function Footer() {
             <a href={X_URL} target="_blank" rel="noreferrer">X (Twitter)</a>
             <a href={GITHUB} target="_blank" rel="noreferrer">GitHub</a>
             <a href={NPM} target="_blank" rel="noreferrer">npm</a>
-            <Link href="/token">$MERRYMEN · the Circle</Link>
+            <Link href="/token">$OATHWALL · the Circle</Link>
             <Link href="/governance">Governance</Link>
             <Link href="/terms">Terms</Link>
             <Link href="/privacy">Privacy</Link>
@@ -64,7 +64,7 @@ export function Footer() {
         <TokenCA />
 
         <div className="foot-bottom">
-          <span>© {new Date().getFullYear()} merrymen · MIT-licensed, open source</span>
+          <span>© {new Date().getFullYear()} oathwall · MIT-licensed, open source</span>
           <span>
             Support: <a href={`mailto:${SUPPORT}`}>{SUPPORT}</a> · Not financial advice. Trade at your own risk.
           </span>

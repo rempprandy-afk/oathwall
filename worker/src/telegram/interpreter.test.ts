@@ -18,16 +18,16 @@ describe("narrateChat — warm free-text voice, triggers nothing", () => {
       const body = JSON.parse(init.body) as { messages: { role: string; content: string }[] };
       sentSystem = body.messages[0]!.content;
       sentUser = body.messages[body.messages.length - 1]!.content;
-      return { ok: true, json: async () => ({ choices: [{ message: { content: "Aye — we're green on QQQ, friend. 🏹" } }] }) };
+      return { ok: true, json: async () => ({ choices: [{ message: { content: "Aye — we're green on QQQ, friend. 🛡" } }] }) };
     }) as never;
 
     const out = await narrateChat(
       "how are we doing?",
-      { state: "SOUL:\nYou are Robin, 42 days old.\nPOSITIONS: QQQ +3%", history: [{ role: "user", content: "hey" }] },
+      { state: "SOUL:\nYou are Warden, 42 days old.\nPOSITIONS: QQQ +3%", history: [{ role: "user", content: "hey" }] },
       creds,
     );
-    assert.equal(out, "Aye — we're green on QQQ, friend. 🏹");
-    assert.match(sentSystem, /merryman/i);
+    assert.equal(out, "Aye — we're green on QQQ, friend. 🛡");
+    assert.match(sentSystem, /agent/i);
     assert.match(sentSystem, /never say you are an ai/i); // stays in character
     assert.match(sentUser, /42 days old/); // the soul/state context reached the model
     assert.match(sentUser, /how are we doing\?/);
@@ -50,7 +50,7 @@ describe("parseSlash — pure slash parser", () => {
   });
 
   it("strips /cmd@BotName suffixes (group chats)", () => {
-    assert.deepEqual(parseSlash("/status@merryman_bot"), { kind: "status" });
+    assert.deepEqual(parseSlash("/status@agent_bot"), { kind: "status" });
   });
 
   it("wallet words all land on the dashboard signpost, never 'unknown command'", () => {
@@ -59,7 +59,7 @@ describe("parseSlash — pure slash parser", () => {
     for (const w of ["/grant", "/wallet", "/restore", "/recover", "/reconnect", "/fund"]) {
       assert.deepEqual(parseSlash(w), { kind: "wallet" }, `${w} should point at the dashboard`);
     }
-    assert.deepEqual(parseSlash("/grant@merryman_bot"), { kind: "wallet" });
+    assert.deepEqual(parseSlash("/grant@agent_bot"), { kind: "wallet" });
     // …but /withdraw stays an alias for /transfer — a signpost must not eat a
     // working command.
     assert.equal(parseSlash("/withdraw 0x1111111111111111111111111111111111111111 5")?.kind, "transfer");
@@ -447,7 +447,7 @@ describe("executeCommand — transfer confirm flow", () => {
     // advice, and it cost a session key to obtain a permission the new wall
     // would not contain either. The owner key is the real answer.
     assert.doesNotMatch(r, /re-create your wallet/i);
-    assert.match(r, /merrymen recover/i, "point at the path that actually works");
+    assert.match(r, /oathwall recover/i, "point at the path that actually works");
     assert.deepEqual(d.calls, []);
   });
 

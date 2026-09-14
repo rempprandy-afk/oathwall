@@ -1,11 +1,11 @@
 /**
- * Zero-dependency terminal flair for the merrymen CLI — Sherwood green, an
- * arrow-flight banner, a bow-draw spinner, and a checklist. Everything is
- * TTY-guarded: piped/non-interactive output degrades to plain lines with no
- * escape codes and no timers, so logs stay clean and CI never hangs.
+ * Zero-dependency terminal flair for the oathwall CLI — a sweep-in banner, a
+ * wall-fill spinner, and a checklist. Everything is TTY-guarded: piped/
+ * non-interactive output degrades to plain lines with no escape codes and no
+ * timers, so logs stay clean and CI never hangs.
  */
 
-const TTY = process.stdout.isTTY && !process.env.NO_COLOR && !process.env.MERRYMEN_NO_ANIM;
+const TTY = process.stdout.isTTY && !process.env.NO_COLOR && !process.env.OATHWALL_NO_ANIM;
 
 export const c = {
   green: (s) => (TTY ? `\x1b[32m${s}\x1b[0m` : s),
@@ -14,7 +14,7 @@ export const c = {
   gold: (s) => (TTY ? `\x1b[33m${s}\x1b[0m` : s),
   dim: (s) => (TTY ? `\x1b[2m${s}\x1b[0m` : s),
   bold: (s) => (TTY ? `\x1b[1m${s}\x1b[0m` : s),
-  arrow: "➳", // ➳
+  arrow: "▸", // ▸
 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -28,16 +28,16 @@ const LOGO = [
 ];
 
 /**
- * Animated intro: an arrow flies across, then the wordmark drops in green.
+ * Animated intro: a marker sweeps across, then the wordmark drops in green.
  * Falls back to a one-line static banner when not a TTY.
  */
-export async function banner(subtitle = "your band works Sherwood 24/7") {
+export async function banner(subtitle = "your agent works around the clock") {
   if (!TTY) {
-    console.log(`${c.arrow} merrymen — ${subtitle}`);
+    console.log(`${c.arrow} oathwall — ${subtitle}`);
     return;
   }
   const width = 34;
-  // arrow flight
+  // sweep-in
   for (let i = 0; i <= width; i += 2) {
     write("\r  " + c.dim("·".repeat(i)) + c.lime(c.arrow) + " ".repeat(Math.max(0, width - i)));
     await sleep(14);
@@ -51,10 +51,10 @@ export async function banner(subtitle = "your band works Sherwood 24/7") {
   console.log("   " + c.gold(c.arrow) + "  " + c.dim(subtitle) + "\n");
 }
 
-const SPIN = ["🏹    ", "·🏹   ", "··🏹  ", "···🏹 ", "····🏹", "───►◎"];
+const SPIN = ["▫▫▫▫▫▫", "▪▫▫▫▫▫", "▪▪▫▫▫▫", "▪▪▪▫▫▫", "▪▪▪▪▫▫", "▪▪▪▪▪▪"];
 
 /**
- * Bow-draw spinner. Returns handles to finish it. In non-TTY mode it prints a
+ * Wall-fill spinner. Returns handles to finish it. In non-TTY mode it prints a
  * single start line and the finish line, no animation.
  */
 export function spinner(text) {

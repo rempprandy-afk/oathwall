@@ -13,9 +13,9 @@ import {
 } from "@/lib/chain";
 
 /**
- * What a merryman is holding, read from the chain in the visitor's own browser.
+ * What an agent is holding, read from the chain in the visitor's own browser.
  *
- * WHY THIS ISN'T "LOG IN AND SEE YOUR AGENT". There is no hosted merrymen API —
+ * WHY THIS ISN'T "LOG IN AND SEE YOUR AGENT". There is no hosted oathwall API —
  * the dashboard that ships with the software is single-tenant, unauthenticated
  * and bound to your own machine, and putting a copy of it on the internet is
  * exactly the change this project keeps refusing to make. So the public version
@@ -31,7 +31,7 @@ import {
  */
 
 /** A pasted address is remembered so a refresh doesn't mean typing it again. */
-const STORE_KEY = "merrymen.watch.address";
+const STORE_KEY = "oathwall.watch.address";
 
 /**
  * Rendering thousands of rows would lock the page, and an agent account holds a
@@ -136,7 +136,7 @@ export function AgentDashboard() {
             setAddress(e.target.value);
             if (state === "error") setState("idle");
           }}
-          placeholder="0x… your merryman's smart-account address"
+          placeholder="0x… your agent's smart-account address"
           spellCheck={false}
           autoComplete="off"
           aria-invalid={state === "error"}

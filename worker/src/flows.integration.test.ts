@@ -8,7 +8,7 @@
  * that existed fired only while the high-water mark was still zero, so it fixed
  * the FIRST deposit and no other.
  *
- * MERRYMEN_HOME is set before any store import runs getDb(); node's --test runs
+ * OATHWALL_HOME is set before any store import runs getDb(); node's --test runs
  * each file in its own process, so the override never leaks.
  */
 import assert from "node:assert/strict";
@@ -18,8 +18,8 @@ import os from "node:os";
 import path from "node:path";
 import { cashUnits } from "../../packages/core/src/index";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-flows-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-flows-"));
+process.env.OATHWALL_HOME = HOME;
 
 const {
   initStore,
@@ -40,7 +40,7 @@ const { DatabaseSync } = await import("node:sqlite");
 
 /**
  * ensureHome copies a legacy <repo>/.data ledger into a fresh home, so a
- * throwaway MERRYMEN_HOME does NOT start empty when run from a checkout that
+ * throwaway OATHWALL_HOME does NOT start empty when run from a checkout that
  * still has one — it starts with somebody's July trading history, and every
  * "which agent is current" assertion below would answer with theirs. Clear the
  * tables these tests reason about so the fixture is the fixture.

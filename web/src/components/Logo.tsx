@@ -1,5 +1,5 @@
 /**
- * The merrymen mark — a feather that is also an arrow, loosed up-and-right.
+ * The oathwall mark — a feather that is also an arrow, loosed up-and-right.
  * Vector recreation of the brand logo (black quill, white shaft, lime head).
  *
  * The feather inherits `currentColor` so it stays visible on the dark theme;

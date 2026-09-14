@@ -1,7 +1,7 @@
 [project]
-name = "merrymen-brain"
+name = "oathwall-brain"
 version = "0.1.0"
-description = "How a Merryman thinks. First-party Merrymen code."
+description = "How an Agent thinks. First-party Oathwall code."
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115",

@@ -4,7 +4,7 @@
  * grant's policies on-chain; this code cannot exceed them even if buggy.
  *
  * Needs a bundler:
- *   MERRYMEN_BUNDLER_URL   e.g. Pimlico/Alchemy bundler RPC for chain 46630/4663
+ *   OATHWALL_BUNDLER_URL   e.g. Pimlico/Alchemy bundler RPC for chain 46630/4663
  *
  * The serialized grant embeds the session private key, on every deployment —
  * not just a testnet demo (mirrors web/src/lib/session.ts). A TEE that holds

@@ -21,15 +21,15 @@
  */
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { merrymenHome } from "./home";
+import { oathwallHome } from "./home";
 import { openSecret, requireDek, sealSecret, storeDek } from "./store-crypto";
-import type { MerrymenSettings } from "../../packages/core/src/index";
+import type { OathwallSettings } from "../../packages/core/src/index";
 
 export interface SettingsStore {
   /** Persist (replace) a tenant's settings. */
-  put(tenant: `0x${string}`, settings: MerrymenSettings): Promise<void>;
+  put(tenant: `0x${string}`, settings: OathwallSettings): Promise<void>;
   /** A tenant's settings, or null if none stored. */
-  get(tenant: `0x${string}`): Promise<MerrymenSettings | null>;
+  get(tenant: `0x${string}`): Promise<OathwallSettings | null>;
   /** Every tenant that has stored settings. */
   listTenants(): Promise<`0x${string}`[]>;
   /** Forget a tenant's settings (on kill). */
@@ -37,20 +37,20 @@ export interface SettingsStore {
 }
 
 /** Seal the settings JSON when a DEK is present, else store it plaintext. */
-function seal(settings: MerrymenSettings): string {
+function seal(settings: OathwallSettings): string {
   const json = JSON.stringify(settings);
   const dek = storeDek();
   return dek ? sealSecret(json, dek) : json;
 }
 
 /** Reverse of seal — unseal if it looks sealed (iv.tag.ct), else parse plaintext. */
-function unseal(blob: string): MerrymenSettings {
+function unseal(blob: string): OathwallSettings {
   const dek = storeDek();
   // A sealed blob is exactly three base64url parts; anything else is plaintext
   // JSON (self-hosted / no DEK), which starts with '{'.
   const looksSealed = dek && /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(blob);
   const json = looksSealed ? openSecret(blob, dek) : blob;
-  return JSON.parse(json) as MerrymenSettings;
+  return JSON.parse(json) as OathwallSettings;
 }
 
 interface StoredSettingsRecord {
@@ -62,16 +62,16 @@ interface StoredSettingsRecord {
 // ── file backend ─────────────────────────────────────────────────────────────
 
 export class FileSettingsStore implements SettingsStore {
-  private dir = path.join(merrymenHome(), "tenant-settings");
+  private dir = path.join(oathwallHome(), "tenant-settings");
   private file(tenant: string) {
     return path.join(this.dir, `${tenant.toLowerCase()}.json`);
   }
-  async put(tenant: `0x${string}`, settings: MerrymenSettings): Promise<void> {
+  async put(tenant: `0x${string}`, settings: OathwallSettings): Promise<void> {
     const rec: StoredSettingsRecord = { tenant, sealed: seal(settings), updatedAt: Math.floor(Date.now() / 1000) };
     await mkdir(this.dir, { recursive: true });
     await writeFile(this.file(tenant), JSON.stringify(rec, null, 2), { encoding: "utf8", mode: 0o600 });
   }
-  async get(tenant: `0x${string}`): Promise<MerrymenSettings | null> {
+  async get(tenant: `0x${string}`): Promise<OathwallSettings | null> {
     try {
       const rec = JSON.parse(await readFile(this.file(tenant), "utf8")) as StoredSettingsRecord;
       return unseal(rec.sealed);
@@ -129,7 +129,7 @@ export class PgSettingsStore implements SettingsStore {
     }
     return this.ready;
   }
-  async put(tenant: `0x${string}`, settings: MerrymenSettings): Promise<void> {
+  async put(tenant: `0x${string}`, settings: OathwallSettings): Promise<void> {
     const c = await this.client();
     await c.query(
       `INSERT INTO tenant_settings (tenant, sealed, updated_at) VALUES ($1, $2, $3)
@@ -137,7 +137,7 @@ export class PgSettingsStore implements SettingsStore {
       [tenant.toLowerCase(), seal(settings), Math.floor(Date.now() / 1000)],
     );
   }
-  async get(tenant: `0x${string}`): Promise<MerrymenSettings | null> {
+  async get(tenant: `0x${string}`): Promise<OathwallSettings | null> {
     const c = await this.client();
     const { rows } = await c.query(`SELECT sealed FROM tenant_settings WHERE tenant = $1`, [tenant.toLowerCase()]);
     return rows[0] ? unseal(String(rows[0].sealed)) : null;

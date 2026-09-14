@@ -1,7 +1,7 @@
 /**
  * WHICH SECURITY MODEL A CLAIM WAS MADE UNDER, AND WHY IT IS NEVER GUESSED.
  *
- * Merrymen is about to have two ways of proving the same two facts:
+ * Oathwall is about to have two ways of proving the same two facts:
  *
  *   legacy-wallet-owner-v1  the login wallet signs, and a SEPARATE browser-held
  *                           owner key co-signs. Authentication and owner
@@ -26,13 +26,13 @@ import test from "node:test";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_BINDING_VERSION, bindingMessage, isBindingVersion } from "@merrymen/core";
+import { DEFAULT_BINDING_VERSION, bindingMessage, isBindingVersion } from "@oathwall/core";
 
-process.env.MERRYMEN_SESSION_SECRET = "test-secret-at-least-thirty-two-characters-long";
+process.env.OATHWALL_SESSION_SECRET = "test-secret-at-least-thirty-two-characters-long";
 
 import { ENFORCE_LEGACY_TWO_PROOF, issueChallengeNonce, verifyGrantBinding } from "./auth";
 
-const ORIGIN = "https://app.merrymen.dev";
+const ORIGIN = "https://app.oathwall.dev";
 const SMART = "0x00000000000000000000000000000000000000a1" as `0x${string}`;
 const CHAIN = 4663;
 
@@ -284,14 +284,14 @@ test("the legacy message text is frozen, byte for byte", () => {
   assert.equal(
     text,
     [
-      "https://app.merrymen.dev wants you to authorize a merrymen agent account.",
+      "https://app.oathwall.dev wants you to authorize a oathwall agent account.",
       "",
       "You are linking the agent wallet below to this login. It moves no funds.",
       "",
       "Agent account: 0x00000000000000000000000000000000000000a1",
       "Owner key: 0x00000000000000000000000000000000000000b2",
       "Chain ID: 4663",
-      "URI: https://app.merrymen.dev",
+      "URI: https://app.oathwall.dev",
       "Nonce: NONCE",
     ].join("\n"),
   );

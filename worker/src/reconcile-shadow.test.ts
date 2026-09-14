@@ -51,12 +51,12 @@ function chainOf(logs: RawLog[]): ReconcileChain {
 
 test("SHADOW IS OFF UNLESS ASKED FOR — an unset variable costs nobody a scan", () => {
   assert.equal(shadowEnabledFor(ACC, {} as NodeJS.ProcessEnv), false);
-  assert.equal(shadowEnabledFor(ACC, { MERRYMEN_RECONCILE_SHADOW: "" } as NodeJS.ProcessEnv), false);
-  assert.equal(shadowEnabledFor(ACC, { MERRYMEN_RECONCILE_SHADOW: "   " } as NodeJS.ProcessEnv), false);
+  assert.equal(shadowEnabledFor(ACC, { OATHWALL_RECONCILE_SHADOW: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(shadowEnabledFor(ACC, { OATHWALL_RECONCILE_SHADOW: "   " } as NodeJS.ProcessEnv), false);
 });
 
 test("the canary set is a prefix list, so an operator can paste either address", () => {
-  const on = (v: string, id = ACC) => shadowEnabledFor(id, { MERRYMEN_RECONCILE_SHADOW: v } as NodeJS.ProcessEnv);
+  const on = (v: string, id = ACC) => shadowEnabledFor(id, { OATHWALL_RECONCILE_SHADOW: v } as NodeJS.ProcessEnv);
   assert.equal(on("all"), true);
   assert.equal(on("0xaaaaaaaa"), true, "a prefix matches");
   assert.equal(on("0xAAAAAAAA"), true, "case-insensitively");

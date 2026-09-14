@@ -1,17 +1,17 @@
 /**
- * Virtuals Terminal streamer — the merryman's activity, live on its Virtuals page.
+ * Virtuals Terminal streamer — the agent's activity, live on its Virtuals page.
  *
  * An independent, self-scheduling loop (same discipline as the notifier — NEVER
  * inside the trading tick). When streaming is ON (settings.virtualsEnabled + a key):
  *   - every LANDED / PAPER fill is posted to the agent's Virtuals Terminal
- *   - the daily campfire report is posted once per day
+ *   - the daily report is posted once per day
  *
  * Deliberately NOT streamed: individual rejected/reverted rows — an ops-cap storm
  * could be thousands, which would flood the terminal. The daily report summarizes
  * them ("the wall held N times"), which is the honest headline anyway.
  *
  * Strictly outbound + read-only: reads the ledger read-only, keeps its own cursor
- * in ~/.merrymen/virtuals.json, and can only post logs — never trade, never move
+ * in ~/.oathwall/virtuals.json, and can only post logs — never trade, never move
  * funds, never change settings. Decoupled from Telegram entirely.
  */
 
@@ -25,7 +25,7 @@ import { clampTitle, exchangeToken, postLog, type FetchLike, type TerminalLog } 
 
 const LOOP_GAP_MS = 20_000;
 const IDLE_GAP_MS = 60_000;
-const FRAMEWORK = "merrymen";
+const FRAMEWORK = "oathwall";
 
 interface Cursor {
   lastTradeId: number;
@@ -74,7 +74,7 @@ function fillLog(t: TradeRowLite, name: string, explorer: string | null): Termin
     return {
       framework_name: FRAMEWORK,
       category_name: "general",
-      title: clampTitle(`🏹 ${name} loosed an arrow — ${t.kind} ${amt} USDG landed`),
+      title: clampTitle(`🛡 ${name} loosed an arrow — ${t.kind} ${amt} USDG landed`),
       body: `**${t.kind}** for **${amt} USDG** landed on-chain, inside the caps the account contract enforces.${proof}`,
     };
   }
@@ -161,7 +161,7 @@ export function startVirtualsStreamer(deps: VirtualsStreamerDeps): { stop(): voi
       logs.push({
         framework_name: FRAMEWORK,
         category_name: "general",
-        title: clampTitle(`🔥 ${name} — the day's campfire report`),
+        title: clampTitle(`🔥 ${name} — the day's report`),
         body: plain,
       });
     }

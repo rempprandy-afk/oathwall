@@ -109,7 +109,7 @@ function Locked({ wire }: { wire: Extract<Wire, { locked: true }> }) {
       ? "Sign in to open the desk."
       : wire.why === "unreachable"
         ? "We could not read your balance."
-        : "The desk is open to $MERRYMEN holders.";
+        : "The desk is open to $OATHWALL holders.";
   const line =
     wire.why === "sign-in"
       ? "Alpha reads your wallet, so it needs to know which one it is."

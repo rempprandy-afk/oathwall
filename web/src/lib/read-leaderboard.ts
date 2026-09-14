@@ -28,7 +28,7 @@
  * same reason: it is what makes the caller cacheable.
  */
 import { withReadDb } from "@/lib/ledger";
-import { getIdentityStore } from "@merrymen/identity-store";
+import { getIdentityStore } from "@oathwall/identity-store";
 import { rankPnl, type UnrankedWhy } from "@/lib/rank-pnl";
 
 export interface LeaderRow {

@@ -7,7 +7,7 @@ import { staleThresholdSec } from "./orchestrator";
 /**
  * THE LOOP THAT KILLED THE FLEET, PINNED SO IT CANNOT COME BACK.
  *
- * None of this was a race. `MERRYMEN_TICK_SECONDS=240` against
+ * None of this was a race. `OATHWALL_TICK_SECONDS=240` against
  * `WATCHDOG_STALE_SEC=180`, with the heartbeat written once per tick, means the
  * minimum gap between two beats exceeds the kill threshold — so every child was
  * SIGKILLed at ~185s, before its second tick ever ran. All 71 observed

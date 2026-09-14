@@ -8,7 +8,7 @@
  * the signal at the store boundary: a good write returns true, a write that
  * throws (a NOT NULL violation on the money-moving path) returns false.
  *
- * MERRYMEN_HOME is a throwaway temp db; node's --test isolates the process.
+ * OATHWALL_HOME is a throwaway temp db; node's --test isolates the process.
  */
 import assert from "node:assert/strict";
 import { after, describe, it } from "node:test";
@@ -16,8 +16,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-failclose-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-failclose-"));
+process.env.OATHWALL_HOME = HOME;
 
 const { initStore, addTrade, setAgentHwm, addFeeAccrual } = await import("./store");
 

@@ -27,7 +27,7 @@ export function PageHeader({
           being asked. Full width, not inside the reading column. */}
       <TopBar />
       <div className="mm-wrap mm-header-in">
-        <Link href="/" className="mm-header-mark" aria-label="merrymen">
+        <Link href="/" className="mm-header-mark" aria-label="oathwall">
           <LogoMark size={20} />
         </Link>
         <div className="mm-header-txt">

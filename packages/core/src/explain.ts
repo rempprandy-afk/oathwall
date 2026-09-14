@@ -1,5 +1,5 @@
 /**
- * WHAT MERRYMEN MEANS BY ITS OWN WORDS.
+ * WHAT OATHWALL MEANS BY ITS OWN WORDS.
  *
  * The chat could always talk about YOUR agent — its equity, its positions, what
  * it did this morning. It could not explain what any of those words mean, so
@@ -16,7 +16,7 @@
  *   "your wallet is on 0x… but you signed in as 0x…"             (two wallets, deliberately)
  *
  * Every one of those has a precise answer that lives in this codebase and
- * nowhere else. A general-purpose model cannot know that merrymen's `equity`
+ * nowhere else. A general-purpose model cannot know that oathwall's `equity`
  * excludes ETH, that a balance can sit at an address with no contract deployed,
  * or that the owner key and the login wallet were never the same key. So the
  * answers are written down HERE, next to the code that makes them true, and the
@@ -25,7 +25,7 @@
  * THREE RULES, and they are the whole design:
  *
  *  1. GROUNDED OR ABSENT. Every entry describes what this code does, cited to
- *     the file that does it. If merrymen's meaning differs from the industry
+ *     the file that does it. If oathwall's meaning differs from the industry
  *     meaning, the difference IS the entry — that gap is where users get hurt.
  *  2. SELECTED DETERMINISTICALLY. Which concepts reach the prompt is decided by
  *     this file, by matching words, not by a model choosing what to look up. A
@@ -224,7 +224,7 @@ export const CONCEPTS: readonly Concept[] = [
   {
     term: "its trading fees are covered / covered — only needed to withdraw later",
     aliases: ["fees are covered", "gas sponsored", "sponsored", "do i need eth"],
-    plain: "When your agent's gas is sponsored, merrymen pays the small network charge on every trade for you. So you only put in USDG — the dollars it trades with — and it can start; it does not need any ETH sitting there to buy and sell. (lets an account with zero ETH start as long as it is sponsored and holds USDG; is the sentence you see.) The one thing that is NOT covered is taking money back out.",
+    plain: "When your agent's gas is sponsored, oathwall pays the small network charge on every trade for you. So you only put in USDG — the dollars it trades with — and it can start; it does not need any ETH sitting there to buy and sell. (lets an account with zero ETH start as long as it is sponsored and holds USDG; is the sentence you see.) The one thing that is NOT covered is taking money back out.",
     because: "statusLine's gasSponsored branch returns these sentences and both arms carry the withdrawal caveat; canStart encodes the same rule (gas OR sponsored+capital) and its header says explicitly that sponsorship does not decide anything about withdrawal.",
     confusable: "\"Covered\" never means \"you never need ETH\".",
     evidence: "web/src/lib/status-line.ts:185-204",
@@ -266,14 +266,14 @@ export const CONCEPTS: readonly Concept[] = [
     aliases: ["recovery key is only dots", "bunch of dots", "key is hidden", "cant see my recovery key", "reveal key"],
     plain: "The dots are just a cover over your key, like a password field. Nothing has gone wrong and nothing is missing. Tap the eye icon (during setup) or the \"reveal\" button (on the wallet screen) next to the dots and your real key appears; tap it again to hide it.",
     because: "CreateAgent renders the literal dot string when `reveal` is false and swaps in grant.demoOwnerPrivateKey when it is true; the wallet page renders \"•\".repeat(40) under the same toggle, whose button reads \"reveal\"/\"hide\".",
-    confusable: "If instead of dots you see the words \"Held by your Privy login\", there is no key to reveal at all — your X login holds it and merrymen never sees it.",
+    confusable: "If instead of dots you see the words \"Held by your Privy login\", there is no key to reveal at all — your X login holds it and oathwall never sees it.",
     evidence: "web/src/terminal/screens/CreateAgent.tsx:106",
   },
   {
     term: "this wallet isn’t active",
-    aliases: ["wallet isnt active", "desync", "re-arm this wallet", "worker no longer holds its grant", "dashboard shows no merryman"],
+    aliases: ["wallet isnt active", "desync", "re-arm this wallet", "worker no longer holds its grant", "dashboard shows no agent"],
     plain: "Nothing has happened to your money. This browser still holds the wallet and its key, and the account still exists with whatever is in it — the panel shows you the address and its current balance, read straight from the chain, plus a button to reveal your recovery key if this browser saved one. What's missing is on our side: the server has lost the permission slip that lets your agent trade, so the agent won't run and won't show on the dashboard.",
-    because: "The desync panel renders whenever a local grant exists and serverArmed is false — which happens after a kill switch, a `merrymen kill`, or a server refusal — and it deliberately renders the error line and the account's live balance inside itself, because the shared error line lives in the create panel and could never show once a grant existed.",
+    because: "The desync panel renders whenever a local grant exists and serverArmed is false — which happens after a kill switch, a `oathwall kill`, or a server refusal — and it deliberately renders the error line and the account's live balance inside itself, because the shared error line lives in the create panel and could never show once a grant existed.",
     confusable: "\"Isn't active\" sounds like the account was deleted.",
     evidence: "web/src/terminal/screens/Wallet.tsx:730,788-824",
   },
@@ -303,8 +303,8 @@ export const CONCEPTS: readonly Concept[] = [
   },
   {
     term: "Creating your wallet…",
-    aliases: ["setting up the wallet that will own your merryman", "stuck on creating your wallet", "provisioning", "embedded wallet"],
-    plain: "This screen appears once, straight after you sign in, while the app sets up the wallet that will own your Merryman — the on-screen note says exactly that. A few seconds is normal. You get this new wallet whichever way you signed in: X, email, or by connecting a wallet you already had.",
+    aliases: ["setting up the wallet that will own your agent", "stuck on creating your wallet", "provisioning", "embedded wallet"],
+    plain: "This screen appears once, straight after you sign in, while the app sets up the wallet that will own your Agent — the on-screen note says exactly that. A few seconds is normal. You get this new wallet whichever way you signed in: X, email, or by connecting a wallet you already had.",
     because: "useEmbeddedWallet returns getEmbeddedConnectedWallet(wallets), never wallets[0], and the effect sets phase 'provisioning' and returns early while it is null. configures embeddedWallets.ethereum.createOnLogin: 'all-users', so every login route gets one consistent owner signer.",
     confusable: "It is not creating your agent, and it is not your deposit address.",
     evidence: "web/src/terminal/PrivySignIn.tsx:54-58, web/src/terminal/PrivySignIn.tsx:107-110, web/src/terminal/Providers.tsx:55",
@@ -353,7 +353,7 @@ export const CONCEPTS: readonly Concept[] = [
   {
     term: "Owner key",
     aliases: ["recovery key", "private key", "backup key", "seed", "the key i was told to save"],
-    plain: "If you created your agent with a recovery key rather than an X login, that key is the one thing that controls your money. Setup shows it on the \"Backup\" screen — labelled Recovery key, hidden behind dots until you tap the eye icon to reveal it, and it is a long string starting 0x, not twelve words. It is made inside your browser and stays there; on merrymen's hosted app it is never uploaded to us, so if you lose it nobody, including merrymen, can get the funds back.",
+    plain: "If you created your agent with a recovery key rather than an X login, that key is the one thing that controls your money. Setup shows it on the \"Backup\" screen — labelled Recovery key, hidden behind dots until you tap the eye icon to reveal it, and it is a long string starting 0x, not twelve words. It is made inside your browser and stays there; on oathwall's hosted app it is never uploaded to us, so if you lose it nobody, including oathwall, can get the funds back.",
     because: "createAgentWallet generates the key with generatePrivateKey() in the browser; mintGrant writes the full grant INCLUDING demoOwnerPrivateKey to localStorage but omits that field from the copy sent to a hosted server, and the module header states plainly that localStorage is the shipped arrangement, not a testnet caveat.",
     confusable: "The header explicitly retracts an older claim that production owner keys live in a Turnkey TEE — no such thing is shipped.",
     evidence: "web/src/lib/session.ts:780-793, web/src/lib/session.ts:404-421, web/src/lib/session.ts:30-42",
@@ -369,8 +369,8 @@ export const CONCEPTS: readonly Concept[] = [
   {
     term: "Held by your Privy login",
     aliases: ["no recovery key", "nothing to write down", "why is there no key for me", "privy owned"],
-    plain: "If you signed in through Privy (X or email), there is deliberately no recovery key for you to write down. The key that owns your agent's wallet lives inside that login, and merrymen never receives a copy — so it cannot show you one, and it cannot lose one. That is why the backup step shows \"Held by your Privy login\" instead of a key, and why there is no reveal button.",
-    because: "isPrivyOwned reads the durable binding version 'privy-did-owner-v1' sealed into the grant at signing time; createPrivyOwnedWallet omits demoOwnerPrivateKey entirely and its docstring states that recovery for a Privy-owned Merryman is signer-based and NOT yet built.",
+    plain: "If you signed in through Privy (X or email), there is deliberately no recovery key for you to write down. The key that owns your agent's wallet lives inside that login, and oathwall never receives a copy — so it cannot show you one, and it cannot lose one. That is why the backup step shows \"Held by your Privy login\" instead of a key, and why there is no reveal button.",
+    because: "isPrivyOwned reads the durable binding version 'privy-did-owner-v1' sealed into the grant at signing time; createPrivyOwnedWallet omits demoOwnerPrivateKey entirely and its docstring states that recovery for a Privy-owned Agent is signer-based and NOT yet built.",
     confusable: "A missing key means two opposite things and the code says so at on a legacy grant it means something went wrong (do not fund); on a Privy grant it means everything is working.",
     evidence: "web/src/lib/session.ts:104-123, web/src/lib/session.ts:795-828, web/src/terminal/screens/CreateAgent.tsx:105",
   },
@@ -384,15 +384,15 @@ export const CONCEPTS: readonly Concept[] = [
       "how much can it spend at once",
       "biggest trade",
     ],
-    plain: "The largest amount your agent can spend in any single trade. This is the one limit the blockchain itself enforces: it is sealed into the signature your agent trades with, so the account contract refuses a larger trade outright — nothing in merrymen has to be working correctly for it to hold.",
-    because: "perTradeUsdg is baked into the call policy inside the signed permission wall, so the account contract rejects an over-size call before merrymen sees it.",
-    confusable: "It sits beside the per-day and drawdown limits, which are counted by merrymen's own software rather than by the chain — the same panel, two different strengths of promise.",
+    plain: "The largest amount your agent can spend in any single trade. This is the one limit the blockchain itself enforces: it is sealed into the signature your agent trades with, so the account contract refuses a larger trade outright — nothing in oathwall has to be working correctly for it to hold.",
+    because: "perTradeUsdg is baked into the call policy inside the signed permission wall, so the account contract rejects an over-size call before oathwall sees it.",
+    confusable: "It sits beside the per-day and drawdown limits, which are counted by oathwall's own software rather than by the chain — the same panel, two different strengths of promise.",
     evidence: "packages/core/src/wall.ts",
   },
   {
     term: "Per day limit",
     aliases: ["daily usd", "daily cap", "$50 a day", "how much can it spend in a day"],
-    plain: "The most your agent is allowed to spend across any rolling 24 hours. This limit works differently from the per-trade one, and the difference matters: merrymen's own software keeps the running total and stops the agent when it reaches your number. The blockchain doesn't count days at all, so it can't back this one up — it holds in normal operation, but if merrymen's software were ever tampered with, nothing on the chain would stop it.",
+    plain: "The most your agent is allowed to spend across any rolling 24 hours. This limit works differently from the per-trade one, and the difference matters: oathwall's own software keeps the running total and stops the agent when it reaches your number. The blockchain doesn't count days at all, so it can't back this one up — it holds in normal operation, but if oathwall's software were ever tampered with, nothing on the chain would stop it.",
     because: "states the daily USDG cap is enforced only off-chain in the worker, and that a compromised worker ignores its own counter, leaving the true on-chain ceiling at perTradeUsdg × ops-until-expiry.",
     confusable: "The Limits screen presents per-trade and per-day side by side as if they were the same kind of guarantee.",
     evidence: "packages/core/src/wall.ts:176-183, packages/core/src/wall.ts:720-723",
@@ -400,7 +400,7 @@ export const CONCEPTS: readonly Concept[] = [
   {
     term: "Drawdown limit 5%",
     aliases: ["drawdown", "stop loss", "5 percent", "breaker"],
-    plain: "A safety stop: if your agent's value falls 5% below its best-ever level, merrymen stops it opening anything new. It can still sell out of what it holds — that's on purpose, so a bad moment doesn't trap you in a losing position. Two things to be clear about.",
+    plain: "A safety stop: if your agent's value falls 5% below its best-ever level, oathwall stops it opening anything new. It can still sell out of what it holds — that's on purpose, so a bad moment doesn't trap you in a losing position. Two things to be clear about.",
     because: "The session module header states the drawdown breaker is worker-enforced until the breaker contract ships (Phase 2); the value is carried in the caps sealed into the grant.",
     confusable: "It appears on the same limits panel as the per-trade cap, which is contract-enforced.",
     evidence: "web/src/lib/session.ts:42-43, web/src/terminal/screens/CreateAgent.tsx:25",
@@ -418,7 +418,7 @@ export const CONCEPTS: readonly Concept[] = [
     aliases: ["deposit", "fund my agent", "send usdg", "copy deposit address", "how do i put money in"],
     plain: "Funding your agent means sending USDG to your agent's own account address — the address the funding screen shows with a \"Copy deposit address\" button. It has to come from your own wallet or an exchange; there is no free-money tap on the real chain, and the screen says so. Where to watch for it: the wallet setup page's funding panel re-checks your balance on the chain roughly every 8 seconds on its own, so the two balance tiles — \"native gas\" and \"USDG\" — fill in by themselves once the transfer lands.",
     because: "FundingPanel renders grant.smartAccount as the deposit address with a copy button and says the balance updates after the transfer is recorded; the wallet page's funding panel polls readFunding and shows 'waiting for the first deposit to land… this panel updates automatically' plus '(no faucet on mainnet — send from your own wallet or exchange)'.",
-    confusable: "On the TESTNET chain the USDG tile is pinned at '—' forever no matter what you send, because merrymen only knows the mainnet USDG address —.",
+    confusable: "On the TESTNET chain the USDG tile is pinned at '—' forever no matter what you send, because oathwall only knows the mainnet USDG address —.",
     evidence: "web/src/terminal/HostedControls.tsx:66, web/src/terminal/screens/Wallet.tsx:1452-1456, web/src/lib/session.ts:948-963",
   },
   {
@@ -439,7 +439,7 @@ export const CONCEPTS: readonly Concept[] = [
   },
   {
     term: "kill switch",
-    aliases: ["kill", "kill all agents", "stop my agent", "merrymen kill", "revoke"],
+    aliases: ["kill", "kill all agents", "stop my agent", "oathwall kill", "revoke"],
     plain: "Kill switch = a stop button for the agent, not a delete button for your money. Pressing it (twice — once to arm, once to confirm) tells the server to throw away the agent's trading permission, and clears that permission from this browser. The trading worker stops at its next check-in.",
     because: "KillSwitch DELETEs /api/grants then calls clearGrant(), and clearGrant archives the current grant under its smart-account key before removing the live slot; the hosted DELETE only removes the stored session-key grant, because the server never held an owner key.",
     confusable: "This used to be a bare localStorage removeItem, which on the hosted service permanently destroyed the only copy of the owner key — pressing KILL meant the funds became unreachable while the UI said only 'grant destroyed'.",
@@ -447,7 +447,7 @@ export const CONCEPTS: readonly Concept[] = [
   },
   {
     term: "recovery",
-    aliases: ["get my money out", "withdraw", "recover funds", "merrymen recover", "recovery panel"],
+    aliases: ["get my money out", "withdraw", "recover funds", "oathwall recover", "recovery panel"],
     plain: "Recovery means moving everything in your agent's account out to any address you control. You sign it with your owner key — the key you were told to back up — so it works even if the agent is killed, even if you're signed out, and even if the agent never traded (the account creates itself on the way out). Your trading limits don't apply: those limits are attached to the agent's day-to-day key, and the owner key is a separate, unrestricted signer.",
     because: "planRecovery/recoverFunds rebuild the Kernel account with the owner key as the sudo signer and send one owner-signed UserOp; the sudo validator has no session-key policies attached, so the whole balance can move in one operation.",
     confusable: "You cannot recover by importing the owner key into MetaMask — that shows a different, empty address.",
@@ -464,10 +464,10 @@ export const CONCEPTS: readonly Concept[] = [
   {
     term: "privy-owned account",
     aliases: ["signed in with x", "sign in with google", "email login", "privy", "embedded wallet owner", "held by your privy login"],
-    plain: "Some agents keep their owner key inside your login (the account you signed in with — the app calls it your X login) instead of inside this browser. merrymen never receives that key, so it cannot store it, leak it, or display it. That is why there is no recovery key to write down here, and why the backup screen says \"held by your Privy login — merrymen never sees it\" instead of showing you a string of characters. Nothing is broken and the account is safe to fund.",
+    plain: "Some agents keep their owner key inside your login (the account you signed in with — the app calls it your X login) instead of inside this browser. oathwall never receives that key, so it cannot store it, leak it, or display it. That is why there is no recovery key to write down here, and why the backup screen says \"held by your Privy login — oathwall never sees it\" instead of showing you a string of characters. Nothing is broken and the account is safe to fund.",
     because: "createPrivyOwnedWallet passes Privy's LocalAccount as the owner signer with binding 'privy-did-owner-v1' and deliberately omits demoOwnerPrivateKey; every screen checks isPrivyOwned(grant) before deciding what an absent key means.",
     confusable: "This is exactly the 'recovery key is only a bunch of dots' and \"couldn't read your owner key - don't fund this account\" reports.",
-    evidence: "web/src/lib/session.ts:795-828 ('WHAT IS GONE, DELIBERATELY: demoOwnerPrivateKey … Recovery for a Privy-owned Merryman is signer-based and is NOT yet built')",
+    evidence: "web/src/lib/session.ts:795-828 ('WHAT IS GONE, DELIBERATELY: demoOwnerPrivateKey … Recovery for a Privy-owned Agent is signer-based and is NOT yet built')",
   },
   {
     term: "legacy-wallet-owner-v1",
@@ -560,7 +560,7 @@ export const CONCEPTS: readonly Concept[] = [
   {
     term: "WETH",
     aliases: ["weth", "wrapped eth", "eth pool"],
-    plain: "WETH is \"wrapped ETH\" — ETH in a form that can sit in a pool and be traded like any other token. In merrymen it does two jobs. 1) It is how the app works out what ETH is worth. Gas (the network fee for every trade) is paid in ETH, but your book is kept in USDG, and this chain has no official ETH price feed.",
+    plain: "WETH is \"wrapped ETH\" — ETH in a form that can sit in a pool and be traded like any other token. In oathwall it does two jobs. 1) It is how the app works out what ETH is worth. Gas (the network fee for every trade) is paid in ETH, but your book is kept in USDG, and this chain has no official ETH price feed.",
     because: "there is no Chainlink ETH/USD feed on this chain, so the ETH price comes from the WETH/USDG pool TWAP through the guarded pool reader, and TradableToken.quote documents the WETH routing default.",
     confusable: "WETH is treated as kind 'memecoin' in the price code.",
     evidence: "worker/src/gas-price.ts:9",
@@ -675,7 +675,7 @@ export const CONCEPTS: readonly Concept[] = [
   {
     term: "dip-hunter",
     aliases: ["dip hunter", "buy the dip strategy", "dip buyer"],
-    plain: "Dip hunter is a strategy for $MERRYMEN holders (Merry Man tier or above). If you pick it without holding, your agent just sits there and posts one note saying so — it never trades. Each time it runs, instead of splitting the round's money across all the stocks you follow, it puts the entire round's amount into the ONE that has fallen furthest below the highest price it has personally seen for that stock.",
+    plain: "Dip hunter is a strategy for $OATHWALL holders (Delegate tier or above). If you pick it without holding, your agent just sits there and posts one note saying so — it never trades. Each time it runs, instead of splitting the round's money across all the stocks you follow, it puts the entire round's amount into the ONE that has fallen furthest below the highest price it has personally seen for that stock.",
     because: "`makeDipHunter` keeps a per-symbol rolling high in a closure across ticks (the only strategy that carries state), skips legs with no fresh price or a paused token, and buys the deepest `dipBps` above `minDipBps`, which the registry sets to 150 bps.",
     confusable: "The \"high\" is only the high it has personally observed since the worker started, not an all-time or 52-week high.",
     evidence: "worker/src/strategies/dip-hunter.ts:1-9, worker/src/strategies/dip-hunter.ts:25-57, worker/src/strategies/registry.ts:252-260",
@@ -691,7 +691,7 @@ export const CONCEPTS: readonly Concept[] = [
   {
     term: "custom strategy",
     aliases: ["my own strategy", "strategy file", "plugin strategy", "user-written strategy"],
-    plain: "You can write your own strategy and save it in your merrymen strategies folder, then pick it in settings by the file's name (letters, numbers, dashes - no folders). Edit the file and merrymen notices the change and uses the new version on its next round, with nothing to restart. If your file has an error, fails to load, or crashes while running, that round simply makes no trades and the reason shows up in your event feed - it never takes the agent down.",
+    plain: "You can write your own strategy and save it in your oathwall strategies folder, then pick it in settings by the file's name (letters, numbers, dashes - no folders). Edit the file and oathwall notices the change and uses the new version on its next round, with nothing to restart. If your file has an error, fails to load, or crashes while running, that round simply makes no trades and the reason shows up in your event feed - it never takes the agent down.",
     because: "`makeCustomStrategy` lazily re-imports on mtime change and degrades a load failure or thrown tick to \"no trades this tick\"; the registry refuses the dynamic import in hosted mode because it would execute tenant code in the process holding every tenant's session key, and falls through to steady-basket with a warning.",
     confusable: "A custom strategy returns a bare intent list, so it cannot publish a written reason — its decisions appear with no prose by design.",
     evidence: "worker/src/strategies/custom.ts:1-13, worker/src/strategies/registry.ts:170-185",
@@ -699,9 +699,9 @@ export const CONCEPTS: readonly Concept[] = [
   {
     term: "daily cap",
     aliases: ["daily limit", "trades per day", "ops cap", "daily-cap", "max ops per day", "spent today"],
-    plain: "Your agent has two limits that reset by themselves. Over any 24-hour stretch it can spend at most a set amount of USDG (50, 500 or 2,000 depending on the preset you picked when you signed) and can make at most a set number of moves (24, 48 or 96). Both are counted and enforced by merrymen's own software, not by anything on the blockchain — the on-chain part only limits the size of a single trade.",
+    plain: "Your agent has two limits that reset by themselves. Over any 24-hour stretch it can spend at most a set amount of USDG (50, 500 or 2,000 depending on the preset you picked when you signed) and can make at most a set number of moves (24, 48 or 96). Both are counted and enforced by oathwall's own software, not by anything on the blockchain — the on-chain part only limits the size of a single trade.",
     because: "checkPolicy rejects with `ops-cap` and `daily-cap` against worker-held counters; records that the on-chain rate-limit policy was REMOVED because its contract has zero bytecode on chain 4663, and says outright that maxOpsPerDay is now enforced by the worker only. `refreshBudget` re-reads the settled 24h totals from the ledger every tick.",
-    confusable: "This is the one place where merrymen's guarantee is weaker than it sounds: the honest on-chain ceiling is per-trade size × however many operations fit before the key expires, not the daily figure shown in the UI.",
+    confusable: "This is the one place where oathwall's guarantee is weaker than it sounds: the honest on-chain ceiling is per-trade size × however many operations fit before the key expires, not the daily figure shown in the UI.",
     evidence: "worker/src/policy.ts:443-476, packages/core/src/wall.ts:699-733, worker/src/index.ts:4763-4768",
   },
   {
@@ -743,7 +743,7 @@ export const CONCEPTS: readonly Concept[] = [
       "sequencer down — all trading paused",
       "sequencerup",
     ],
-    plain: "The chain has to keep producing new blocks for anything to trade. If the newest block merrymen can see is more than two minutes old, it assumes the chain has stalled and every strategy stops proposing trades until fresh blocks appear again — nothing is stuck or lost, it just waits. You get one message when it stops and one when it starts again, not a message every minute.",
+    plain: "The chain has to keep producing new blocks for anything to trade. If the newest block oathwall can see is more than two minutes old, it assumes the chain has stalled and every strategy stops proposing trades until fresh blocks appear again — nothing is stuck or lost, it just waits. You get one message when it stops and one when it starts again, not a message every minute.",
     because: "`chainLive` is `now - block.timestamp < 120` — a liveness check on our VIEW of the chain as much as on the chain itself, since a stale RPC and a stalled chain look identical from here. Every strategy's first line is `if (!snap.chainLive) return`, and the tick only emits an event when the value CHANGES. It was called `sequencerUp` until the BNB move; BNB is an L1 with no sequencer, and the implementation was always this comparison rather than a sequencer-uptime feed.",
     confusable: "An unread block is deliberately NOT reported as a stalled chain — that case is routed to \"market unreadable\" instead, so our own rate limit never announces a chain outage to every owner.",
     evidence: "worker/src/snapshot.ts:152-157, worker/src/index.ts:4746-4753, worker/src/strategies/steady-basket.ts:34",
@@ -751,7 +751,7 @@ export const CONCEPTS: readonly Concept[] = [
   {
     term: "no-gas",
     aliases: ["no eth", "out of gas", "why was my trade rejected no-gas", "send eth"],
-    plain: "The account pays its own network fee in ETH, and ETH is a different thing from the USDG it trades with. If the account holds exactly zero ETH, no trade can go through at all — it would be rejected before it ever reached the blockchain — so merrymen stops it here instead, marks the attempt \"no-gas\", and tells you the account address to send ETH to. Sending more USDG will not fix it; ETH cannot be substituted.",
+    plain: "The account pays its own network fee in ETH, and ETH is a different thing from the USDG it trades with. If the account holds exactly zero ETH, no trade can go through at all — it would be rejected before it ever reached the blockchain — so oathwall stops it here instead, marks the attempt \"no-gas\", and tells you the account address to send ETH to. Sending more USDG will not fix it; ETH cannot be substituted.",
     because: "The tick refuses with `reject_rule: \"no-gas\"` when `lastGasWei === 0n && !gasSponsored()`, and only ZERO is refused — a low balance is warned about and left for the chain to judge, because a too-clever estimate refusing a trade the chain would have accepted is the worse failure.",
     confusable: "In paper mode the ETH balance is hardcoded to zero for the simulated book; the tick deliberately does NOT copy that fabricated zero into the live gas check, because unknown is not zero.",
     evidence: "worker/src/index.ts:3560-3594",
@@ -766,7 +766,7 @@ export const CONCEPTS: readonly Concept[] = [
   },
   {
     term: "shadow",
-    aliases: ["brain", "shadow mode", "brain decision", "a merryman thinks", "shadow brain"],
+    aliases: ["brain", "shadow mode", "brain decision", "an agent thinks", "shadow brain"],
     plain: "Brain is the part that reasons about your agent. Right now it runs in shadow: it thinks, writes down a decision and the reasoning behind it, and then nothing is bought or sold. A shadow decision never becomes a trade — the trading code and the thinking code are not connected to each other at all, so this cannot be switched on by accident.",
     because: "does not import proposalsToIntents, checkPolicy, simulate or the executor, and nothing it returns is shaped like an intent — execution is disconnected by ABSENCE, so connecting it later is an added import someone must review rather than a flag someone can flip.",
     confusable: "A Brain decision can say \"buy\" and still be a decision nothing acts on.",

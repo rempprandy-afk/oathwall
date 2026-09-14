@@ -199,7 +199,7 @@ export interface GrantCaps {
  *   nonce   — server-issued, expiring, single-use; stops replay of this claim
  *   owner   — the key being vouched for
  *   account — the smart account claimed, i.e. which ledger partition is at stake
- *   chainId — merrymen runs testnet 46630 and mainnet 4663; without it one
+ *   chainId — oathwall runs testnet 46630 and mainnet 4663; without it one
  *             signature would bind on both
  */
 /**
@@ -271,9 +271,9 @@ export function bindingMessage(args: BindingClaim): string {
     // verify just as well when replayed under somebody else's login. Under the
     // legacy version the second signature carries that job; here the text does.
     return [
-      `${args.origin} wants you to authorize a merrymen agent account.`,
+      `${args.origin} wants you to authorize a oathwall agent account.`,
       "",
-      "You are linking the agent wallet below to your merrymen identity. It moves no funds.",
+      "You are linking the agent wallet below to your oathwall identity. It moves no funds.",
       "",
       `Agent account: ${args.smartAccount.toLowerCase()}`,
       `Owner key: ${args.owner.toLowerCase()}`,
@@ -287,7 +287,7 @@ export function bindingMessage(args: BindingClaim): string {
   // has not reloaded are still in flight, and a signature is over the exact
   // bytes — change a space here and every one of them stops verifying.
   return [
-    `${args.origin} wants you to authorize a merrymen agent account.`,
+    `${args.origin} wants you to authorize a oathwall agent account.`,
     "",
     "You are linking the agent wallet below to this login. It moves no funds.",
     "",

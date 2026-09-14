@@ -26,9 +26,9 @@ import { withReadDb } from "@/lib/ledger";
 import { rankPnl, type UnrankedWhy } from "@/lib/rank-pnl";
 import { growthIndex, drawdownBps } from "@/lib/growth-index";
 import { PUBLISHABLE_STRATEGIES } from "@/lib/thesis";
-import { getIdentityStore } from "@merrymen/identity-store";
-import { isEvidencedFlow } from "@merrymen/core";
-import { getSettingsStore } from "@merrymen/settings-store";
+import { getIdentityStore } from "@oathwall/identity-store";
+import { isEvidencedFlow } from "@oathwall/core";
+import { getSettingsStore } from "@oathwall/settings-store";
 
 export interface Holding {
   symbol: string;

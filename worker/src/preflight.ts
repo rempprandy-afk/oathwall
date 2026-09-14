@@ -1,7 +1,7 @@
 /**
  * Is this install actually able to make a real trade?
  *
- * `merrymen doctor` answers "is the software installed and configured" — node,
+ * `oathwall doctor` answers "is the software installed and configured" — node,
  * npm, PATH, keys present, RPCs reachable, the grant not expired. It is good at
  * that and says nothing about the thing an owner is about to bet money on:
  * whether the account can trade at all.
@@ -165,7 +165,7 @@ export function preflight(input: PreflightInput): Check[] {
       level: "blocker",
       title: `grant is on chain ${g.chainId} — it cannot trade`,
       detail:
-        "Testnet is practice only. Every token and router address merrymen knows is a MAINNET " +
+        "Testnet is practice only. Every token and router address oathwall knows is a MAINNET " +
         `deployment, so a funded testnet balance reads as 0 and swaps only simulate. Re-sign at ` +
         `/grant and pick mainnet ${TRADEABLE_CHAIN_ID} (it asks you to confirm, deliberately).`,
     });
@@ -206,7 +206,7 @@ export function preflight(input: PreflightInput): Check[] {
       title: `the wall depends on contracts with no code on chain ${g.chainId}`,
       detail:
         `${input.missingPolicyContracts.join(", ")} — every UserOp this grant signs is validated ` +
-        "against them, so nothing can land until this is resolved. This is a merrymen bug, not " +
+        "against them, so nothing can land until this is resolved. This is a oathwall bug, not " +
         "something you configured: report it rather than working around it.",
     });
   } else {

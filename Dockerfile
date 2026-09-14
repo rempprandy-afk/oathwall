@@ -1,8 +1,8 @@
-# Hosted merrymen — ONE image, TWO services.
+# Hosted oathwall — ONE image, TWO services.
 #
 # The same image runs either the Next.js dashboard (the web service) or the
 # process-per-tenant supervisor (the orchestrator service); the role is picked by
-# the MERRYMEN_START env var per service (see the CMD at the bottom + docs/
+# the OATHWALL_START env var per service (see the CMD at the bottom + docs/
 # hosted-deploy.md). railway.json deliberately sets NO startCommand and NO
 # healthcheck, so this one image + a single per-service variable is the only
 # difference between the two — and the orchestrator, which serves no HTTP, is
@@ -58,20 +58,20 @@ COPY . .
 # to this list: an ARG is baked into the image layer and readable by anyone who
 # can pull it. Every secret stays a runtime variable (see the CMD below).
 ARG NEXT_PUBLIC_PRIVY_APP_ID=""
-ARG NEXT_PUBLIC_MERRYMEN_PRIVY_BETA=""
+ARG NEXT_PUBLIC_OATHWALL_PRIVY_BETA=""
 ENV NEXT_PUBLIC_PRIVY_APP_ID=$NEXT_PUBLIC_PRIVY_APP_ID
-ENV NEXT_PUBLIC_MERRYMEN_PRIVY_BETA=$NEXT_PUBLIC_MERRYMEN_PRIVY_BETA
+ENV NEXT_PUBLIC_OATHWALL_PRIVY_BETA=$NEXT_PUBLIC_OATHWALL_PRIVY_BETA
 
 # Build the dashboard (the web service serves it; the orchestrator ignores it).
 RUN npm run build
 
 ENV NODE_ENV=production
 
-# ONE image, TWO roles, selected by MERRYMEN_START (a Railway per-service var):
-#   web service          → MERRYMEN_START unset → `npm run start:web` (the Next dashboard)
-#   orchestrator service → MERRYMEN_START=start:orchestrator (the per-tenant supervisor)
+# ONE image, TWO roles, selected by OATHWALL_START (a Railway per-service var):
+#   web service          → OATHWALL_START unset → `npm run start:web` (the Next dashboard)
+#   orchestrator service → OATHWALL_START=start:orchestrator (the per-tenant supervisor)
 # Kept as an npm script name (not a full command) so the surface for a mis-set
 # value is just "unknown npm script", never an arbitrary shell command. Every
-# secret (MERRYMEN_SESSION_SECRET, MERRYMEN_STORE_DEK, DATABASE_URL, the house
+# secret (OATHWALL_SESSION_SECRET, OATHWALL_STORE_DEK, DATABASE_URL, the house
 # keys) is injected at RUNTIME by Railway, never baked into the image.
-CMD ["sh", "-c", "npm run ${MERRYMEN_START:-start:web}"]
+CMD ["sh", "-c", "npm run ${OATHWALL_START:-start:web}"]

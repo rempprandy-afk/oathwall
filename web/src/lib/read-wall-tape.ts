@@ -9,7 +9,7 @@
  * discipline read-theses.ts applies to `signals_json`. A graphic cannot leak a
  * column it never selected.
  *
- * WHY THIS IS THE PICTURE. merrymen is a boundary. Its most distinctive fact is
+ * WHY THIS IS THE PICTURE. oathwall is a boundary. Its most distinctive fact is
  * that agents are refused constantly and visibly — one live agent is sitting on
  * 1,225 refusals and zero fills — and the product already shipped that fact as
  * a button ("prove the wall") rendered as a list of grey rows. This draws it.
@@ -22,7 +22,7 @@
 import { withReadDb } from "@/lib/ledger";
 import { WINDOW_SEC } from "@/lib/read-theses";
 import { REJECT_RULES, outcomeOf } from "@/lib/thesis";
-import { getIdentityStore } from "@merrymen/identity-store";
+import { getIdentityStore } from "@oathwall/identity-store";
 
 /**
  * Rows examined. PINNED — never widen this to make the picture denser.

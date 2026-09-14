@@ -16,7 +16,7 @@ import {
   TRADABLE_TOKENS,
   type TokenKind,
   bnbChain,
-} from "@merrymen/core";
+} from "@oathwall/core";
 
 export interface MarketToken {
   symbol: string;

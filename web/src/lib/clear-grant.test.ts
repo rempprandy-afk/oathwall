@@ -54,7 +54,7 @@ test("the server copy still omits the owner key — the reason this matters", ()
   // facts are pinned together rather than in separate files that could drift.
   //
   // The condition gained a SECOND arm when Privy became a possible owner: a
-  // Privy-owned grant has no key to omit, because merrymen never holds one.
+  // Privy-owned grant has no key to omit, because oathwall never holds one.
   // Both arms are asserted, because either going missing is a different
   // disaster — dropping `hostedAs` posts a key to the server, and dropping the
   // binding check makes a Privy grant read `privateKey` off a signer that has
@@ -74,9 +74,9 @@ test("the server copy still omits the owner key — the reason this matters", ()
 test("A PRIVY-OWNED GRANT HAS NO OWNER KEY ANYWHERE — and the trade-off is stated", () => {
   // The custody this file exists to protect changes shape rather than
   // disappearing. There is no localStorage key to destroy on a kill, which
-  // removes that whole class of irreversible loss — and equally means merrymen
+  // removes that whole class of irreversible loss — and equally means oathwall
   // cannot sweep such an account from a backed-up key, because none exists.
-  // Recovery for a Privy-owned Merryman is signer-based and NOT yet built, so
+  // Recovery for a Privy-owned Agent is signer-based and NOT yet built, so
   // the code must say so where somebody will read it.
   const at = SESSION.indexOf("export async function createPrivyOwnedWallet");
   assert.notEqual(at, -1, "the privy-owned mint path must exist");
@@ -84,7 +84,7 @@ test("A PRIVY-OWNED GRANT HAS NO OWNER KEY ANYWHERE — and the trade-off is sta
   // sentence is several lines with ` * ` between them. Matching the raw text
   // would make this assertion fail on a reflow rather than on a real change.
   const doc = SESSION.slice(Math.max(0, at - 1400), at).replace(/\s*\*\s*/g, " ").replace(/\s+/g, " ");
-  assert.match(doc, /no key for merrymen to hold/i);
+  assert.match(doc, /no key for oathwall to hold/i);
   assert.match(doc, /NOT yet built/i, "the recovery gap must be stated, not implied");
 });
 
@@ -144,5 +144,5 @@ test("AN ABSENT KEY IS NOT AN UNREADABLE KEY — the screens tell each truth", (
   // something that does not exist.
   const privyStep = create.slice(create.indexOf("isPrivyOwned(grant)"), create.indexOf("!isPrivyOwned(grant)"));
   assert.ok(!/saved my recovery key/.test(privyStep), "nothing was shown, so nothing can be saved");
-  assert.match(privyStep, /merrymen cannot recover these funds/, "the real trade-off must be stated instead");
+  assert.match(privyStep, /oathwall cannot recover these funds/, "the real trade-off must be stated instead");
 });

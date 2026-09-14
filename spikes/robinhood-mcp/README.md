@@ -1,6 +1,6 @@
 # Spike: Robinhood Agentic Trading MCP
 
-Reconnaissance on `https://agent.robinhood.com/mcp/trading` — can merrymen talk
+Reconnaissance on `https://agent.robinhood.com/mcp/trading` — can oathwall talk
 to it, and what would that mean. Not wired into the worker, not published
 (`package.json`'s `files` is an allowlist).
 
@@ -65,16 +65,16 @@ Robinhood names when they say they "do not control, supervise, monitor,
 recommend, or audit these AI agents."
 
 Registration echoes back `client_name: "Robinhood Trading"` regardless of what
-the client sent — we registered as `merrymen (spike)` and got that name back. If
+the client sent — we registered as `oathwall (spike)` and got that name back. If
 that name is what the consent screen shows, the owner cannot tell from it which
 agent they are authorizing. Worth confirming visually during the browser step.
 
-## Why this isn't just "point merrymen at it"
+## Why this isn't just "point oathwall at it"
 
-merrymen's wall is enforced by the account contract: EntryPoint 0.7 validates
+oathwall's wall is enforced by the account contract: EntryPoint 0.7 validates
 the session key's policies, so a compromised agent cannot spend past the caps.
 There is no equivalent to hand a brokerage. On this path the caps would be
-enforced by `worker/src/policy.ts` — which exists, but which merrymen currently
+enforced by `worker/src/policy.ts` — which exists, but which oathwall currently
 describes as a *mirror* of an authoritative on-chain rule, and which would here
 become the only rule alongside Robinhood's own account budget.
 
