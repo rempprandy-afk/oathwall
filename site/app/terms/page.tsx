@@ -105,7 +105,7 @@ export default function Terms() {
         <p>
           Questions or issues? Email{" "}
           <a className="link" href="mailto:support@oathwall.dev">support@oathwall.dev</a> or open an issue on{" "}
-          <a className="link" href="https://github.com/millw14/oathwall" target="_blank" rel="noreferrer">
+          <a className="link" href="https://github.com/rempprandy-afk/oathwall" target="_blank" rel="noreferrer">
             GitHub
           </a>
           .

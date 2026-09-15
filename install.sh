@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # oathwall installer for macOS/Linux — installs Node (if needed) + oathwall.
 #
-#   curl -fsSL https://raw.githubusercontent.com/millw14/oathwall/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.sh | bash
 #
 # Safe to re-run. Installs Node only via a package manager you already have
 # (Homebrew / fnm); otherwise it points you to nodejs.org rather than guessing.
@@ -25,7 +25,7 @@ node_ok() {
   [ "$maj" -gt 22 ] || { [ "$maj" -eq 22 ] && [ "$min" -ge 12 ]; }
 }
 
-RERUN="curl -fsSL https://raw.githubusercontent.com/millw14/oathwall/main/install.sh | bash"
+RERUN="curl -fsSL https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.sh | bash"
 
 if node_ok; then
   grn "[ok] node $(node -v) already installed"

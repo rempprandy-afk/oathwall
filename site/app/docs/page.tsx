@@ -12,7 +12,7 @@ const TOC = [
   ["Reference", [["safety", "Safety model"], ["config", "Configuration"], ["troubleshooting", "Troubleshooting"], ["faq", "FAQ"]]],
 ] as const;
 
-const GITHUB = "https://github.com/millw14/oathwall";
+const GITHUB = "https://github.com/rempprandy-afk/oathwall";
 /** Beta testers' room. Kept in sync with TELEGRAM_BETA in app/page.tsx and components/Footer.tsx. */
 const TELEGRAM_BETA = "https://t.me/+oL-7xzghFwA4OTc8";
 
@@ -51,10 +51,10 @@ export default function Docs() {
         </p>
         <pre className="code">
 {`# Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/millw14/oathwall/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.sh | bash
 
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/millw14/oathwall/main/install.ps1 | iex`}
+irm https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.ps1 | iex`}
         </pre>
         <p>Already have Node 22.12+? This works on any OS:</p>
         <pre className="code">
@@ -145,9 +145,8 @@ oathwall kill       # kill switch — destroys the grant`}
           <li>Message your bot <code className="inline">/link &lt;code&gt;</code> — the one-time code is shown in settings. You become the owner; only allowlisted chats are obeyed.</li>
         </ol>
         <p>
-          There&apos;s a <strong>Chat on Telegram</strong> button on the dashboard too. Commands work
-          bare; with an Anthropic key set, plain English works — “how are we doing?”, “pause
-          everything”, “why did you buy that?”.
+          Commands work bare; with an Anthropic key set, plain English works too — “how are we
+          doing?”, “pause everything”, “why did you buy that?”.
         </p>
 
         {/* ── commands ── */}
@@ -187,9 +186,9 @@ oathwall kill       # kill switch — destroys the grant`}
         {/* ── pc control ── */}
         <h2 id="pc-control">PC remote control</h2>
         <p>
-          Enable the <strong>remote control</strong> section in settings and your agent can act on
-          the machine it runs on, from Telegram. It is a hot wallet for your desktop, so the whole
-          design is safety-first:
+          In settings → <strong>Computer access</strong>, enable <strong>remote control</strong> and
+          your agent can act on the machine it runs on, from Telegram. It is a hot wallet for your
+          desktop, so the whole design is safety-first:
         </p>
         <table>
           <tbody>
@@ -225,7 +224,7 @@ oathwall kill       # kill switch — destroys the grant`}
         </p>
         <table>
           <tbody>
-            <tr><td><code className="inline">IDENTITY.md</code></td><td>who it is — its name (<code className="inline">/name Will Scarlet</code>), born date</td></tr>
+            <tr><td><code className="inline">IDENTITY.md</code></td><td>who it is — its name (<code className="inline">/name Atlas</code>), born date</td></tr>
             <tr><td><code className="inline">OWNER.md</code></td><td>what it&apos;s learned about you, one dated line at a time</td></tr>
             <tr><td><code className="inline">JOURNAL.md</code></td><td>a first-person entry it writes at report time</td></tr>
           </tbody>
@@ -243,8 +242,8 @@ oathwall kill       # kill switch — destroys the grant`}
         <table>
           <tbody>
             <tr><td><code className="inline">steady-basket</code></td><td>DCA a weighted stock basket per tick; idle cash sweeps to the Morpho vault (default).</td></tr>
-            <tr><td><code className="inline">weekend-gap</code></td><td>Enter each leg when its Chainlink feed goes stale (market close), exit when it refreshes (open).</td></tr>
             <tr><td><code className="inline">llm-strategist</code></td><td>Claude proposes typed buy/sell/hold; deterministic code disposes. Needs an Anthropic key.</td></tr>
+            <tr><td><code className="inline">trencher</code></td><td>A risk filter for newly launched tokens: enters only when every liquidity/age/drawdown condition holds, exits the moment any one breaks.</td></tr>
           </tbody>
         </table>
 
@@ -280,7 +279,7 @@ oathwall kill       # kill switch — destroys the grant`}
         </p>
         <ol>
           <li>Grab your <strong>Virtuals API key</strong> from your agent&apos;s page on app.virtuals.io.</li>
-          <li>In oathwall <strong>settings → virtuals terminal</strong>, paste the key and flip <strong>stream to Virtuals</strong> on.</li>
+          <li>In oathwall <strong>settings → Virtuals</strong>, paste the key and flip <strong>stream to Virtuals</strong> on.</li>
         </ol>
         <div className="callout">
           <strong>Outbound &amp; public, and off by default.</strong> Nothing is streamed until you
@@ -355,7 +354,7 @@ oathwall kill       # kill switch — destroys the grant`}
         <h3>A PC command is refused</h3>
         <p>Enable <strong>remote control</strong> and the specific capability in settings. Shell/apps also need the exact command/app on their allowlist; <code className="inline">/pc</code> shows what&apos;s on.</p>
         <h3>Still stuck?</h3>
-        <p>Ask in the <a className="link" href={TELEGRAM_BETA} target="_blank" rel="noreferrer">beta group on Telegram</a>, email <a className="link" href="mailto:support@oathwall.dev">support@oathwall.dev</a>, or open an issue on <a className="link" href="https://github.com/millw14/oathwall" target="_blank" rel="noreferrer">GitHub</a> — include your OS and what <code className="inline">oathwall doctor</code> prints.</p>
+        <p>Ask in the <a className="link" href={TELEGRAM_BETA} target="_blank" rel="noreferrer">beta group on Telegram</a>, email <a className="link" href="mailto:support@oathwall.dev">support@oathwall.dev</a>, or open an issue on <a className="link" href="https://github.com/rempprandy-afk/oathwall" target="_blank" rel="noreferrer">GitHub</a> — include your OS and what <code className="inline">oathwall doctor</code> prints.</p>
         <p>
           <code className="inline">oathwall doctor</code> is safe to share: it reports <em>whether</em> a key is
           set, never the key itself (it does print install paths, which include your username). Your{" "}
@@ -383,24 +382,21 @@ oathwall kill       # kill switch — destroys the grant`}
           the agent, and on-chain the account contract refuses the dead key regardless. Renewal is
           the same free one-click either way.
         </p>
-        <h3>This feels built for devs — is easier onboarding coming? A desktop app?</h3>
+        <h3>This feels built for devs — is easier onboarding coming?</h3>
         <p>
-          Heard, and yes. Today the easiest path is the <a className="link" href="#install">one-line
+          Heard. Today the easiest path is the <a className="link" href="#install">one-line
           installer</a> — it checks Node, installs oathwall, and <code className="inline">oathwall
           start</code> opens the dashboard in your browser; you never need to write code (strategies
-          are optional, presets cover the rest). The <strong>1-click desktop app</strong> (.exe/.dmg
-          — no terminal at all) also ships now, on the{" "}
-          <a className="link" href={`${GITHUB}/releases`} target="_blank" rel="noreferrer">releases page</a>.
-          Either way it&apos;s the same stack — self-host it on your machine, or run it hosted from a
-          URL. Your owner key stays with you regardless; a hosted server only ever holds a capped,
-          revocable session key.
+          are optional, presets cover the rest). Self-host it on your machine, or run it hosted from
+          a URL — your owner key stays with you regardless; a hosted server only ever holds a
+          capped, revocable session key.
           <br />
           <br />
           To keep it running across logouts and reboots, <code className="inline">oathwall service
-          install</code> (or the tray toggle in the desktop app). Said plainly:{" "}
-          <strong>that survives logout, sleep and reboot — it can&apos;t run while the computer is
-          off.</strong> Nothing does except a machine that stays on, and the honest version of that
-          is your own always-on box, not us holding your keys.
+          install</code>. Said plainly: <strong>that survives logout, sleep and reboot — it
+          can&apos;t run while the computer is off.</strong> Nothing does except a machine that
+          stays on, and the honest version of that is your own always-on box, not us holding your
+          keys.
         </p>
 
         <div className="callout" style={{ marginTop: 40 }}>

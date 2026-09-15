@@ -29,7 +29,7 @@ const instrumentSerif = Instrument_Serif({
 const HERO_VIDEO =
   "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260818_072341_50851634-bbc3-4c33-9acc-7647d4db44aa.mp4";
 
-const GITHUB = "https://github.com/millw14/oathwall";
+const GITHUB = "https://github.com/rempprandy-afk/oathwall";
 const NPM = "https://www.npmjs.com/package/oathwall";
 const X_URL = "https://x.com/OathwallAI";
 const SUPPORT = "support@oathwall.dev";
@@ -718,10 +718,10 @@ export default function Home() {
           <div style={{ maxWidth: 780, margin: "0 auto 20px" }}>
             <pre className="code-pre">
 {`# Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/millw14/oathwall/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.sh | bash
 
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/millw14/oathwall/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.ps1 | iex
 
 # already have Node 22.12+ ? (any OS)
 npm install -g oathwall && oathwall start`}

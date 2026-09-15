@@ -6,10 +6,10 @@
   "homepage": "https://oathwall.dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/millw14/oathwall.git"
+    "url": "git+https://github.com/rempprandy-afk/oathwall.git"
   },
   "bugs": {
-    "url": "https://github.com/millw14/oathwall/issues"
+    "url": "https://github.com/rempprandy-afk/oathwall/issues"
   },
   "engines": {
     "node": ">=22.12"

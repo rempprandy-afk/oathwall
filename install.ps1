@@ -1,6 +1,6 @@
 # oathwall installer for Windows — installs Node (if needed) + oathwall, fixes PATH.
 #
-#   irm https://raw.githubusercontent.com/millw14/oathwall/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.ps1 | iex
 #
 # Safe to re-run. Touches only: Node (via winget, with your consent) and your
 # USER PATH. No admin rights required for the oathwall + PATH steps.
@@ -65,7 +65,7 @@ if (Test-NodeOk) {
                 [Environment]::GetEnvironmentVariable("Path", "User")
   } else {
     Say "winget isn't available. Install Node 22.12+ from https://nodejs.org/en/download" "Red"
-    Say "then re-run:  irm https://raw.githubusercontent.com/millw14/oathwall/main/install.ps1 | iex" "DarkGray"
+    Say "then re-run:  irm https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.ps1 | iex" "DarkGray"
     return
   }
   if (-not (Test-NodeOk)) {

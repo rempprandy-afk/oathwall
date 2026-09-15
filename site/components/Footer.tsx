@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Logo } from "./Logo";
 import { TokenCA } from "./TokenCA";
 
-const GITHUB = "https://github.com/millw14/oathwall";
+const GITHUB = "https://github.com/rempprandy-afk/oathwall";
 const NPM = "https://www.npmjs.com/package/oathwall";
 const X_URL = "https://x.com/OathwallAI";
 const SUPPORT = "support@oathwall.dev";

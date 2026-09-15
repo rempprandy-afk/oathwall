@@ -144,17 +144,17 @@ oathwall, and puts it on PATH:
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/millw14/oathwall/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.ps1 | iex
 ```
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/millw14/oathwall/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.sh | bash
 ```
 
 **Already have Node 22.12+?**
 
 ```bash
-npm install -g oathwall            # or: npm i -g github:millw14/oathwall
+npm install -g oathwall            # or: npm i -g github:rempprandy-afk/oathwall
 oathwall setup                     # checks node / npm / PATH, prints exact fixes
 oathwall onboard                   # optional wizard: Pimlico key, strategy, basket (all skippable)
 oathwall start                     # dashboard at localhost:3100 + the worker
@@ -540,7 +540,7 @@ ship — weighted by tier ([governance](https://oathwall.dev/governance)). Thres
 
 ### Develop from a clone
 ```bash
-git clone https://github.com/millw14/oathwall && cd oathwall
+git clone https://github.com/rempprandy-afk/oathwall && cd oathwall
 npm install          # prepare hook builds the dashboard
 npm run onboard && npm start
 # or run halves separately: npm run dev:web · npm run dev:worker

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Logo } from "./Logo";
 import { Icon } from "./Icon";
 
-const GITHUB = "https://github.com/millw14/oathwall";
+const GITHUB = "https://github.com/rempprandy-afk/oathwall";
 const HOSTED_APP = "https://app.oathwall.dev";
 const X_URL = "https://x.com/OathwallAI";
 
@@ -27,7 +27,6 @@ export function Nav() {
           <Link href="/memescope" data-text="Memescope"><span>Memescope</span></Link>
           <Link href="/dashboard" data-text="Dashboard"><span>Dashboard</span></Link>
           <Link href="/watch" data-text="Watch"><span>Watch</span></Link>
-          <Link href="/app" data-text="App"><span>App</span></Link>
           <Link href="/#telegram" data-text="Telegram"><span>Telegram</span></Link>
           <Link href="/token" data-text="Token"><span>Token</span></Link>
           <Link href="/docs" data-text="Docs"><span>Docs</span></Link>

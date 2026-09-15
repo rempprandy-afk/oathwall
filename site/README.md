@@ -22,7 +22,7 @@ This folder deploys on its own. In the Vercel project settings set the
 
 - CLI: `cd site && npx vercel` (first run links/creates the project), then
   `npx vercel --prod` to promote.
-- Dashboard: New Project → import the `millw14/oathwall` repo → set Root
+- Dashboard: New Project → import the `rempprandy-afk/oathwall` repo → set Root
   Directory = `site` → Deploy.
 
 Set your real domain in `app/layout.tsx` (`metadataBase`) once you have one, so

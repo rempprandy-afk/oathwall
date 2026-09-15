@@ -1,7 +1,7 @@
 # Render Blueprint for the Oathwall AI gateway (a persistent Node web service).
 #
 # One-time deploy:
-#   1. Render dashboard → New → Blueprint → connect the millw14/oathwall repo.
+#   1. Render dashboard → New → Blueprint → connect the rempprandy-afk/oathwall repo.
 #   2. Render reads this file (rootDir: gateway). Fill in the three secret env vars
 #      it prompts for (they're marked sync:false so they're never committed):
 #        OATHWALL_GATEWAY_UPSTREAM_KEY  — your real Groq/OpenAI key (server-only)

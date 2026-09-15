@@ -2,7 +2,7 @@
 /**
  * oathwall CLI — the terminal front door.
  *
- * Install (no clone):   npm install -g oathwall        (or github:millw14/oathwall)
+ * Install (no clone):   npm install -g oathwall        (or github:rempprandy-afk/oathwall)
  * Then:                 oathwall onboard && oathwall start
  *
  *   oathwall onboard        interactive setup wizard (keys, strategy, basket)

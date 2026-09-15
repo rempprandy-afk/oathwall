@@ -129,7 +129,7 @@ live in a KV store — this is a hard requirement (the functions refuse to start
 without it). `vercel.json` maps the clean URLs (`/nonce`, `/claim`, `/v1/…`) to the
 functions in `api/`.
 
-1. Vercel → **New Project** → import `millw14/oathwall`, set **Root Directory = `gateway`**.
+1. Vercel → **New Project** → import `rempprandy-afk/oathwall`, set **Root Directory = `gateway`**.
 2. Add a KV store: Vercel dashboard → **Storage → Upstash Redis** (or KV). It sets
    `KV_REST_API_URL` + `KV_REST_API_TOKEN` on the project automatically.
 3. Add the three secrets as env vars: `OATHWALL_GATEWAY_UPSTREAM_KEY`,
