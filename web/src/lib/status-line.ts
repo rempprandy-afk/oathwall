@@ -27,6 +27,10 @@
  * Pure, so the wording is testable without a browser, a chain, or a ledger.
  */
 
+import { CASH_SYMBOL, bnbChain, gasSymbol } from "@oathwall/core";
+
+const GAS = gasSymbol(bnbChain.id);
+
 export interface AgentSnapshot {
   name: string;
   /** What the worker reports it is doing. `idle` means it is not running. */
@@ -103,7 +107,7 @@ function firstSentence(s: string, max = 160): string {
  * wanted.
  */
 function network(testnet: boolean): string {
-  return testnet ? "the practice chain" : "Robinhood Chain";
+  return testnet ? "the practice chain" : `${bnbChain.name} (BEP-20)`;
 }
 
 /**
@@ -113,8 +117,11 @@ function network(testnet: boolean): string {
  * and a message, not a code. Anchored on the two fragments that message has
  * always had; a rewording that escaped this would restore the old behaviour
  * (an error shown), which is the safe direction to fail in.
+ *
+ * ETH and USDG are the wording from before the move to BNB. They stay because
+ * the feed is read with no age filter, so older rows can still be the newest.
  */
-const GAS_REFUSAL = /no ETH in the account|USDG alone cannot pay gas/i;
+const GAS_REFUSAL = /no (?:ETH|BNB) in the account|(?:USDG|USDT) alone cannot pay gas/i;
 
 export function statusLine(a: AgentSnapshot): StatusLine {
   const name = a.name || "Your agent";
@@ -188,7 +195,7 @@ export function statusLine(a: AgentSnapshot): StatusLine {
           headline: `${name} is live and its trading fees are covered — you only fund ${money(a.cashUsdg)}.`,
           next:
             "We pay the network fee on every trade, so you never have to top up gas to keep it running. " +
-            "Moving money back OUT to your own wallet is the one thing that still needs a little ETH in the account.",
+            `Moving money back OUT to your own wallet is the one thing that still needs a little ${GAS} in the account.`,
           tone: "good",
         }
       : {
@@ -197,7 +204,7 @@ export function statusLine(a: AgentSnapshot): StatusLine {
           // not, so the owner LEAST likely to know it was the one not told. Same
           // scope, same sentence: sponsorship covers trading, not the way out.
           next:
-            `Send USDG to the account address, on ${net}. It does not need ETH to trade — only to ` +
+            `Send ${CASH_SYMBOL} to the account address, on ${net}. It does not need ${GAS} to trade — only to ` +
             "move money back out to your own wallet later.",
           tone: "waiting",
         };
@@ -205,19 +212,19 @@ export function statusLine(a: AgentSnapshot): StatusLine {
   if (!a.hasGas) {
     return a.cashUsdg > 0
       ? {
-          headline: `${name} has ${money(a.cashUsdg)} to trade with, but no ETH to pay the fees.`,
+          headline: `${name} has ${money(a.cashUsdg)} to trade with, but no ${GAS} to pay the fees.`,
           next:
-            "Your money is there. This chain charges fees in ETH, which is a separate thing from " +
-            "the dollars you trade with, so the account needs a little of both. A few dollars of ETH " +
-            `covers many trades — send it to the same account address, on ${net}. ETH sent on ` +
-            "Ethereum, Base or any other network will not arrive here.",
+            `Your money is there. This chain charges fees in ${GAS}, which is a separate thing from ` +
+            `the dollars you trade with, so the account needs a little of both. A few dollars of ${GAS} ` +
+            `covers many trades — send it to the same account address, on ${net}. ${GAS} sent on ` +
+            "Ethereum, opBNB or any other network will not arrive here.",
           tone: "waiting",
         }
       : {
-          headline: `${name} can't trade yet — the account has no ETH for fees.`,
+          headline: `${name} can't trade yet — the account has no ${GAS} for fees.`,
           next:
-            `Send a little ETH to the account address, on ${net} — not Ethereum or Base, which is ` +
-            "where it most often ends up. A few dollars covers many trades.",
+            `Send a little ${GAS} to the account address, on ${net} — not Ethereum or opBNB, which are ` +
+            "easy to pick by mistake when withdrawing from an exchange. A few dollars covers many trades.",
           tone: "waiting",
         };
   }
@@ -236,7 +243,7 @@ export function statusLine(a: AgentSnapshot): StatusLine {
       next:
         a.cashUsdg > 0
           ? "It's watching the market and showing you what it would do. Everything below is a simulation until it goes live."
-          : "Add some USDG and it starts trading for real. Until then it practises so you can watch it work first.",
+          : `Add some ${CASH_SYMBOL} and it starts trading for real. Until then it practises so you can watch it work first.`,
       tone: "waiting",
     };
   }
@@ -274,7 +281,7 @@ export function statusLine(a: AgentSnapshot): StatusLine {
   if (a.cashUsdg <= 0) {
     return {
       headline: `${name} is live but has nothing to trade with.`,
-      next: `Send USDG to the account address, on ${net}, and it starts working.`,
+      next: `Send ${CASH_SYMBOL} to the account address, on ${net}, and it starts working.`,
       tone: "waiting",
     };
   }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff } from "lucide-react";
-import { isValidCustomToken, type CustomToken } from "@oathwall/core";
+import { bnbChain, isValidCustomToken, type CustomToken } from "@oathwall/core";
 import { createAgentWallet, createPrivyOwnedWallet, isPrivyOwned, loadGrant, type Grant, type GrantCaps } from "@/lib/session";
 import { usePrivyOwner } from "@/terminal/usePrivyOwner";
 import { verifiedAdapter } from "@/lib/verified-adapter";
@@ -11,14 +11,14 @@ import { Face } from "../ui";
 import { validAmount } from "../amount";
 
 const STRATEGIES = [
-  {id:"steady-basket",name:"Steady basket",description:"Buy a little of your selected stocks on a schedule."},
-  {id:"even-keel",name:"Even keel",description:"Keep the stocks in your basket evenly weighted."},
-  {id:"dip-hunter",name:"Dip hunter",description:"Look for pullbacks in the stocks you follow."},
+  {id:"steady-basket",name:"Steady basket",description:"Buy a little of your selected tokens on a schedule."},
+  {id:"even-keel",name:"Even keel",description:"Keep the tokens in your basket evenly weighted."},
+  {id:"dip-hunter",name:"Dip hunter",description:"Look for pullbacks in the tokens you follow."},
   {id:"llm-strategist",name:"Strategist",description:"Let your configured AI assess the market and explain its decisions."},
 ];
 const EXAMPLES:Record<string,string>={
-  "steady-basket":"For example, buy small amounts of your selected stocks over time instead of buying everything at once.",
-  "even-keel":"For example, if one stock grows to dominate your basket, adjust positions toward your target weights.",
+  "steady-basket":"For example, buy small amounts of your selected tokens over time instead of buying everything at once.",
+  "even-keel":"For example, if one token grows to dominate your basket, adjust positions toward your target weights.",
   "dip-hunter":"For example, wait for a pullback that matches the strategy before considering an entry.",
   "llm-strategist":"For example, assess current market information, explain a proposed move, and check it against your limits.",
 };
@@ -70,9 +70,9 @@ export function CreateAgent({account,onRefresh,onBack,onDone,onFund}:{account:Ac
       if(current.exists){throw new Error("An agent is already active. Open your agent instead of creating another wallet.");}
       const settings=await requestJson<{values:{customTokens?:unknown[];v4AdapterAddress?:string;ponsAdapterAddress?:string}}>("/api/settings");
       const address=(value?:string)=>value&&/^0x[0-9a-fA-F]{40}$/.test(value) ? value as `0x${string}` : undefined;
-      const pons=await verifiedAdapter(address(settings.values.ponsAdapterAddress),4663,setStatus);
+      const pons=await verifiedAdapter(address(settings.values.ponsAdapterAddress),bnbChain.id,setStatus);
       await requestJson("/api/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({agentName:name.trim(),strategy,paperTradingEnabled:paper})});
-      const mintOptions={caps:{...INITIAL_CAPS,perTradeUsdg:Number(trade),dailyUsdg:Number(day)},chainId:4663,extraTokens:(settings.values.customTokens??[]).filter(isValidCustomToken) as CustomToken[],v4AdapterAddress:address(settings.values.v4AdapterAddress),ponsAdapterAddress:pons,hostedAs:account?.session.hosted ? account.session.address as `0x${string}` : undefined,onStatus:setStatus};
+      const mintOptions={caps:{...INITIAL_CAPS,perTradeUsdg:Number(trade),dailyUsdg:Number(day)},chainId:bnbChain.id,extraTokens:(settings.values.customTokens??[]).filter(isValidCustomToken) as CustomToken[],v4AdapterAddress:address(settings.values.v4AdapterAddress),ponsAdapterAddress:pons,hostedAs:account?.session.hosted ? account.session.address as `0x${string}` : undefined,onStatus:setStatus};
       // WHO OWNS THIS AGENT. A Privy session owns it with the embedded
       // wallet it signed in with; everything else keeps the browser-generated
       // key. Same Kernel, same wall, same session key either way.
@@ -96,7 +96,7 @@ export function CreateAgent({account,onRefresh,onBack,onDone,onFund}:{account:Ac
     <header className="create-heading"><button aria-label="Back" disabled={busy||step==="backup"} onClick={()=>step==="limits"?setStep("agent"):onBack()}><ArrowLeft size={18}/></button><span>Create an agent</span></header>
     <ol className="create-steps" aria-label="Setup progress">{["Agent","Limits","Backup","Ready"].map((label,i)=><li key={label} aria-current={i===index?"step":undefined}><span>{i<index?<Check size={12}/>:i+1}</span>{label}</li>)}</ol>
     {step==="agent" && <><div className="create-intro"><Face name={name||"Your agent"} slug={null}/><h1>Meet your next agent.</h1><p>A name, a strategy, and room to make its own moves.</p></div><form onSubmit={e=>{e.preventDefault();if(!name.trim()){setError("Give your agent a name.");return;}setError("");setStep("limits");}}><label className="create-label" htmlFor="agent-name">Agent name</label><input className="create-input" id="agent-name" value={name} maxLength={24} placeholder="What should we call it?" onChange={e=>setName(e.target.value)} required/><fieldset className="create-strategies"><legend>How should it trade?</legend>{STRATEGIES.map(s=><label className={strategy===s.id?"selected":""} key={s.id}><input type="radio" name="strategy" value={s.id} checked={strategy===s.id} onChange={()=>setStrategy(s.id)}/><span><strong>{s.name}</strong><small>{s.description}</small></span><span className="create-radio" aria-hidden>{strategy===s.id&&<Check size={13}/>}</span></label>)}</fieldset><div className="create-example" aria-live="polite"><span>Strategy example</span><p>{EXAMPLES[strategy]}</p></div><button className="flow-primary" type="submit">Set trading limits <ArrowRight size={16}/></button></form></>}
-    {step==="limits" && <><div className="create-intro"><h1>A little freedom.<br/>Clear limits.</h1><p>Start small. You can change these limits with a new signature later.</p></div><div className="create-limits"><label>Per trade, USD<input className="create-input" inputMode="decimal" value={trade} onChange={e=>setTrade(e.target.value)} maxLength={12}/></label><label>Per day, USD<input className="create-input" inputMode="decimal" value={day} onChange={e=>setDay(e.target.value)} maxLength={12}/></label></div><dl className="fund-breakdown"><div><dt>Trading permission</dt><dd>7 days</dd></div><div><dt>Drawdown limit</dt><dd>5%</dd></div><div><dt>Maximum operations</dt><dd>24 per day</dd></div><div><dt>Network</dt><dd>Robinhood Chain</dd></div></dl><fieldset className="create-mode"><legend>Start with</legend><label><input type="radio" name="mode" checked={paper} onChange={()=>setPaper(true)}/> Paper trading · recommended</label><label><input type="radio" name="mode" checked={!paper} onChange={()=>setPaper(false)}/> Live trading</label></fieldset><p className="create-note">{paper?"Practice with simulated funds and live market prices.":"Your agent will trade the real funds you deposit, within these limits."}</p>{!paper&&<label className="create-check"><input type="checkbox" checked={ack} onChange={e=>setAck(e.target.checked)}/>I understand this agent can trade real funds.</label>}<button className="flow-primary" disabled={busy} onClick={()=>void create()}>{busy?"Creating your agent…":"Create agent"}</button></>}
+    {step==="limits" && <><div className="create-intro"><h1>A little freedom.<br/>Clear limits.</h1><p>Start small. You can change these limits with a new signature later.</p></div><div className="create-limits"><label>Per trade, USD<input className="create-input" inputMode="decimal" value={trade} onChange={e=>setTrade(e.target.value)} maxLength={12}/></label><label>Per day, USD<input className="create-input" inputMode="decimal" value={day} onChange={e=>setDay(e.target.value)} maxLength={12}/></label></div><dl className="fund-breakdown"><div><dt>Trading permission</dt><dd>7 days</dd></div><div><dt>Drawdown limit</dt><dd>5%</dd></div><div><dt>Maximum operations</dt><dd>24 per day</dd></div><div><dt>Network</dt><dd>{bnbChain.name}</dd></div></dl><fieldset className="create-mode"><legend>Start with</legend><label><input type="radio" name="mode" checked={paper} onChange={()=>setPaper(true)}/> Paper trading · recommended</label><label><input type="radio" name="mode" checked={!paper} onChange={()=>setPaper(false)}/> Live trading</label></fieldset><p className="create-note">{paper?"Practice with simulated funds and live market prices.":"Your agent will trade the real funds you deposit, within these limits."}</p>{!paper&&<label className="create-check"><input type="checkbox" checked={ack} onChange={e=>setAck(e.target.checked)}/>I understand this agent can trade real funds.</label>}<button className="flow-primary" disabled={busy} onClick={()=>void create()}>{busy?"Creating your agent…":"Create agent"}</button></>}
     {/* TWO OWNER MODELS, TWO DIFFERENT TRUTHS TO TELL.
         A Privy-owned account has NO key here, by design — showing dots and
         asking somebody to confirm they saved them is asking them to lie, and

@@ -65,6 +65,11 @@ export function explorerFor(chainId: number): string {
   return chainForId(chainId).blockExplorers!.default.url;
 }
 
+/** The asset that pays gas on a chain id — BNB on mainnet, tBNB on testnet. */
+export function gasSymbol(chainId: number): string {
+  return chainForId(chainId).nativeCurrency.symbol;
+}
+
 /**
  * Build the Pimlico bundler RPC for a chain from just an API key. The chain id
  * is stamped from the grant itself, so the URL can never point at the wrong

@@ -26,6 +26,7 @@
  * Nothing prevented that; `paper-mode.test.ts:76-80` only asserted such an
  * agent was not PAPER, never that it did not TRADE.
  */
+import { CASH_SYMBOL, gasSymbol } from "../../packages/core/src/index";
 import { TRADEABLE_CHAIN_ID } from "./preflight";
 
 export type RefuseRule = "not-armed" | "dead-policy" | "no-executor" | "wrong-chain" | "no-gas" | "no-cash";
@@ -199,8 +200,8 @@ export function liveBlockerText(rule: RefuseRule): string {
     case "wrong-chain":
       return "this key is for a different network than the one trading happens on";
     case "no-gas":
-      return "the account holds no ETH, and every operation has to pay a fee before it reaches the chain";
+      return `the account holds no ${gasSymbol(TRADEABLE_CHAIN_ID)}, and every operation has to pay a fee before it reaches the chain`;
     case "no-cash":
-      return "the account holds no USDG to trade with";
+      return `the account holds no ${CASH_SYMBOL} to trade with`;
   }
 }

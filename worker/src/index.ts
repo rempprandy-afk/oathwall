@@ -37,6 +37,7 @@ import {
   isHostedMode,
   instrumentClassOf,
   CASH,
+  CASH_SYMBOL,
   CIRCLE_TIERS,
   TRADABLE_TOKENS,
   PANCAKE,
@@ -45,6 +46,7 @@ import {
   cashUnits,
   WALL_POLICY_CONTRACTS,
   chainForId,
+  gasSymbol,
   effectivePerfFeeBps,
   pimlicoBundlerUrl,
   pimlicoPaymasterUrl,
@@ -3397,8 +3399,9 @@ async function main() {
       await addEvent(
         agentId,
         "err",
-        `no ETH in the account — every operation fails before it reaches the chain. ` +
-          `Send ETH to ${active.grant.smartAccount} on chain ${active.grant.chainId}; USDG alone cannot pay gas.`,
+        `no ${gasSymbol(active.grant.chainId)} in the account — every operation fails before it reaches the chain. ` +
+          `Send ${gasSymbol(active.grant.chainId)} to ${active.grant.smartAccount} on ${chainForId(active.grant.chainId).name}; ` +
+          `${CASH_SYMBOL} alone cannot pay gas.`,
       );
       await recordTrade({
         agent_id: agentId,

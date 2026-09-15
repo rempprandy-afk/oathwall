@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { GAS_FLOOR_USDG, preflight, rank, verdict, type PreflightInput } from "./preflight";
-import { TRADABLE_TOKENS, bnbChain, bnbTestnet } from "../../packages/core/src/index";
+import { TRADABLE_TOKENS, YIELD, bnbChain, bnbTestnet } from "../../packages/core/src/index";
 
 const NOW = 1_800_000_000;
 const ACCOUNT = "0x00000000000000000000000000000000000000a1";
@@ -84,10 +84,12 @@ describe("preflight — the things that stop a trade", () => {
     assert.ok(idsAt(input, "blocker").includes("expiry"));
   });
 
-  it("ZERO ETH is a blocker, and says USDG cannot pay for it", () => {
+  it("ZERO BNB is a blocker, and says USDT cannot pay for it", () => {
     const gas = preflight(ready({ ethWei: 0n })).find((c) => c.id === "gas")!;
     assert.equal(gas.level, "blocker");
-    assert.match(gas.detail!, /USDG is capital/);
+    assert.match(gas.title, /no BNB/);
+    assert.match(gas.detail!, /USDT is capital/);
+    assert.match(gas.detail!, /BNB Smart Chain/, "names the network, since the address is valid on every EVM chain");
     // The first op also deploys the account — people size for one swap.
     assert.match(gas.detail!, /deploy/);
   });
@@ -130,7 +132,7 @@ describe("preflight — the things that make a trade pointless", () => {
     });
     const leg = preflight(input).find((c) => c.id === "leg-size")!;
     assert.equal(leg.level, "warn");
-    assert.match(leg.title, /8\.33 USDG per leg/);
+    assert.match(leg.title, /8\.33 USDT per leg/);
     assert.match(leg.detail!, new RegExp(String(GAS_FLOOR_USDG)));
   });
 
@@ -139,19 +141,16 @@ describe("preflight — the things that make a trade pointless", () => {
     assert.equal(leg.level, "ok");
   });
 
-  it("warns that idle cash is swept to the vault on the first tick", () => {
-    // Default idleFloorUsdg of 50 against a 500 deposit: ~400 leaves at once,
-    // and a vault deposit counts against the DAILY spend cap.
+  it("never warns about a vault sweep — there is no yield venue on this chain", () => {
+    // This used to warn that idle cash above the floor would "move to Morpho" on
+    // the first tick. Morpho was a Robinhood Chain deployment; on BNB `YIELD` is
+    // null and steady-basket refuses the sweep, so the warning described money
+    // moving somewhere it cannot go.
+    assert.equal(YIELD, null, "if a yield venue lands, this warning needs rewriting for it, not restoring");
     const input = ready({
       settings: { bundlerApiKey: "k", basketSymbols: ["WBNB"], buyPerTickUsdg: 50, idleFloorUsdg: 50 },
     });
-    const sweep = preflight(input).find((c) => c.id === "idle-sweep")!;
-    assert.equal(sweep.level, "warn");
-    assert.match(sweep.detail!, /daily spend cap/);
-  });
-
-  it("says nothing about the sweep when the floor is above the deposit", () => {
-    assert.equal(preflight(ready()).find((c) => c.id === "idle-sweep"), undefined);
+    assert.equal(preflight(input).find((c) => c.id === "idle-sweep"), undefined);
   });
 
   it("does NOT nag about a legacy grant when re-signing would add nothing", () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { bnbChain, bnbTestnet, gasSymbol } from "@oathwall/core";
 import { listSavedWallets } from "@/lib/session";
 import { isAddr, normalizeAddr } from "@/lib/address";
 import { planFromBrowser, sweepFromBrowser, redact, type BrowserWallet } from "@/lib/recover-client";
@@ -62,8 +63,8 @@ interface SweepRes {
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 const isKey = (v: string) => /^0x[0-9a-fA-F]{64}$/.test(v.trim());
-const MAINNET = 4663;
-const TESTNET = 46630;
+const MAINNET = bnbChain.id;
+const TESTNET = bnbTestnet.id;
 
 /**
  * @param initialOwnerKey The key this browser ALREADY holds, when it holds one.
@@ -157,8 +158,9 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
       } as unknown as PlanRes);
       // The one thing that stops a sweep dead, said BEFORE they press it.
       if (b.needsGas) {
+        const gas = gasSymbol(w.chainId);
         setError(
-          `this account has no ETH, and a withdrawal is an on-chain operation it has to pay for. Send a little ETH to ${b.smartAccount} and try again — a few dollars is plenty.`,
+          `this account has no ${gas}, and a withdrawal is an on-chain operation it has to pay for. Send a little ${gas} to ${b.smartAccount} and try again — a few dollars is plenty.`,
         );
       }
     } catch (e) {
@@ -181,7 +183,7 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
     const list = balances.map((b) => `${b.amount} ${b.symbol}`).join(", ") || "the balance";
     if (
       !window.confirm(
-        `Sweep ${list} to ${normalizeAddr(to)}?\n\nThis is real and irreversible. The account keeps a little ETH to pay for gas.`,
+        `Sweep ${list} to ${normalizeAddr(to)}?\n\nThis is real and irreversible. The account keeps a little ${gasSymbol(w.chainId)} to pay for gas.`,
       )
     ) {
       return;
@@ -252,7 +254,7 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
       return;
     }
     const list = balances.map((b) => `${b.amount} ${b.symbol}`).join(", ") || "the balance";
-    if (!window.confirm(`Sweep ${list} to ${normalizeAddr(to)}?\n\nThis is real and irreversible. The account keeps a little ETH to pay for gas.`)) {
+    if (!window.confirm(`Sweep ${list} to ${normalizeAddr(to)}?\n\nThis is real and irreversible. The account keeps a little ${gasSymbol(activeChain)} to pay for gas.`)) {
       return;
     }
     setBusy("sweeping");
@@ -353,10 +355,10 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
               />
               <div className="recover-chain">
                 <label>
-                  <input type="radio" checked={chainId === MAINNET} onChange={() => setChainId(MAINNET)} /> mainnet · 4663
+                  <input type="radio" checked={chainId === MAINNET} onChange={() => setChainId(MAINNET)} /> mainnet · {MAINNET}
                 </label>
                 <label>
-                  <input type="radio" checked={chainId === TESTNET} onChange={() => setChainId(TESTNET)} /> testnet · 46630
+                  <input type="radio" checked={chainId === TESTNET} onChange={() => setChainId(TESTNET)} /> testnet · {TESTNET}
                 </label>
               </div>
               <button className="recover-btn" onClick={() => void (clientSide ? checkInBrowser() : checkPasted())} disabled={busy !== null}>

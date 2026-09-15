@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CircleHelp } from "lucide-react";
 import { FormPage as AppShell, FormHeading as PageHeader } from "../FormPage";
-import { OATHWALL_GATEWAY_ORIGIN, SLIPPAGE_BPS_MAX, isValidCustomToken, uncoveredBasketSymbols, type CustomToken, type StoredGrant } from "@oathwall/core";
+import { CASH_SYMBOL, OATHWALL_GATEWAY_ORIGIN, SLIPPAGE_BPS_MAX, isValidCustomToken, uncoveredBasketSymbols, type CustomToken, type StoredGrant } from "@oathwall/core";
 import type { SettingsView } from "@/app/api/settings/route";
 import type { TelegramStatus } from "@/app/api/telegram/route";
 import SetupChecklist from "../SetupChecklist";
@@ -584,8 +584,8 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
           )}
 
           {/* ── OWNER-ADDED TOKENS (memecoins) ─────────────────────────────
-              Deliberately separate from the basket: those are issuer-backed
-              stocks with Chainlink feeds, these are whatever the owner pastes.
+              Deliberately separate from the basket: those are curated
+              majors with Chainlink feeds, these are whatever the owner pastes.
               Adding one here does NOT make it tradable — the tradable list is
               sealed into the signed key — so the /grant re-sign is spelled out
               rather than left to be discovered as a reverted trade. */}
@@ -772,7 +772,7 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
               </span>
             </label>
             <Field
-              label="scout budget (USDG)"
+              label="scout budget (USDT)"
               hint={`Most that may sit in unpriceable positions AT ONCE, measured by what you paid. Selling out frees it again. Default ${d.scoutBudgetUsdg} — you have to name a number.`}
             >
               <input
@@ -783,7 +783,7 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
               />
             </Field>
             <Field
-              label="max per token (USDG)"
+              label="max per token (USDT)"
               hint={`Ceiling for any single unpriceable token, counting what you already put in — so topping up can't creep past a cap one buy would have hit. Default ${d.scoutPerTokenUsdg}.`}
             >
               <input
@@ -866,7 +866,7 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
               </span>
               <span className="mm-hint">Off = the bot can answer questions but not change state.</span>
             </label>
-            <Field label="chat trade ceiling" hint="Max USDG per chat-triggered trade — beneath your grant caps.">
+            <Field label="chat trade ceiling" hint={`Max ${CASH_SYMBOL} per chat-triggered trade — beneath your grant caps.`}>
               <input
                 type="number"
                 min={1}
@@ -874,7 +874,7 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
                 value={v("telegramMaxActionUsdg")}
                 onChange={set("telegramMaxActionUsdg")}
               />
-              <span className="mm-unit">USDG</span>
+              <span className="mm-unit">{CASH_SYMBOL}</span>
             </Field>
             <label className="mm-field">
               <span className="mm-label">allow transfers</span>
@@ -883,10 +883,10 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
                 <span className="mm-unit">{tgTransferVal ? "/transfer with /confirm" : "off"}</span>
               </span>
               <span className="mm-hint">
-                Lets chat send USDG out, if your wallet can. Wallets signed today register no withdrawal address, so their wall carries no transfer permission and the send is refused before anything is built — only grants signed before that changed can transfer. Money leaves with your owner key: oathwall recover.
+                Lets chat send {CASH_SYMBOL} out, if your wallet can. Wallets signed today register no withdrawal address, so their wall carries no transfer permission and the send is refused before anything is built — only grants signed before that changed can transfer. Money leaves with your owner key: oathwall recover.
               </span>
             </label>
-            <Field label="daily transfer budget" hint="Max USDG chat transfers may send per day — on top of the grant caps.">
+            <Field label="daily transfer budget" hint={`Max ${CASH_SYMBOL} chat transfers may send per day — on top of the grant caps.`}>
               <input
                 type="number"
                 min={1}
@@ -894,7 +894,7 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
                 value={v("telegramTransferDailyUsdg")}
                 onChange={set("telegramTransferDailyUsdg")}
               />
-              <span className="mm-unit">USDG</span>
+              <span className="mm-unit">{CASH_SYMBOL}</span>
             </Field>
             <label className="mm-field">
               <span className="mm-label">proactive pings</span>
@@ -1308,17 +1308,17 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
               <input type="number" min={15} max={3600} placeholder={String(d.tickSeconds)} value={v("tickSeconds")} onChange={set("tickSeconds")} />
               <span className="mm-unit">sec</span>
             </Field>
-            <Field label="buy per tick" hint="steady-basket: USDG deployed across the basket each tick.">
+            <Field label="buy per tick" hint={`steady-basket: ${CASH_SYMBOL} deployed across the basket each tick.`}>
               <input type="number" min={1} placeholder={String(d.buyPerTickUsdg)} value={v("buyPerTickUsdg")} onChange={set("buyPerTickUsdg")} />
-              <span className="mm-unit">USDG</span>
+              <span className="mm-unit">{CASH_SYMBOL}</span>
             </Field>
-            <Field label="idle cash floor" hint="steady-basket: cash kept liquid; the excess sweeps to the Morpho vault.">
+            <Field label="idle cash floor" hint="steady-basket: cash kept liquid. There is no yield venue on BNB Chain, so the excess stays as cash.">
               <input type="number" min={0} placeholder={String(d.idleFloorUsdg)} value={v("idleFloorUsdg")} onChange={set("idleFloorUsdg")} />
-              <span className="mm-unit">USDG</span>
+              <span className="mm-unit">{CASH_SYMBOL}</span>
             </Field>
             <Field label="gap budget" hint="dip-hunter: total budget deployed per entry window.">
               <input type="number" min={1} placeholder={String(d.gapEnterBudgetUsdg)} value={v("gapEnterBudgetUsdg")} onChange={set("gapEnterBudgetUsdg")} />
-              <span className="mm-unit">USDG</span>
+              <span className="mm-unit">{CASH_SYMBOL}</span>
             </Field>
             <Field label="Claude / vision model" hint="Model id used when the brain is Anthropic, and for screen vision. The active provider's model is set up top under “AI provider”.">
               <input type="text" placeholder={d.llmModel} value={v("llmModel")} onChange={set("llmModel")} />
@@ -1329,7 +1329,7 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
             </Field>
             <Field label="LLM max per action" hint="Hard strategist ceiling per proposed trade — beneath the grant caps.">
               <input type="number" min={1} placeholder={String(d.llmMaxActionUsdg)} value={v("llmMaxActionUsdg")} onChange={set("llmMaxActionUsdg")} />
-              <span className="mm-unit">USDG</span>
+              <span className="mm-unit">{CASH_SYMBOL}</span>
             </Field>
           </div>
 

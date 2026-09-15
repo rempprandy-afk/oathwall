@@ -7,11 +7,14 @@ import { createPublicClient, formatEther, http } from "viem";
 import { Info } from "@/components/Info";
 import { FormPage as AppShell, FormHeading as PageHeader } from "../FormPage";
 import {
+  CASH_SYMBOL,
   explorerFor,
+  gasSymbol,
   grantHasV4,
   isValidCustomToken,
   bnbChain,
   bnbTestnet,
+  LEGACY_TRADEABLE_SYMBOLS,
   tokenCoverage,
   TRADEABLE_V2,
   uncoveredBasketSymbols,
@@ -140,7 +143,7 @@ const sameCaps = (a: GrantCaps, b: GrantCaps) =>
   (Object.keys(a) as (keyof GrantCaps)[]).every((k) => a[k] === b[k]);
 
 const BACKUP_KEY = "oathwall.grant.backedup.v1";
-const TESTNET = bnbTestnet.id; // 46630 — the sandbox
+const TESTNET = bnbTestnet.id; // 97 — the sandbox
 
 /**
  * VERIFY AN ADAPTER ADDRESS BEFORE IT IS SEALED, not after.
@@ -173,7 +176,7 @@ const TESTNET = bnbTestnet.id; // 46630 — the sandbox
  * failure where the owner is already looking.
  */
 
-const MAINNET = bnbChain.id; // 4663 — real funds
+const MAINNET = bnbChain.id; // 56 — real funds
 
 function short(a: string): string {
   return `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -247,7 +250,7 @@ function WalletRow({ w }: { w: SavedWallet }) {
           ? "couldn't read the balance — check your connection"
           : bal === null
             ? "reading the chain…"
-            : `${formatEther(bal.gasWei)} ETH · ${bal.usdg.toFixed(2)} USDG`}
+            : `${formatEther(bal.gasWei)} ${gasSymbol(w.chainId)} · ${bal.usdg.toFixed(2)} ${CASH_SYMBOL}`}
         {empty && <span className="sw-empty"> — nothing here</span>}
       </div>
       {w.ownerKey ? (
@@ -291,7 +294,7 @@ export default function GrantPage() {
   const [caps, setCaps] = useState<GrantCaps>(PRESETS[0]!.caps);
   /*
     MAINNET BY DEFAULT, because the old default produced an agent that could
-    never trade. preflight.ts classifies a non-4663 grant as a hard BLOCKER for
+    never trade. preflight.ts classifies a non-mainnet grant as a hard BLOCKER for
     a reason that is not a policy choice: every token and router address
     oathwall knows is a mainnet deployment, so on testnet a balance reads as
     zero and every route is refused. The most common outcome of the old default
@@ -698,7 +701,7 @@ export default function GrantPage() {
     if ((funding?.cashBase ?? 0n) > 0n) {
       const amt = funding ? funding.usdg.toFixed(2) : "some";
       const okToDrop = window.confirm(
-        `This wallet still holds ${amt} USDG.\n\n` +
+        `This wallet still holds ${amt} ${CASH_SYMBOL}.\n\n` +
           `Discarding it here does NOT move the funds — they stay in the smart account and can ` +
           `only be reached with THIS wallet's owner key. Back that key up first, or sweep the ` +
           `funds out now by running:  oathwall recover\n\n` +
@@ -731,8 +734,8 @@ export default function GrantPage() {
   const capChanges = grant
     ? (
         [
-          ["per-trade", caps.perTradeUsdg, grant.caps.perTradeUsdg, "USDG"],
-          ["daily", caps.dailyUsdg, grant.caps.dailyUsdg, "USDG"],
+          ["per-trade", caps.perTradeUsdg, grant.caps.perTradeUsdg, CASH_SYMBOL],
+          ["daily", caps.dailyUsdg, grant.caps.dailyUsdg, CASH_SYMBOL],
           ["trades/day", caps.maxOpsPerDay, grant.caps.maxOpsPerDay, ""],
           ["expiry", caps.expiryDays, grant.caps.expiryDays, "days"],
           ["breaker", caps.maxDrawdownPct, grant.caps.maxDrawdownPct, "%"],
@@ -983,7 +986,7 @@ export default function GrantPage() {
               >
                 <span className="chain-card-title"><GI d="coin" size={16} /> Real money (mainnet)</span>
                 <span className="chain-card-body">
-                  The real Robinhood Chain — real funds, real trades. Only when you&apos;re ready.
+                  The real {bnbChain.name} — real funds, real trades. Only when you&apos;re ready.
                 </span>
               </button>
             </div>
@@ -1030,7 +1033,7 @@ export default function GrantPage() {
                       <span className="rk">which holds</span>
                       <span className="rv">
                         {previewFunding
-                          ? `${previewFunding.usdg.toFixed(2)} USDG · ${(Number(previewFunding.gasWei) / 1e18).toFixed(5)} ETH`
+                          ? `${previewFunding.usdg.toFixed(2)} ${CASH_SYMBOL} · ${(Number(previewFunding.gasWei) / 1e18).toFixed(5)} ${gasSymbol(chainId)}`
                           : "…"}
                       </span>
                     </div>
@@ -1068,14 +1071,14 @@ export default function GrantPage() {
                 <span className="field-label">most it can spend on one trade</span>
                 <span className="field-input">
                   <input type="number" min={1} value={caps.perTradeUsdg} onChange={set("perTradeUsdg")} />
-                  <span className="field-unit">USDG</span>
+                  <span className="field-unit">{CASH_SYMBOL}</span>
                 </span>
               </label>
               <label className="field">
                 <span className="field-label">most it can spend in a day</span>
                 <span className="field-input">
                   <input type="number" min={1} value={caps.dailyUsdg} onChange={set("dailyUsdg")} />
-                  <span className="field-unit">USDG</span>
+                  <span className="field-unit">{CASH_SYMBOL}</span>
                 </span>
               </label>
               <label className="field">
@@ -1109,7 +1112,7 @@ export default function GrantPage() {
 
             <div className="grant-summary">
               <b>In plain English:</b> on {isMainnet ? "real money" : "practice"}, this agent can trade
-              at most <b>{caps.perTradeUsdg} USDG</b> per trade, <b>{caps.dailyUsdg} USDG</b> per day,
+              at most <b>{caps.perTradeUsdg} {CASH_SYMBOL}</b> per trade, <b>{caps.dailyUsdg} {CASH_SYMBOL}</b> per day,
               and <b>{caps.maxOpsPerDay}</b> trades per day. It stops itself if it&apos;s down{" "}
               <b>{caps.maxDrawdownPct}%</b>, and its key auto-expires in <b>{caps.expiryDays} days</b>.
               <br />
@@ -1161,7 +1164,7 @@ export default function GrantPage() {
                   and someone who had tighter limits should know to set them again.
                 */}
                 <p className="field-lead" style={{ marginTop: 12 }}>
-                  This signs the limits shown above — <b>{caps.perTradeUsdg} USDG</b> a trade,{" "}
+                  This signs the limits shown above — <b>{caps.perTradeUsdg} {CASH_SYMBOL}</b> a trade,{" "}
                   <b>{caps.dailyUsdg}</b> a day, key for <b>{caps.expiryDays} days</b>. Your old
                   limits lived in the key you lost, so nothing can read them back; set them here
                   if they mattered. Your funds are untouched either way.
@@ -1351,25 +1354,25 @@ export default function GrantPage() {
             <p className="grant-sub">
               {grantIsTestnet ? (
                 <>
-                  Send <b>testnet gas (ETH)</b> to the account address below — that&apos;s the only
-                  thing worth sending here. <b>Don&apos;t send USDG:</b> oathwall only knows the
-                  mainnet token addresses, so testnet USDG reads 0 and is never traded. Practice
+                  Send <b>testnet gas ({gasSymbol(grant.chainId)})</b> to the account address below — that&apos;s the only
+                  thing worth sending here. <b>Don&apos;t send {CASH_SYMBOL}:</b> oathwall only knows the
+                  mainnet token addresses, so testnet {CASH_SYMBOL} reads 0 and is never traded. Practice
                   trades a simulated book instead.
                 </>
               ) : (
                 <>
                   {gasSponsored ? (
                     <>
-                      Send <b>USDG (trading capital)</b> on Robinhood Chain (4663) to the account
-                      address below — the network fee on every trade is covered, so USDG is all it
-                      needs to start. <b>Real funds</b> — double-check the address and start with a
-                      small test amount first.
+                      Send <b>{CASH_SYMBOL} (trading capital)</b> on {bnbChain.name} (BEP-20, chain{" "}
+                      {MAINNET}) to the account address below — the network fee on every trade is
+                      covered, so {CASH_SYMBOL} is all it needs to start. <b>Real funds</b> — double-check
+                      the address and start with a small test amount first.
                     </>
                   ) : (
                     <>
-                      Send <b>ETH (for gas)</b> and <b>USDG (trading capital)</b> on Robinhood Chain
-                      (4663) to the account address below. <b>Real funds</b> — double-check the
-                      address and start with a small test amount first.
+                      Send <b>{gasSymbol(grant.chainId)} (for gas)</b> and <b>{CASH_SYMBOL} (trading capital)</b> on{" "}
+                      {bnbChain.name} (BEP-20, chain {MAINNET}) to the account address below. <b>Real
+                      funds</b> — double-check the address and start with a small test amount first.
                     </>
                   )}
                 </>
@@ -1381,7 +1384,7 @@ export default function GrantPage() {
               live prices, simulated fills — so you can watch it work before funding anything. Head
               to the <Link href="/">dashboard</Link> to see it.{" "}
               {grantIsTestnet
-                ? "On practice there's nothing to fund for live trading — testnet has no trading venues, and testnet USDG won't even show up below. Faucet gas is still worth grabbing if you want to watch a real UserOp land. Going live means a mainnet wallet plus a bundler key in settings."
+                ? `On practice there's nothing to fund for live trading — testnet has no trading venues, and testnet ${CASH_SYMBOL} won't even show up below. Faucet gas is still worth grabbing if you want to watch a real UserOp land. Going live means a mainnet wallet plus a bundler key in settings.`
                 : "Fund the account below only when you're ready for live trades."}
             </div>
 
@@ -1403,7 +1406,7 @@ export default function GrantPage() {
 
             <div className="fund-balances">
               <div className={`fund-bal ${gasFunded ? "ok" : ""}`}>
-                <span className="fund-bal-k">native gas</span>
+                <span className="fund-bal-k">{gasSymbol(grant.chainId)} (gas)</span>
                 <span className="fund-bal-v mono">
                   {funding ? (Number(funding.gasWei) / 1e18).toFixed(5) : "…"}
                 </span>
@@ -1423,13 +1426,13 @@ export default function GrantPage() {
                   forever no matter what lands. Show a dash + why, not a zero that looks like
                   the deposit vanished. */}
               <div className={`fund-bal ${!grantIsTestnet && usdgFunded ? "ok" : ""}`}>
-                <span className="fund-bal-k">USDG</span>
+                <span className="fund-bal-k">{CASH_SYMBOL}</span>
                 <span className="fund-bal-v mono">
                   {grantIsTestnet ? "—" : funding ? funding.usdg.toFixed(2) : "…"}
                 </span>
                 <span className="fund-bal-s">
                   {grantIsTestnet
-                    ? "not tracked on practice — oathwall only knows the mainnet USDG address"
+                    ? `not tracked on practice — oathwall only knows the mainnet ${CASH_SYMBOL} address`
                     : usdgFunded
                       ? "funded ✓"
                       : "the agent's trading capital"}
@@ -1469,7 +1472,7 @@ export default function GrantPage() {
                       <>run <b>oathwall start</b> and your agent runs</>
                     )}{" "}
                     its <b>paper book</b>: live prices, simulated fills. testnet has no trading
-                    venues, so no real swap can route here, and the USDG line above stays blank
+                    venues, so no real swap can route here, and the {CASH_SYMBOL} line above stays blank
                     whatever you send.
                   </>
                 ) : usdgFunded ? (
@@ -1483,7 +1486,7 @@ export default function GrantPage() {
                   </>
                 ) : (
                   <>
-                    gas landed — still waiting on <b>USDG</b>, the agent&apos;s trading capital.
+                    gas landed — still waiting on <b>{CASH_SYMBOL}</b>, the agent&apos;s trading capital.
                     until it arrives the agent stays on its paper book.
                   </>
                 )}
@@ -1557,11 +1560,11 @@ export default function GrantPage() {
             */}
             <div className="caps caps-row">
               <span className="cap">
-                max <b>{grant.caps.perTradeUsdg} USDG</b>/trade
+                max <b>{grant.caps.perTradeUsdg} {CASH_SYMBOL}</b>/trade
                 <Info>{conceptTooltip("Per trade limit")}</Info>
               </span>
               <span className="cap">
-                <b>{grant.caps.dailyUsdg} USDG</b>/day
+                <b>{grant.caps.dailyUsdg} {CASH_SYMBOL}</b>/day
                 <Info>{conceptTooltip("Per day limit")}</Info>
               </span>
               <span className="cap">
@@ -1586,29 +1589,29 @@ export default function GrantPage() {
               was signed — re-signing is the only way to change it.
               <ul style={{ margin: "10px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
                 <li>
-                  <b>Stock list</b> —{" "}
+                  <b>Token list</b> —{" "}
                   {grant.grantFeatures?.includes(TRADEABLE_V2)
                     ? "the full tradeable set."
-                    : "the legacy three (QQQ, NVDA, TSLA) only. Re-sign below to widen it."}
+                    : `the legacy set (${LEGACY_TRADEABLE_SYMBOLS.join(", ")}) only. Re-sign below to widen it.`}
                 </li>
                 <li>
-                  <b>USDG out</b> — none. No withdrawal address is registered, so the key you are about
+                  <b>{CASH_SYMBOL} out</b> — none. No withdrawal address is registered, so the key you are about
                   to sign carries no transfer permission at all; moving money out is the owner
                   key&apos;s job (<code>oathwall recover</code>). Wallets signed before this changed keep
                   the free-form transfer permission they were signed with.
                 </li>
                 <li>
-                  <b>Uniswap v4</b> —{" "}
+                  <b>v4 router pair</b> —{" "}
                   {grantHasV4(grant) ? (
                     <span style={{ color: "var(--red)" }}>
                       granted, and worth removing. Keys signed before this was changed carry a
                       Permit2 + UniversalRouter pair whose recipient the chain cannot check, because
                       a v4 swap hides it inside opaque calldata. A tampered agent could send your
-                      non-USDG tokens anywhere. <b>Re-signing below</b> issues it without the pair
+                      non-{CASH_SYMBOL} tokens anywhere. <b>Re-signing below</b> issues it without the pair
                       — same wallet, same funds, same address, and free.
                     </span>
                   ) : (
-                    "not granted. Swaps route through Uniswap v3, where the chain pins the recipient to your own account."
+                    "not granted. Swaps route through PancakeSwap v3, where the chain pins the recipient to your own account."
                   )}
                 </li>
               </ul>
@@ -1653,14 +1656,14 @@ export default function GrantPage() {
                       <span className="field-label">most it can spend on one trade</span>
                       <span className="field-input">
                         <input type="number" min={1} value={caps.perTradeUsdg} onChange={set("perTradeUsdg")} />
-                        <span className="field-unit">USDG</span>
+                        <span className="field-unit">{CASH_SYMBOL}</span>
                       </span>
                     </label>
                     <label className="field">
                       <span className="field-label">most it can spend in a day</span>
                       <span className="field-input">
                         <input type="number" min={1} value={caps.dailyUsdg} onChange={set("dailyUsdg")} />
-                        <span className="field-unit">USDG</span>
+                        <span className="field-unit">{CASH_SYMBOL}</span>
                       </span>
                     </label>
                     <label className="field">
@@ -1682,8 +1685,8 @@ export default function GrantPage() {
                     MOVING A KEY BETWEEN CHAINS, as a first-class action.
 
                     Testnet cannot trade anything. Every token and router address
-                    oathwall knows is a mainnet-4663 deployment (preflight.ts's
-                    chain guard says so in as many words), so a grant on 46630 is
+                    oathwall knows is a mainnet-56 deployment (preflight.ts's
+                    chain guard says so in as many words), so a grant on 97 is
                     a rehearsal that can never become a performance. The only way
                     off it was a control labelled "switch to another wallet",
                     which is where the chain picker happens to live — a new user

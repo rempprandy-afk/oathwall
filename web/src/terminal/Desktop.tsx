@@ -9,7 +9,7 @@ import {
   ArrowDownWideNarrow,
   ChevronDown,
 } from "lucide-react";
-import type { TokenKind } from "@oathwall/core";
+import { bnbChain, type TokenKind } from "@oathwall/core";
 import { Coin, Face, LogoMark, TabIcon } from "./ui";
 import {
   money,
@@ -198,7 +198,7 @@ export function DesktopSidebar({
         hidden={section !== "markets"}
       >
         <div className="desktop-market-heading">
-          <h2>Robinhood Chain</h2>
+          <h2>{bnbChain.name}</h2>
           <span>{list.length} {list.length === 1 ? "token" : "tokens"}</span>
         </div>
         <div className="desktop-market-tabs">

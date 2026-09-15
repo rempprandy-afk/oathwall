@@ -178,6 +178,15 @@ export const CASH = {
 } as const;
 
 /**
+ * The cash leg's symbol, for anything a PERSON reads.
+ *
+ * Beside `CASH.USD` so the two change together. The previous cash token's name
+ * was typed into the funding screens by hand, and when the address moved the
+ * copy stayed behind — telling owners to send a token this chain does not have.
+ */
+export const CASH_SYMBOL = "USDT";
+
+/**
  * Decimals of the cash leg.
  *
  * Named for the ROLE, not the token, so the next cash change is one line rather

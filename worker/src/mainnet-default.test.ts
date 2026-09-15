@@ -62,6 +62,21 @@ test("the shipped chain default is one preflight calls tradeable", () => {
   );
 });
 
+test("every screen that mints or sweeps takes its chain from the registry, not a literal", () => {
+  // /create minted on `chainId:4663` — Robinhood Chain — after the move to BNB,
+  // because the test above only read the /grant page. preflight
+  // blocks such a grant, so the owner who followed the newer flow got an agent
+  // that could never trade. The withdraw panel offered 4663 and 46630 the same way.
+  const create = readFileSync("web/src/terminal/screens/CreateAgent.tsx", "utf8");
+  assert.match(create, /chainId:bnbChain\.id/, "/create must mint on the registry's mainnet");
+  const recover = readFileSync("web/src/components/RecoverPanel.tsx", "utf8");
+  assert.match(recover, /const MAINNET = bnbChain\.id;/);
+  assert.match(recover, /const TESTNET = bnbTestnet\.id;/);
+  for (const [name, src] of [["CreateAgent", create], ["RecoverPanel", recover]] as const) {
+    assert.equal(/\b(?:4663|46630)\b/.test(src), false, `${name} still names a Robinhood Chain id`);
+  }
+});
+
 test("a fresh mainnet install has NO blockers", () => {
   const v = verdict(preflight(freshInstall()));
   assert.equal(v.ready, true, `blockers: ${ids(freshInstall(), "blocker").join(", ")}`);
