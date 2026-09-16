@@ -6,7 +6,7 @@ import { CASH, TRADABLE_TOKENS } from "../../packages/core/src/index";
 /**
  * The escape hatch, which had no tests at all.
  *
- * `merrymen recover` is what an owner runs when everything else has failed —
+ * `oathwall recover` is what an owner runs when everything else has failed —
  * after a kill switch, after a lost session key, when the funded address turns
  * out to be a smart account their wallet cannot see. It swept a token list
  * frozen at ship time, which meant it stranded two whole categories of money:
@@ -153,7 +153,7 @@ test("THE COLLAPSE: a failed probe and a codeless address must not be the same v
  * the sweep's own gas. That is true on testnet and wrong the moment someone
  * funds a real account — and worse, an account holding ETH and no tokens was
  * reported as having nothing to recover, which is the exact shape of "I funded
- * it and merrymen says it's empty".
+ * it and oathwall says it's empty".
  *
  * The reserve is the load-bearing number. Too small and the operation cannot be
  * paid for, so nothing moves at all — tokens included. Too large and some dust

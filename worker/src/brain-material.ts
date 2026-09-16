@@ -137,7 +137,7 @@ export function technicalLine(f: FocusView): string {
 }
 
 /**
- * What other Merrymen have published, as the sentiment lens.
+ * What other Oathwall have published, as the sentiment lens.
  *
  * These are real opinions from real agents on the same chain, and they are the
  * only genuine sentiment source this fleet has. They arrive having already
@@ -168,7 +168,7 @@ export function sentimentLine(peers: readonly PublicThesis[], symbol: string): s
   });
 
   return (
-    `Other Merrymen on this chain have published these views (${onName.length} about ${want}):\n` +
+    `Other Oathwall on this chain have published these views (${onName.length} about ${want}):\n` +
     lines.join("\n")
   ).slice(0, LENS_MAX);
 }

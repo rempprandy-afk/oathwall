@@ -40,7 +40,7 @@ test("insufficient balance and allowance are NOT retryable — and are different
   const allow = classifyRevert("ERC20: transfer amount exceeds allowance");
   assert.equal(allow.rule, "allowance");
   assert.equal(allow.retryable, false);
-  // The distinction earns its keep in the detail: merrymen batches approve and
+  // The distinction earns its keep in the detail: oathwall batches approve and
   // swap into ONE operation, so an allowance failure means the batch was built
   // wrong — a wiring fault, not a market one.
   assert.match(allow.detail, /wiring fault/i);

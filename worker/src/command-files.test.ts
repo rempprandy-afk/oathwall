@@ -26,7 +26,7 @@ import {
  */
 
 function tmpHome(): string {
-  return mkdtempSync(path.join(os.tmpdir(), "merrymen-cmdfile-"));
+  return mkdtempSync(path.join(os.tmpdir(), "oathwall-cmdfile-"));
 }
 
 test("a command written to a home is claimed from that home", () => {

@@ -49,7 +49,7 @@ const feed = (over: Partial<FeedResponse> = {}): FeedResponse => ({
   positions: [],
   trades: [],
   financials: null,
-  agent: { name: "Robin", strategy: "steady-basket", basket: ["QQQ"] },
+  agent: { name: "Warden", strategy: "steady-basket", basket: ["QQQ"] },
   ...over,
 });
 

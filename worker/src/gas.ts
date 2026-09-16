@@ -3,7 +3,7 @@
  *
  * ZeroDev's createKernelAccountClient, when handed no `userOperation.estimateFeesPerGas`,
  * installs a default that calls the ZeroDev-ONLY RPC method `zd_getUserOperationGasPrice`.
- * Pimlico (merrymen's default bundler), Alchemy, and self-hosted bundlers don't implement
+ * Pimlico (oathwall's default bundler), Alchemy, and self-hosted bundlers don't implement
  * it, so every UserOp throws inside sendUserOperation — before it's ever submitted. That's
  * the "The method zd_getUserOperationGasPrice does not exist" error, and it broke trades,
  * transfers, vault deposits, selftest, and fund recovery alike.

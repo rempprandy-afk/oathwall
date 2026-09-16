@@ -80,7 +80,7 @@ function faultyTransport(breakPermissionConfig: boolean) {
 
 async function main() {
   const chain = chainForId(CHAIN_ID);
-  const bundler = pimlicoBundlerUrl(CHAIN_ID, process.env.MERRYMEN_BUNDLER_API_KEY ?? "");
+  const bundler = pimlicoBundlerUrl(CHAIN_ID, process.env.OATHWALL_BUNDLER_API_KEY ?? "");
   const entryPoint = getEntryPoint("0.7");
   const plain = createPublicClient({ chain, transport: http(RPC) });
 

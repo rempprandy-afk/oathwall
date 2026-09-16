@@ -2,7 +2,7 @@
  * Server env vars do not exist in the browser bundle.
  *
  * This pins the defect that made hosted onboarding fail for every tester, in a
- * way that cannot come back. `isHostedMode()` reads `process.env.MERRYMEN_HOSTED`
+ * way that cannot come back. `isHostedMode()` reads `process.env.OATHWALL_HOSTED`
  * (packages/core/src/hosted.ts). Next inlines only `NEXT_PUBLIC_*` into the
  * client bundle, and web/next.config.mjs declares no `env` block — so in any
  * `"use client"` module that call evaluates to `false` no matter how the server

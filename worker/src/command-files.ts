@@ -21,7 +21,7 @@
  *   child ──(result file)──▶ orchestrator ──(shared table)──▶ web
  *
  * Self-hosted there is no orchestrator and no shared table: the web process and
- * the worker share one MERRYMEN_HOME, so the web writes the file directly and
+ * the worker share one OATHWALL_HOME, so the web writes the file directly and
  * the middle two hops vanish. One drain path, two ways in.
  *
  * THE CLAIM IS AN UNLINK. `rm` on a file is atomic on every filesystem this

@@ -25,7 +25,7 @@ const WORKER = path.resolve(__dirname, "..", "worker");
 config.watchFolders = [...(config.watchFolders ?? []), CORE, WORKER];
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
-  "@merrymen/core": path.join(CORE, "src"),
+  "@oathwall/core": path.join(CORE, "src"),
   /**
    * Fund recovery, shared rather than reimplemented.
    *
@@ -38,7 +38,7 @@ config.resolver.extraNodeModules = {
    * It only pulls viem, @zerodev/* and packages/core, all of which bundle fine —
    * no node built-ins.
    */
-  "@merrymen/recover": path.join(WORKER, "src", "recover.ts"),
+  "@oathwall/recover": path.join(WORKER, "src", "recover.ts"),
 };
 
 /**
@@ -69,11 +69,11 @@ config.resolver.nodeModulesPaths = [
  * two unresolvable Node built-ins into the bundle — even though we never call the
  * multi-chain path.
  *
- * merrymen signs SINGLE-CHAIN grants only, so the cheaper fix is to stub the
+ * oathwall signs SINGLE-CHAIN grants only, so the cheaper fix is to stub the
  * module rather than ship buffer + crypto shims for code that never runs.
  *
  * CONSEQUENCE, stated plainly: serializeMultiChainPermissionAccounts will throw at
- * runtime. If merrymen ever adds multi-chain grants, DELETE this stub and add real
+ * runtime. If oathwall ever adds multi-chain grants, DELETE this stub and add real
  * buffer/crypto polyfills instead of quietly re-enabling a broken path.
  */
 config.resolver.resolveRequest = (ctx, moduleName, platform) => {

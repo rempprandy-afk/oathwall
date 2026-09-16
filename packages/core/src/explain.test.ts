@@ -155,11 +155,11 @@ describe("tooltips beside numbers", () => {
     assert.equal(conceptTooltip("not a term in the base"), "");
   });
 
-  it("the caps row says which limits the chain enforces and which merrymen does", () => {
+  it("the caps row says which limits the chain enforces and which oathwall does", () => {
     // Four numbers on one row read as four equally hard promises. Two of them
     // are counters in our own software. That is the single most important
     // thing an owner can learn from hovering.
     assert.match(conceptTooltip("Per trade limit"), /blockchain itself enforces/i);
-    assert.match(conceptTooltip("Per day limit"), /merrymen's own software/i);
+    assert.match(conceptTooltip("Per day limit"), /oathwall's own software/i);
   });
 });

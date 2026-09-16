@@ -1,5 +1,5 @@
 import { loadTokenQuotes, applyTokenQuotes } from "./quotes";
-import { TRADABLE_TOKENS, type TokenKind } from "@merrymen/core";
+import { TRADABLE_TOKENS, type TokenKind } from "@oathwall/core";
 import { parseStrategy, strategyLabel, type StrategyGlance } from "./strategy";
 import { whyLine } from "./why";
 

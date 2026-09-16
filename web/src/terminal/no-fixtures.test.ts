@@ -8,7 +8,7 @@
  * and this is why the directory could not stay in the tree:
  *
  *   sample.ts   mapped invented display names onto REAL production agent slugs
- *               under the comment "Live slugs from app.merrymen.dev — same
+ *               under the comment "Live slugs from app.oathwall.dev — same
  *               robots the feed already shows", and invented owners for them
  *   why.ts      hung hand-written quotes off those same real slugs
  *               (tj9fr041atb68ec8 → "The one name in the ten I actually

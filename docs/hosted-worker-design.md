@@ -1,18 +1,18 @@
-# Hosted multi-tenant merrymen worker on Railway — design (task #83)
+# Hosted multi-tenant oathwall worker on Railway — design (task #83)
 
-**Status:** proposed · **Author:** design pass over `merrymen@main`, revised after adversarial review · **Audience:** maintainer
+**Status:** proposed · **Author:** design pass over `oathwall@main`, revised after adversarial review · **Audience:** maintainer
 
 ---
 
 ## 1. TL;DR
 
-**Is it worth building?** Yes. Without it the phone app is a viewer, not an agent — and "the agent runs on your phone" is not achievable on iOS at any price. The runtime work is tractable because the isolation the design needs already exists in the codebase, expressed as a *process* boundary: `merrymenHome()` reads `MERRYMEN_HOME` at call time (`worker/src/home.ts:16`) and every path derives from it lazily (`worker/src/home.ts:19-33`).
+**Is it worth building?** Yes. Without it the phone app is a viewer, not an agent — and "the agent runs on your phone" is not achievable on iOS at any price. The runtime work is tractable because the isolation the design needs already exists in the codebase, expressed as a *process* boundary: `oathwallHome()` reads `OATHWALL_HOME` at call time (`worker/src/home.ts:16`) and every path derives from it lazily (`worker/src/home.ts:19-33`).
 
 **The single biggest catch — and it is a blocker, not a caveat: the wall does not currently confine the server.** Five exits, in descending order of how badly they end:
 
 | # | Exit | Where | Bound today |
 |---|---|---|---|
-| **E0** | **ERC-1271 / off-chain signing.** `toPermissionValidator` implements `signMessage` and `signTypedData` for the session key (`node_modules/@zerodev/permissions/toPermissionValidator.ts:91-102`, returning `0xff ‖ sig`), and the kernel account routes `signMessage` straight into it (`node_modules/@zerodev/sdk/accounts/kernel/createKernelAccount.ts:730, :766`). `flag` defaults to `PolicyFlags.FOR_ALL_VALIDATION` (`toPermissionValidator.ts:37`); `toCallPolicy`'s `policyFlag` defaults the same way (`policies/toCallPolicy.ts:59`). **Grep confirms merrymen sets no policy flag anywhere** in `packages/`, `worker/src`, `web/src` or `mobile/src` — `buildWallPolicies` (`packages/core/src/wall.ts:191-211`) passes only `policyVersion` and `permissions` | `packages/core/src/wall.ts:199-208` | **none — a call policy constrains UserOp CALLS, not signatures.** Permit2 is an approved spender (`wall.ts:43-50`) and stock approvals carry no amount condition, so a Permit2 `permitTransferFrom` signed by the session key and submitted from the attacker's own EOA moves tokens to any recipient with no UserOp, no rate limit and no recipient pin. Same shape for EIP-2612 permits and any 1271-based off-chain order |
+| **E0** | **ERC-1271 / off-chain signing.** `toPermissionValidator` implements `signMessage` and `signTypedData` for the session key (`node_modules/@zerodev/permissions/toPermissionValidator.ts:91-102`, returning `0xff ‖ sig`), and the kernel account routes `signMessage` straight into it (`node_modules/@zerodev/sdk/accounts/kernel/createKernelAccount.ts:730, :766`). `flag` defaults to `PolicyFlags.FOR_ALL_VALIDATION` (`toPermissionValidator.ts:37`); `toCallPolicy`'s `policyFlag` defaults the same way (`policies/toCallPolicy.ts:59`). **Grep confirms oathwall sets no policy flag anywhere** in `packages/`, `worker/src`, `web/src` or `mobile/src` — `buildWallPolicies` (`packages/core/src/wall.ts:191-211`) passes only `policyVersion` and `permissions` | `packages/core/src/wall.ts:199-208` | **none — a call policy constrains UserOp CALLS, not signatures.** Permit2 is an approved spender (`wall.ts:43-50`) and stock approvals carry no amount condition, so a Permit2 `permitTransferFrom` signed by the session key and submitted from the attacker's own EOA moves tokens to any recipient with no UserOp, no rate limit and no recipient pin. Same shape for EIP-2612 permits and any 1271-based off-chain order |
 | **E1** | `swapRouter02.exactInputSingle`, **no `args` at all** — `recipient` is tuple member 4, `amountOutMinimum` member 6, `sqrtPriceLimitX96` member 7 (`packages/core/src/abis.ts:9-27`) | `packages/core/src/wall.ts:137-144` | none; stock approvals are deliberately amount-free (`wall.ts:98-107`, pinned at `worker/src/wall.test.ts:93`) |
 | **E2** | Morpho `withdraw(assets, receiver, owner)`, **no `args` at all** | `packages/core/src/wall.ts:153-160` | none — `worker/src/wall.test.ts:112` asserts `wd.args === undefined` *on purpose* |
 | **E3** | `USDG.transfer(any recipient, ≤ perTradeUsdg)` | `packages/core/src/wall.ts:121-130` | per-op only → 2,400 USDG/day for 14 days at the default preset (50 × 48); 19,200/day for 30 days at "warlord" (200 × 96) — `web/src/app/grant/page.tsx:30-36, :53-57` |
@@ -53,7 +53,7 @@ So: the phone stays the key holder and the signer of intent. The server becomes 
 1. **The server holds only `grant.serialized`** — the capped, expiring session account, and only with signature-validation authority stripped (§5.2). Nothing else with signing power.
 2. Per-tenant tick loop with real failure isolation: one tenant's crash, hang or OOM does not stop another tenant's stop-loss.
 3. Phone→server auth with no accounts, no passwords, no email, no PII — the wallet is the identity.
-4. **Self-hosted keeps working byte-for-byte.** Same npm package, same `~/.merrymen`, same SQLite, same custom strategies, same PC control. No new required dependency reaches an existing user.
+4. **Self-hosted keeps working byte-for-byte.** Same npm package, same `~/.oathwall`, same SQLite, same custom strategies, same PC control. No new required dependency reaches an existing user.
 5. Recovery stays **seed-phrase, on the phone, already shipped**. The server offers no recovery path and needs none.
 6. Honest kill/pause semantics — the UI must not say "revoked" when it means "we stopped and deleted our copy".
 
@@ -88,7 +88,7 @@ The alternative — `Map<tenantId, ActiveAgent>` in one process — was evaluate
 |---|---|---|
 | Money counters `spentTodayUsdg` / `opsToday` / `highWaterMarkUsdg` (`worker/src/index.ts:315-317`, seeded per-arm at `:692-696`) | per-tenant for free | must be hoisted into `ActiveAgent` (`worker/src/index.ts:176-196`) or tenant B consumes tenant A's daily cap at `worker/src/policy.ts:294-296` and A's peak becomes B's HWM at `:302-309` |
 | **Ledger reads** | **not isolated** — under the chosen architecture tenants share one Postgres (§7), so the 16 unscoped queries in `worker/src/telegram/reads.ts` are a leak in *both* topologies. Phase 2 is unconditional | same leak |
-| Filesystem state — settings, grant, pause marker, heartbeat, soul, strategies dir | isolated by `MERRYMEN_HOME`, **against accidental mixing** — see the trust-boundary note below | one file each, fleet-wide blast radius |
+| Filesystem state — settings, grant, pause marker, heartbeat, soul, strategies dir | isolated by `OATHWALL_HOME`, **against accidental mixing** — see the trust-boundary note below | one file each, fleet-wide blast radius |
 | Fatal error | `main().catch(… process.exit(1))` (`worker/src/index.ts:1872-1875`) becomes *correct*: one child dies, supervisor restarts it | takes the fleet down |
 | Hung strategy | contained to that child; SIGKILL reclaims a spinning CPU | wedges everyone (see §4.3) |
 | Mainnet client singleton `let mainnet` (`worker/src/snapshot.ts:28-33`, repointed by `setMainnetRpc` at `worker/src/index.ts:211` and `:288`) | irrelevant — one per process | last tenant to save `rpcMainnet` repoints everyone's price feeds |
@@ -96,7 +96,7 @@ The alternative — `Map<tenantId, ActiveAgent>` in one process — was evaluate
 | Marginal memory | **≥93 MB RSS measured** (node v22.17.0: 37.1 MB baseline → 93.3 MB after importing `viem` + `@zerodev/sdk` + `@zerodev/permissions` + `node:sqlite`), plus tsx | one copy of the dep tree |
 | Duplicated chain-global RPC | 3 round-trips/tick/tenant for `readMarketSafety` (`worker/src/snapshot.ts:59-106`) | naturally shared |
 
-**Supervisor↔child trust boundary — say what it is and is not.** `MERRYMEN_HOME=/t/aaa` is an *argument*, not an enforcement. Children run as the same uid on a shared filesystem with the same Postgres role, so a hostile child A can read `/t/bbb/grant.json` — the one artifact §5.1 says the server holds. §6 (no user code on hosted) is what makes children trusted; the process boundary alone buys isolation against *accidents*, not against code. Phase 4 therefore adds a per-child uid (or per-tenant mount / per-tenant DB role) as defense in depth, and until it lands the claim in the docs is "isolates accidental cross-tenant state", not "isolates a hostile child".
+**Supervisor↔child trust boundary — say what it is and is not.** `OATHWALL_HOME=/t/aaa` is an *argument*, not an enforcement. Children run as the same uid on a shared filesystem with the same Postgres role, so a hostile child A can read `/t/bbb/grant.json` — the one artifact §5.1 says the server holds. §6 (no user code on hosted) is what makes children trusted; the process boundary alone buys isolation against *accidents*, not against code. Phase 4 therefore adds a per-child uid (or per-tenant mount / per-tenant DB role) as defense in depth, and until it lands the claim in the docs is "isolates accidental cross-tenant state", not "isolates a hostile child".
 
 The memory floor is real and is the binding constraint: a 4 GB container carries **tens** of tenants, not thousands. Buy headroom in this order, none of which requires the in-process refactor: (a) compile the worker so tsx is not in the hot image (`cli/bin.mjs:551` launches it as `tsx worker/src/index.ts`); (b) split out a shared market-data process (§4.4); (c) only then consider sharded multi-agent processes.
 
@@ -123,8 +123,8 @@ flowchart TB
   subgraph sup["RAILWAY — worker service (supervisor container)"]
     SUP["supervisor: lease+reconcile, fork, watchdog, memcap"]
     MKT["market process (phase 9)<br/>readMarketSafety snapshot.ts:59-106 + pool prices"]
-    T1["child: MERRYMEN_HOME=/t/aaa, own uid<br/>worker/src/index.ts main()"]
-    T2["child: MERRYMEN_HOME=/t/bbb, own uid"]
+    T1["child: OATHWALL_HOME=/t/aaa, own uid<br/>worker/src/index.ts main()"]
+    T2["child: OATHWALL_HOME=/t/bbb, own uid"]
     TN["child: …"]
     SUP --> T1 & T2 & TN
     MKT -. IPC snapshot .-> T1 & T2 & TN
@@ -164,8 +164,8 @@ Each child runs today's loop unmodified: `tick().catch().finally(() => setTimeou
 
 | Seam | File:line | Role |
 |---|---|---|
-| `merrymenHome()` reads env at **call** time; `ensured` latch makes it a *process* boundary | `worker/src/home.ts:16`, `:35` | the whole per-tenant fork |
-| `loadGrantFile()` — one 10-line function already parameterized by `MERRYMEN_GRANT_FILE` | `worker/src/grant.ts:6-15` | hosted grant intake |
+| `oathwallHome()` reads env at **call** time; `ensured` latch makes it a *process* boundary | `worker/src/home.ts:16`, `:35` | the whole per-tenant fork |
+| `loadGrantFile()` — one 10-line function already parameterized by `OATHWALL_GRANT_FILE` | `worker/src/grant.ts:6-15` | hosted grant intake |
 | `resolveConfig()` is the only thing turning a path into a `ResolvedConfig`; every loop already takes an injected `getCfg` closure | `worker/src/settings.ts:281-291`; `worker/src/index.ts:1802, 1832, 1852` | per-tenant config with no signature churn |
 | `createAgentExecutor({chain, serializedGrant, bundlerUrl, rpcUrl})` needs **only** `serialized` — no owner key field exists in its input | `worker/src/executor.ts:33-39` | proof the invariant is reachable |
 | `readMarketSafety()` returns a plain value object of chain-global data | `worker/src/snapshot.ts:59-106` | hoist to one fleet-wide read |
@@ -303,7 +303,7 @@ Longer term, `worker/src/executor.ts:9-11` already names the right shape ("Turnk
 
 **Decision: drop the feature on hosted. Keep it byte-for-byte on self-hosted.**
 
-The path is fail-**open** today: any strategy name not in `BUILTIN_STRATEGIES` becomes a file-load attempt (`worker/src/strategies/registry.ts:143-145`), resolving `~/.merrymen/strategies/<name>.{ts,mts,mjs,js}` (`worker/src/strategies/custom.ts:23`) and executing it with a real ESM dynamic `import()` in the worker's own realm (`worker/src/strategies/custom.ts:136`, `:150`). Note the web settings route is already fail-*closed*, so the worker is the weaker of the two checks.
+The path is fail-**open** today: any strategy name not in `BUILTIN_STRATEGIES` becomes a file-load attempt (`worker/src/strategies/registry.ts:143-145`), resolving `~/.oathwall/strategies/<name>.{ts,mts,mjs,js}` (`worker/src/strategies/custom.ts:23`) and executing it with a real ESM dynamic `import()` in the worker's own realm (`worker/src/strategies/custom.ts:136`, `:150`). Note the web settings route is already fail-*closed*, so the worker is the weaker of the two checks.
 
 The intent validator (`worker/src/strategies/custom.ts:80-113`) is genuinely good and constrains the **return value** to `swap` / `vault-deposit` / `vault-withdraw` — a custom strategy cannot even propose `transfer` or `equity-order`. It is also completely irrelevant here, because **the module body runs at import time, before `tick` is ever called**. Two lines of `node:fs` read every co-tenant's `grant.json`, whose `serialized` embeds the session key.
 
@@ -319,10 +319,10 @@ Weigh the cost against what the feature buys a hosted tenant: the power to lose 
 
 **Implementation — gate at both boundaries, both required.** Fixing only the API still loads a name already persisted in a tenant's settings; fixing only the loader still lets the API enumerate other tenants' filenames.
 
-1. Introduce a hosted flag (**none exists** — `MERRYMEN_HOSTED` / `hostedMode` / `isHosted`: not found).
+1. Introduce a hosted flag (**none exists** — `OATHWALL_HOSTED` / `hostedMode` / `isHosted`: not found).
 2. `worker/src/strategies/registry.ts:143-145` becomes fail-closed when hosted.
 3. Hosted control plane rejects non-builtin strategy names at write time.
-4. `MERRYMEN_STRATEGIES_DIR` (`worker/src/strategies/custom.ts:26`) is operator-set only.
+4. `OATHWALL_STRATEGIES_DIR` (`worker/src/strategies/custom.ts:26`) is operator-set only.
 5. Same treatment for PC control and agent auto-shell (`worker/src/pc/platform.ts:49`, driven from `worker/src/telegram/service.ts:454` and `worker/src/telegram/agent.ts:226-467`) — a second, independent RCE path.
 6. Replacement on hosted: a **declarative rule format** our own code interprets (thresholds, legs, budgets — the shape `steady-basket` / `dip-hunter` / `even-keel` already have as configs). Real work, not free, but no sandbox and no RCE.
 
@@ -340,7 +340,7 @@ Weigh the cost against what the feature buys a hosted tenant: the power to lose 
 
 ## 7. Data
 
-**Decision: one Railway Postgres for the hosted tier; SQLite unchanged for self-hosted; two drivers behind the single `getDb()` seam (`worker/src/store.ts:15`), selected by the presence of `MERRYMEN_DATABASE_URL`.**
+**Decision: one Railway Postgres for the hosted tier; SQLite unchanged for self-hosted; two drivers behind the single `getDb()` seam (`worker/src/store.ts:15`), selected by the presence of `OATHWALL_DATABASE_URL`.**
 
 Per-tenant SQLite files on a volume is the aesthetically nicer answer and it fails on two platform facts, not on taste:
 
@@ -369,7 +369,7 @@ Two tables need an `agent_id` dimension added: `chat_turns` (`:127`, keyed by `c
 
 SQLite stays the default and stays the shipped path. `node:sqlite` is built into Node ≥22.12; **no `pg` reaches an npm installer**, because the driver is selected by an env var they will never set. Precedent for silent-upgrade discipline already exists — `ensureHome()` does a one-time legacy copy from `<repo>/.data` (`worker/src/home.ts:45-60`).
 
-For a self-hoster who *later* wants hosted: ship `merrymen export` producing JSON per `agent_id`, plus an importer on the hosted side. **Do not** build live SQLite→Postgres replication.
+For a self-hoster who *later* wants hosted: ship `oathwall export` producing JSON per `agent_id`, plus an importer on the hosted side. **Do not** build live SQLite→Postgres replication.
 
 Prerequisite: merge the two drifted copies of `homePaths` (`worker/src/home.ts:19-33` vs `web/src/lib/home.ts:21-34` — they already disagree) into one module in `packages/core`, or the web tier reads a different path than the worker writes.
 
@@ -416,7 +416,7 @@ Live mode, default 25-symbol basket, no memecoins, no trade fired = **9–10 JSO
 | Kill the module-level `mainnet` client | `worker/src/snapshot.ts:31-43` | prerequisite for *any* sharing; also stops one tenant repointing everyone's feeds |
 | One fleet-wide pool-price reader, TTL **above** the tick interval, WETH/USDG leg hoisted | `worker/src/venues/pool-prices.ts:117-205` (already a TTL cache keyed `address:decimals`) | dedupes across tenants; note `reset()` (called from `worker/src/index.ts:290`) must become tenant-scoped |
 | One chain-wide discovery poller writing to a shared candidate table | `worker/src/index.ts:512-566`, already `void`-ed off the trading path at `:1656` | 1 Bitquery query for the fleet instead of N; today's gateway bucket is 6/min per holder address (`gateway/lib/core.mjs:25`), sized for one self-hoster |
-| Cache the Merry Circle tier per holder address | `worker/src/circle.ts:32-48` | removes per-tick TLS churn |
+| Cache the Oathwall Circle tier per holder address | `worker/src/circle.ts:32-48` | removes per-tick TLS churn |
 | Telegram: N long-poll sockets → **one webhook** dispatching by token | `worker/src/telegram/service.ts:638-671` — `handle()` is already per-message and config-injected | collapses N sockets; eliminates the concurrent-`getUpdates` collision |
 | **Raise the hosted tick floor 15 s → 60 s** | one-line clamp change at `worker/src/settings.ts:236` under the hosted flag | **1.6 M → ~400 k RPC/tenant/month**, for nothing real — the Chainlink feeds do not update 4×/min |
 | Per-tenant LLM token budget + fleet concurrency cap + request timeout | single choke point `llmToolCall` (`worker/src/llm.ts:125-175`) — none of these exist | bounds the only irreducibly per-tenant external cost |
@@ -443,7 +443,7 @@ Say it plainly in the product: **an empty gas tank means your stop-loss does not
 
 Self-hosted, that is software the customer runs on their own machine: we never touch the money, never hold a key, never make a decision. **Hosted, all four flip at once** — we run the trading process, we configure the model that proposes, we hold a signed key that can move assets, and we would be compensated as a share of trading profit. That is the fact pattern investment-adviser and discretionary-portfolio-management regimes are written around. *I am not counsel and this doc concludes nothing about it.*
 
-**Ship hosted with no performance fee.** Flat subscription priced against measured infra; keep the HWM ledger accruing in shadow so the number is real and auditable the day counsel clears it. Turning a fee on later is a product decision; refunding one taken without clearance is not. Take to counsel together and in writing: (a) the four properties above; (b) that the wall does **not** currently prevent funds leaving — §1, including the signature path, which means the "capped session key that can only swap" description is not accurate as shipped; (c) that the `$MERRYMEN` discount (`packages/core/src/token.ts:82, :96, :111`, applied at `:149-152`) ties token holding to the size of a fee we would charge on customer profits.
+**Ship hosted with no performance fee.** Flat subscription priced against measured infra; keep the HWM ledger accruing in shadow so the number is real and auditable the day counsel clears it. Turning a fee on later is a product decision; refunding one taken without clearance is not. Take to counsel together and in writing: (a) the four properties above; (b) that the wall does **not** currently prevent funds leaving — §1, including the signature path, which means the "capped session key that can only swap" description is not accurate as shipped; (c) that the `$OATHWALL` discount (`packages/core/src/token.ts:82, :96, :111`, applied at `:149-152`) ties token holding to the size of a fee we would charge on customer profits.
 
 ---
 
@@ -456,9 +456,9 @@ Each phase is independently shippable and independently valuable. Phases 0–2 i
 | **0** | **Bugs that exist today** | `trench_positions` CREATE TABLE (`worker/src/store.ts:880` reads a table that is never created); **multi-hop swaps: `buildSwapCall` emits `exactInput` when a path is present (`worker/src/venues/uniswap.ts:306`, tested at `worker/src/venues/uniswap-route.test.ts:74, :192`) while the wall grants only `exactInputSingle` (`packages/core/src/wall.ts:143`) — determine whether any multi-hop swap has ever landed on-chain, and either add the permission self-hosted or stop emitting the call** (the ABI comment at `packages/core/src/abis.ts:29-32` claiming multi-hop "costs no new grant permission" is about *approvals*, and is misleading about the call policy); wall-clock timeout around `await strategy.tick(snap)` (`worker/src/index.ts:1677`); move the `DatabaseSync` construction inside the try at `web/src/app/api/feed/route.ts:109`; fix the `mobile/src/net/telegram.ts:53` ↔ `web/src/app/api/telegram/route.ts:62` `owner`/`ownerId` drift | yes — pure self-hosted fixes |
 | **1** | **Narrow the wall** ← *blocking* | In §5.2's order: (1) `NOT_FOR_VALIDATE_SIG` / signature-caller policy **and a devnet test that a session-key-signed Permit2 `permitTransferFrom` is unspendable**; (2) hosted `allowedSpenders()`; (3) `exactInputSingle` args incl. an `amountIn` cap; (5) vault `withdraw` args; (6) drops; (7) cap/expiry ceiling; (8) recompute-and-verify. Rewrite `worker/src/wall.test.ts:52-63, :93, :112, :116` as the new spec **first**. Devnet-verify tuple offsets. Measure `maxLossPerOp` on the thinnest permitted pair so §5.5's bound is computed. Refuse to arm a hosted tenant whose grant lacks the marker | yes |
 | **2** | **Tenant-scope the reads** | `WHERE agent_id = ?` across `worker/src/telegram/reads.ts` (**16 sites**, incl. `:139` fee_accruals SUM and `:390` decisions-by-id), `web/src/app/api/feed/route.ts` (5 reads + the `LIMIT 1` identity heuristic at `:178`), `worker/src/telegram/notifier.ts:157-177`, `worker/src/virtuals-streamer.ts:124-128`; fail-close the spend-relevant writes; merge the two `homePaths` copies into `packages/core` | yes — required for both storage options |
-| **3** | **Hosted flag + RCE gates** | `MERRYMEN_HOSTED`; `worker/src/strategies/registry.ts:143-145` fail-closed; control plane rejects non-builtin names; PC-control / agent-auto-shell hard-off; URL settings → provider allowlist | yes |
-| **4** | **Supervisor, single tenant** | Fork one child with `MERRYMEN_HOME`, **own uid**, scrubbed env, memcap, restart backoff, fleet-halt flag. **Lease + in-flight reconciliation as one atomic step** (§4.3). Heartbeat watchdog with a bundler-derived threshold and a second beat around the receipt wait. Prove it with one tenant on Railway | yes |
-| **5** | **Storage driver** | `MERRYMEN_DATABASE_URL` → pg pool behind `getDb()` (`worker/src/store.ts:15`); port DDL `:21-165` + 22 ALTERs `:166-205`; async-ify the 15 sync exports; add `agent_id` to `chat_turns` / split `discovered_pools`; retention + per-tenant quota; re-measure `processIntent` latency | needs 2 |
+| **3** | **Hosted flag + RCE gates** | `OATHWALL_HOSTED`; `worker/src/strategies/registry.ts:143-145` fail-closed; control plane rejects non-builtin names; PC-control / agent-auto-shell hard-off; URL settings → provider allowlist | yes |
+| **4** | **Supervisor, single tenant** | Fork one child with `OATHWALL_HOME`, **own uid**, scrubbed env, memcap, restart backoff, fleet-halt flag. **Lease + in-flight reconciliation as one atomic step** (§4.3). Heartbeat watchdog with a bundler-derived threshold and a second beat around the receipt wait. Prove it with one tenant on Railway | yes |
+| **5** | **Storage driver** | `OATHWALL_DATABASE_URL` → pg pool behind `getDb()` (`worker/src/store.ts:15`); port DDL `:21-165` + 22 ALTERs `:166-205`; async-ify the 15 sync exports; add `agent_id` to `chat_turns` / split `discovered_pools`; retention + per-tenant quota; re-measure `processIntent` latency | needs 2 |
 | **6** | **Auth service** | Port `gateway/lib/core.mjs` with the four deltas; **refuse to boot without Redis/KV** (`gateway/lib/store.mjs:5-9`); `signChallenge` on the phone; `mobile/src/net/api.ts:18, :34` gets runtime origin + bearer + 401 re-claim | needs 5 |
 | **7** | **Hosted API `/v1`** | Session-only grant intake: narrowed wire type, owner-key bodies **rejected**, **first-arm identity proved via `enableSignature` recovery or `initCode` recomputation (§5.1b)**, cap/expiry ceiling enforced, policy set recomputed from claimed caps and compared. Scoped feed; pause/kill/status. Deploy pattern forked from `gateway/railway.json` + `gateway/Dockerfile` (DOCKERFILE builder, `/healthz`, ON_FAILURE, secrets injected at runtime) | needs 6 |
 | **8** | **Multi-tenant supervisor** | N children, admission control, per-tenant status on the phone, envelope encryption of the stored blob | needs 4, 7 |
@@ -472,7 +472,7 @@ Each phase is independently shippable and independently valuable. Phases 0–2 i
 
 | # | Question | How to settle it | Blocks |
 |---|---|---|---|
-| **1** | **Does Kernel v3.3's `isValidSignature` actually route to the permission validator, and does `CallPolicy` implement a meaningful `checkSignaturePolicy`?** The client side is confirmed — `createKernelAccount.signMessage` delegates to the plugin manager (`:730, :766`), `toPermissionValidator` implements `signMessage`/`signTypedData` (`:91-102`), and merrymen sets no `PolicyFlags` anywhere. What is unverified is the on-chain half | devnet: have the session key sign a Permit2 `PermitTransferFrom` and attempt to spend it from a third-party EOA | **Phase 1, ahead of arg offsets** — this is the blocker |
+| **1** | **Does Kernel v3.3's `isValidSignature` actually route to the permission validator, and does `CallPolicy` implement a meaningful `checkSignaturePolicy`?** The client side is confirmed — `createKernelAccount.signMessage` delegates to the plugin manager (`:730, :766`), `toPermissionValidator` implements `signMessage`/`signTypedData` (`:91-102`), and oathwall sets no `PolicyFlags` anywhere. What is unverified is the on-chain half | devnet: have the session key sign a Permit2 `PermitTransferFrom` and attempt to spend it from a third-party EOA | **Phase 1, ahead of arg offsets** — this is the blocker |
 | **2** | Is validator-nonce invalidation callable on Kernel v3.3 by the owner? Inferred from the enable-signature binding (`getPluginsEnableTypedData.ts:43, :52`); **no invalidation call site found in this repo** | read Kernel v3.3; devnet test | Phase 10, and the honesty of the kill-switch UI |
 | **3** | Does `args[3]` on `exactInputSingle` land on `recipient`? The claim rests on `offset: i * 32` (`callPolicyUtils.ts:186-190`) plus the tuple being all-static. The TS types describe **one** input, so the args array needs the same cast the file already uses (`packages/core/src/wall.ts:206`) — a wrong offset compiles, signs, and fails only on-chain | devnet grant + a swap that should be rejected | Phase 1 |
 | **4** | **Has a multi-hop swap ever landed?** `buildSwapCall` emits `exactInput`; the wall grants only `exactInputSingle`; `getPermissionFromABI` derives one selector per `functionName` (`callPolicyUtils.ts:102`). If the answer is no, this is a live production defect, not a design note | search the trade ledger for `exactInput` calldata; devnet a two-hop route | Phase 0 |
@@ -500,7 +500,7 @@ Each phase is independently shippable and independently valuable. Phases 0–2 i
 | **Cross-tenant leak the moment two tenants share a database** — which the chosen architecture guarantees | 16 unscoped sites in `worker/src/telegram/reads.ts` (incl. `:139`, `:390`), 5 + identity in `web/src/app/api/feed/route.ts`, plus `scoreboard/route.ts:52-58` returning every agent row | Phase 2 before Phase 5. One-way door |
 | **Watchdog kills healthy tenants.** `heartbeat()` is written once per tick at `worker/src/index.ts:1304`, before the inline receipt wait; a 3-tick threshold is 45 s at the 15 s floor | `worker/src/executor.ts:62-65` | bundler-derived threshold + second beat around the receipt wait, Phase 4 |
 | **In-flight op orphaned by a kill or lease loss** → op on-chain, no ledger row, `getSpentTodayUsdg` under-counts on restart, cap silently loosened | `worker/src/store.ts:564`; `worker/src/index.ts:692-696` | lease + reconciliation as one step, Phase 4 |
-| **Hostile child reads a sibling's grant.** Same uid, shared mount; `MERRYMEN_HOME` is an argument, not an enforcement | §4.1 | per-child uid / per-tenant mount, Phase 4; §6 is what makes children trusted meanwhile |
+| **Hostile child reads a sibling's grant.** Same uid, shared mount; `OATHWALL_HOME` is an argument, not an enforcement | §4.1 | per-child uid / per-tenant mount, Phase 4; §6 is what makes children trusted meanwhile |
 | **Silent hang** wedges a tenant forever with a stale heartbeat as the only symptom | `worker/src/index.ts:1677`, `.finally` at `:1867` never fires | Phase 0 timeout **and** Phase 4 watchdog — the timeout alone cannot reclaim a spinning CPU |
 | **Platform credential inheritance** — every tenant silently gets our bundler/Groq/Anthropic/Telegram keys as their default, with no code change required to trigger it | `worker/src/settings.ts:210, :214, :216, :257` | scrubbed env at fork, Phase 4 |
 | **Owner-key contamination from our own client** | `web/src/lib/session.ts:189` still POSTs `demoOwnerPrivateKey`; `packages/core/src/grant.ts:80` declares it | narrowed wire type + **reject** (not strip) at intake, Phase 7 |
@@ -510,7 +510,7 @@ Each phase is independently shippable and independently valuable. Phases 0–2 i
 | **Unbounded cost**: ~64 M RPC/mo for one scout-mode tenant; 45–60 M LLM input tokens/mo at the 1-minute floor | `worker/src/venues/pool-prices.ts:43` + `worker/src/settings.ts:196`; `worker/src/settings.ts:250` + `packages/core/src/settings.ts:297` | Phase 9 budgets before any flat price is published |
 | **Unbounded storage** — no retention on events/trades/equity/decisions/fee_accruals; `decisions` carries a full `signals_json` blob per proposal (`worker/src/store.ts:119`) | — | retention + per-tenant quota, Phase 5 |
 | **Multi-hop swaps may be silently rejected today** | `worker/src/venues/uniswap.ts:306` vs `packages/core/src/wall.ts:143` | Phase 0 investigation, §10 Q4 |
-| **Regulatory** — hosted execution + asset-moving key + profit share; compounded by the `$MERRYMEN` fee discount | §8 | no performance fee on hosted until counsel clears it. Costs no existing revenue: collection has never shipped (`worker/src/fees.ts:7-9`) |
+| **Regulatory** — hosted execution + asset-moving key + profit share; compounded by the `$OATHWALL` fee discount | §8 | no performance fee on hosted until counsel clears it. Costs no existing revenue: collection has never shipped (`worker/src/fees.ts:7-9`) |
 | **Honesty of "kill"** — deleting our copy stops us and nothing else | `worker/src/index.ts:1821`; only the timestamp policy (`packages/core/src/wall.ts:201`) dies on its own | UI says "stopped and key deleted, expires on `<date>`" until Phase 10 lands *verified* revocation |
 
 ### Recommendation
@@ -521,7 +521,7 @@ Each phase is independently shippable and independently valuable. Phases 0–2 i
 2. **Tenant-scope every read** — all 16 sites in `reads.ts`, the six in `feed/route.ts`, both trade cursors — and fail-close the spend-relevant writes. Cheap, self-contained, and unconditional under the chosen storage architecture.
 3. **Process per tenant, one supervisor container.** Take the ≥93 MB floor honestly; buy headroom by compiling out tsx and hoisting the shared market read, not by collapsing tenants into one realm. The process boundary buys isolation against accidents; §6 and a per-child uid are what buy it against code.
 4. **Drop custom strategies on hosted**, gated at both boundaries, with the residual surfaces (customTokens, LLM output, URL settings, PC control) closed explicitly rather than assumed away. "Your machine runs your code; our server runs our code" is a clean product line and it costs zero infrastructure.
-5. **Hosted Postgres, self-hosted SQLite**, two drivers behind one seam. `npm i -g merrymen` keeps working with no new dependency, because the driver is chosen by an env var an installer never sets.
+5. **Hosted Postgres, self-hosted SQLite**, two drivers behind one seam. `npm i -g oathwall` keeps working with no new dependency, because the driver is chosen by an env var an installer never sets.
 6. **Port the gateway's signed-challenge auth** rather than inventing one, with agent scoping, a generation counter, short tokens, a mandatory KV — and a first-arm identity proof that does not assume the client's `accountAddress`.
 7. **Fork a new `/v1` API.** `/api/recover` is simply not deployed — that is the strongest possible form of "it cannot be reached by an auth bug".
 8. **No performance fee on hosted in v1.** Flat subscription against measured infra; keep the HWM ledger accruing in shadow.

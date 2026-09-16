@@ -17,7 +17,7 @@ which is what its own derivation comment already argues it is.
  * THE CEILING AN ENABLE EARNS FROM ITS OWN PAYLOAD.
  *
  * FIRST_ENABLE_GAS_BOUNDS.absoluteMax is the ceiling for the LARGEST wall
- * merrymen will sign. Handing it to every enable regardless of the wall actually
+ * oathwall will sign. Handing it to every enable regardless of the wall actually
  * carried means a 4-permission grant walks around with 9,000,000 gas of
  * authority it can never use. That is not a bound in the sense this file cares
  * about; it is the absence of one, up to a number.
@@ -109,7 +109,7 @@ export const nonceSequence = (nonce: bigint): bigint => nonce & 0xffff_ffff_ffff
 
 /** A permission validator's ordinary stub signature is the session key's bare
  *  65-byte ECDSA stub. An ENABLE stub is the encoded plugins blob and measures
- *  1,940 bytes for a 1-permission wall and 10,932 for merrymen's 18-permission
+ *  1,940 bytes for a 1-permission wall and 10,932 for oathwall's 18-permission
  *  one (measured). 512 sits ~4x below the smallest enable and ~8x above a bare
  *  signature: it is a shape check, not a size check. */
 const ENABLE_MIN_BYTES = 512;
@@ -216,7 +216,7 @@ async function permissionIdInstalled(
 +      // renewal on a funded, already-operating account carries the identical
 +      // cost while `!accountLive` is false. Measured on this chain, against the
 +      // real live account 0x032Da6A0…: raw 7,530,220, bounded 9,450,410, versus
-+      // a 3,000,000 ceiling. Every renewal merrymen ships was refused.
++      // a 3,000,000 ceiling. Every renewal oathwall ships was refused.
 +      //
 +      // It also bought nothing. The strongest bound `!accountLive` can give is
 +      // "one elevated operation per address", and a fresh address costs an

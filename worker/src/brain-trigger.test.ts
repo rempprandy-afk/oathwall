@@ -157,7 +157,7 @@ describe("the review cadence is configurable, within bounds", () => {
   // mode is learning what the thing does before it matters.
   const FOUR_HOURS = 4 * 3600;
   const read = (v?: string) =>
-    scheduledInterval(v === undefined ? {} : { MERRYMEN_BRAIN_INTERVAL_SEC: v });
+    scheduledInterval(v === undefined ? {} : { OATHWALL_BRAIN_INTERVAL_SEC: v });
 
   it("takes a shorter cadence when one is set", () => {
     assert.equal(read("900"), 900);

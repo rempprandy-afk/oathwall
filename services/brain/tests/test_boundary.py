@@ -454,7 +454,7 @@ def test_a_clean_epoch_one_book_can_actually_be_sized():
             schema_version="1.0.0", run_id="r", agent_id="0xa", trigger_id="t",
             portfolio=book(auditable),
             market=MarketState(
-                snapshot_id="m", as_of=1, instrument_id="merrymen:tsla", symbol="TSLA",
+                snapshot_id="m", as_of=1, instrument_id="oathwall:tsla", symbol="TSLA",
                 instrument_class="equity-token", price_usd="412.50", signals={},
             ),
         )
@@ -542,7 +542,7 @@ def test_news_and_news_sentiment_are_separate_lenses():
     other's authority, and neither the analyst nor anybody reading the decision
     back can tell which half came from the world.
 
-    `sentiment` stays separate again: on this fleet it is what other Merrymen
+    `sentiment` stays separate again: on this fleet it is what other Oathwall
     published, which is a third thing and is not news either.
     """
     from brain.graph import _lenses_for

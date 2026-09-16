@@ -102,9 +102,9 @@ for (const l of reconstructionLines(plans)) console.log(`recon| ${l}`);
 console.log("\n── index present:", await hasChainIdentityIndex(db));
 
 const dry = parseRepairOptions({
-  MERRYMEN_REPAIR: "dry-run",
-  MERRYMEN_REPAIR_ACCOUNT: CANARY,
-  MERRYMEN_REPAIR_RUN_ID: "canary-rehearsal",
+  OATHWALL_REPAIR: "dry-run",
+  OATHWALL_REPAIR_ACCOUNT: CANARY,
+  OATHWALL_REPAIR_RUN_ID: "canary-rehearsal",
 })!;
 console.log(`\n── DRY RUN (mode ${dry.mode}) `.padEnd(78, "─"));
 for (const l of repairLines(dry.runId, dry.mode, await runRepair(db, plans, dry, CHAIN))) console.log(`repair| ${l}`);

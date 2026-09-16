@@ -1,16 +1,16 @@
 /**
  * Agent history for the dashboard: events + equity series, read from the
- * shared SQLite file the worker writes (.data/merrymen.db).
+ * shared SQLite file the worker writes (.data/oathwall.db).
  */
 
 import { readFileSync } from "node:fs";
 import { NextResponse } from "next/server";
-import { homePaths } from "@merrymen/home";
-import { SETTINGS_DEFAULTS, isHostedMode, type MerrymenSettings } from "@merrymen/core";
-import { getSettingsStore } from "@merrymen/settings-store";
+import { homePaths } from "@oathwall/home";
+import { SETTINGS_DEFAULTS, isHostedMode, type OathwallSettings } from "@oathwall/core";
+import { getSettingsStore } from "@oathwall/settings-store";
 import { tenantOf } from "@/lib/auth";
 import { withReadDb, fmtEpoch } from "@/lib/ledger";
-import { getIdentityStore } from "@merrymen/identity-store";
+import { getIdentityStore } from "@oathwall/identity-store";
 import { hostedAgentFor } from "@/lib/agent-for";
 
 // The basket the WORKER actually defaults to when none is configured.
@@ -124,7 +124,7 @@ type Identity = { strategy: string; basket: string[]; agentName: string | null }
 const IDENTITY_FALLBACK: Identity = { strategy: "steady-basket", basket: DEFAULT_BASKET, agentName: null };
 
 /** The three identity fields out of a settings blob, whatever store it came from. */
-function pickIdentity(s: MerrymenSettings): Identity {
+function pickIdentity(s: OathwallSettings): Identity {
   return {
     strategy: typeof s.strategy === "string" && s.strategy ? s.strategy : "steady-basket",
     basket: Array.isArray(s.basketSymbols) && s.basketSymbols.length ? s.basketSymbols : DEFAULT_BASKET,
@@ -139,10 +139,10 @@ function pickIdentity(s: MerrymenSettings): Identity {
  * THE BUG THIS EXISTS TO FIX, because it made a working feature look broken.
  * Hosted, a tenant's settings are written to the per-tenant sealed store
  * (`getSettingsStore().put(tenant, …)` in api/settings), and NOTHING ever writes
- * the web container's own `~/.merrymen/settings.json`. This function used to
+ * the web container's own `~/.oathwall/settings.json`. This function used to
  * read that file unconditionally, so on the hosted deploy the read always threw
  * and every tenant got the fallback below: name null → the console fell back to
- * the ledger's "Robin", and strategy/basket were the defaults no matter what
+ * the ledger's "Warden", and strategy/basket were the defaults no matter what
  * they had configured. An owner could rename their agent, watch the save
  * succeed, reload, and be asked to name it again — four times over, in the
  * report that found this. The write was never the problem; nobody read it back.
@@ -163,7 +163,7 @@ async function readIdentitySettings(tenant: `0x${string}` | null): Promise<Ident
   try {
     // BOM-strip: hand-edited or PowerShell-written files may carry a UTF-8 BOM.
     const raw = readFileSync(homePaths.settings(), "utf8").replace(/^﻿/, "");
-    return pickIdentity(JSON.parse(raw) as MerrymenSettings);
+    return pickIdentity(JSON.parse(raw) as OathwallSettings);
   } catch {
     return IDENTITY_FALLBACK;
   }
@@ -176,7 +176,7 @@ async function readIdentitySettings(tenant: `0x${string}` | null): Promise<Ident
  * worker reconciles a configured name into the soul at arm time, so between
  * saving one and the worker's next arm the ledger still holds the old name —
  * and preferring the ledger there makes a rename that genuinely succeeded
- * revert to "Robin" on the next page load, which reads exactly like a failed
+ * revert to "Warden" on the next page load, which reads exactly like a failed
  * save. Settings is where the owner's intent lives; the soul is the runtime
  * seat that catches up to it.
  */
@@ -207,7 +207,7 @@ async function emptyFeed(tenant: `0x${string}` | null = null): Promise<FeedRespo
     trades: [],
     financials: null,
     // Identity still resolves live from settings + default name.
-    agent: await identityOf("Robin", tenant),
+    agent: await identityOf("Warden", tenant),
     netContributionsUsdg: null,
     gasUsdg: 0,
     gasUnpricedTrades: 0,
@@ -248,7 +248,7 @@ export async function GET(req: Request) {
     let positions: PositionRow[] = [];
     let trades: TradeRecord[] = [];
     let financials: AgentFinancials | null = null;
-    let name = "Robin";
+    let name = "Warden";
     let netContributionsUsdg: number | null = null;
     let gasUsdg = 0;
     let gasUnpricedTrades = 0;
@@ -325,7 +325,7 @@ export async function GET(req: Request) {
        * ENOUGH ROWS TO REACH BACK A DAY, WHATEVER THE CADENCE.
        *
        * This was 288, which is twenty-four hours only if a row lands every
-       * five minutes. Production ticks every 240s (MERRYMEN_TICK_SECONDS), so
+       * five minutes. Production ticks every 240s (OATHWALL_TICK_SECONDS), so
        * 288 rows spans 19.2 hours — and `chg24` needs a point at or before
        * twenty-four hours ago (terminal/live.ts, equityDayAgo). It never
        * found one. "Daily change unavailable" on a working, funded account was

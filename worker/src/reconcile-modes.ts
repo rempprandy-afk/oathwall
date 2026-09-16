@@ -12,7 +12,7 @@
  * ── THE TWO MODES ────────────────────────────────────────────────────────────
  *
  * HASH MODE, for the steady state. `UserOperationEvent` indexes the userOpHash
- * in topic1, and merrymen persists that hash BEFORE it broadcasts — so an agent
+ * in topic1, and oathwall persists that hash BEFORE it broadcasts — so an agent
  * usually knows exactly what it is looking for. Asking by hash is bounded by
  * what we are LOOKING FOR; asking by sender is bounded by what the sender DID.
  * An agent with two outstanding operations asks for two hashes however busy its
@@ -37,7 +37,7 @@
  *
  * HOSTED CHILD SQLITE IS EPHEMERAL. The only volume in the Railway project is
  * `postgres-volume`, attached to Postgres; the orchestrator service has none. A
- * child's ledger lives at `children/<tenant>/merrymen.db` on the container
+ * child's ledger lives at `children/<tenant>/oathwall.db` on the container
  * filesystem, so A REDEPLOY WIPES EVERY CHILD LEDGER — including every
  * `status='submitted'` row and the `user_op_hash` on it. Shared Postgres DOES
  * preserve them (ledger-mirror carries `trades` upward), but a child cannot read

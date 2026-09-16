@@ -74,7 +74,7 @@ export { cashUnits, MAX_CASH_UI } from "./cash";
  *
  * NOT_FOR_VALIDATE_SIG closes it: the kernel refuses to validate signatures
  * from this permission, while UserOp execution is untouched. This costs
- * merrymen nothing — the entire trading path is UserOps. Grep confirms nothing
+ * oathwall nothing — the entire trading path is UserOps. Grep confirms nothing
  * in worker/, packages/ or web/src/lib signs with the session account.
  *
  * The Permit2 route that made this urgent is now gone with the v4 lane (Phase
@@ -171,7 +171,7 @@ export interface WallOptions {
    * Registering addresses is the same re-sign-to-widen model the token
    * allowlist already uses, and for the same reason: the wall cannot grow by
    * itself. Moving money out to an UNREGISTERED address remains possible any
-   * time via the owner key (`merrymen recover`), which is not bound by the
+   * time via the owner key (`oathwall recover`), which is not bound by the
    * wall — so this removes an agent's power, not the owner's.
    */
   withdrawalAddresses?: readonly Address[];
@@ -503,7 +503,7 @@ export function buildWallPolicies(args: {
     // `policyAddress` is passed EXPLICITLY rather than left to the library
     // default. The default is the lifetime variant, so omitting this argument
     // silently selects the wrong semantics — and the address is also listed in
-    // WALL_POLICY_CONTRACTS above, so `merrymen doctor` refuses a grant when it
+    // WALL_POLICY_CONTRACTS above, so `oathwall doctor` refuses a grant when it
     // has no code instead of sealing another pointer into empty space.
     //
     // ⚠ WHAT IS VERIFIED AND WHAT IS NOT. Verified: the contract has code at

@@ -1,24 +1,24 @@
 <p align="center">
-  <img src="web/public/merrymenlogo.png" alt="merrymen — autonomous trading agents on BNB Chain" width="360" />
+  <img src="web/public/oathwalllogo.png" alt="oathwall — autonomous trading agents on BNB Chain" width="360" />
 </p>
 
 <p align="center">
-  <a href="https://merrymen.dev"><b>Website</b></a> ·
-  <a href="https://merrymen.dev/docs">Docs</a> ·
-  <a href="https://x.com/MerrymenAI">X</a> ·
-  <a href="https://www.npmjs.com/package/merrymen">npm</a>
+  <a href="https://oathwall.dev"><b>Website</b></a> ·
+  <a href="https://oathwall.dev/docs">Docs</a> ·
+  <a href="https://x.com/OathwallAI">X</a> ·
+  <a href="https://www.npmjs.com/package/oathwall">npm</a>
 </p>
 
-# merrymen
+# oathwall
 
-**Trading agents you never have to trust.** merrymen is a self-hosted band of
+**Trading agents you never have to trust.** oathwall is a self-hosted band of
 agents on BNB Chain: your keys never leave your machine, and the caps that
 matter most — **per-trade size, trades per day, which assets, which contracts,
 and when the key dies** — are enforced by your account contract **on-chain**,
 not by promises. (The daily *total* and the drawdown breaker are enforced by the
 worker rather than the chain. Said plainly because a project whose pitch is
 verification cannot round up.) Inside that wall your band trades the majors and
-the PancakeSwap longtail 24/7, while you name your merryman, chat with it and
+the PancakeSwap longtail 24/7, while you name your agent, chat with it and
 steer it from Telegram (it can even run your PC), and watch every trade on a
 local dashboard.
 
@@ -32,15 +32,15 @@ calldata, moves funds, or touches your PC without passing a closed, typed
 command set and the on-chain policy wall. This is the product; everything below
 is built on top of it.
 
-## Why merrymen — the moat
+## Why oathwall — the moat
 
 Anyone can ship a trading agent, and platforms will ship their own. A
 first-party agent is **custodial by construction**: their servers, their keys,
-their discretion — the safety story is a terms-of-service. merrymen inverts it:
+their discretion — the safety story is a terms-of-service. oathwall inverts it:
 
 - **Your machine, if you self-host.** The agent, its memory and its ledger live
-  in `~/.merrymen`, and there is no server-side anything. Hosted at
-  app.merrymen.dev the worker and the ledger are ours — what does not change is
+  in `~/.oathwall`, and there is no server-side anything. Hosted at
+  app.oathwall.dev the worker and the ledger are ours — what does not change is
   the next line.
 - **Your keys, either way.** Minted in your browser, backed up by you, never
   transmitted. The hosted server refuses to accept an owner key at all and
@@ -63,8 +63,8 @@ their discretion — the safety story is a terms-of-service. merrymen inverts it
   UserOp — see docs/.
 - **The numbers are auditable too, not just the wall.** Every fact that moves
   money is mirrored into a hash-chained journal, so an edited record breaks
-  every hash after it and a deleted one leaves a visible gap. `merrymen export`
-  writes it out; `merrymen verify <file>` checks it — and reads nothing but the
+  every hash after it and a deleted one leaves a visible gap. `oathwall export`
+  writes it out; `oathwall verify <file>` checks it — and reads nothing but the
   file it is handed, so it proves something to someone who does not trust you.
   Records that *cannot* be checked against a chain (a simulated fill, a deposit
   inferred from a balance change) are listed as such rather than quietly
@@ -77,7 +77,7 @@ You verify; it trades.
 ## Check it yourself
 
 Two commands. The second reads nothing but the file you hand it — not
-`~/.merrymen`, not the settings, not the machine that produced it — so it is
+`~/.oathwall`, not the settings, not the machine that produced it — so it is
 checking the record against the **chain**, not against the operator.
 
 ```bash
@@ -110,20 +110,20 @@ Two limits, said out loud rather than discovered:
 ## The workflow, end to end
 
 1. **Install** it (one line — installs Node too if you need it).
-2. **`merrymen start`** — opens the dashboard at `localhost:3100` and looses the
+2. **`oathwall start`** — opens the dashboard at `localhost:3100` and looses the
    24/7 worker.
-3. **Create your agent wallet** at `/grant` — no wallet to connect; merrymen
+3. **Create your agent wallet** at `/grant` — no wallet to connect; oathwall
    mints the keys, you back them up, pick **testnet** (practice) or **mainnet**
    (real funds), and set the caps the account contract itself enforces.
 4. **Fund it** — on **mainnet**, send BNB (gas) + USDT (capital) to the account
    address. On **testnet**, gas from the faucet and nothing else: cash sent there
    is never shown and never traded. The worker arms itself on its next tick, no
    restart.
-5. **(optional) Link Telegram** — chat with your merryman, give it a name, let it
+5. **(optional) Link Telegram** — chat with your agent, give it a name, let it
    trade, report, alert, and control your PC — all inside the same walls.
 
-Everything lives in **`~/.merrymen`** (settings, grant, ledger, your strategies,
-your merryman's soul). The install is disposable; upgrades never touch your data.
+Everything lives in **`~/.oathwall`** (settings, grant, ledger, your strategies,
+your agent's soul). The install is disposable; upgrades never touch your data.
 
 **Ride in 2 minutes — paper mode.** Until you add a bundler key, your band trades
 in **paper mode**: approved intents fill at the *live* on-chain oracle prices
@@ -131,7 +131,7 @@ in **paper mode**: approved intents fill at the *live* on-chain oracle prices
 real ledger as `PAPER` trades. The whole loop — the strategist, chat `/buy`, P&L,
 pings, the journal — works with zero funds, zero faucet, zero Pimlico. Add a
 Pimlico key and the same wall signs for real. Upgrade any time with
-`merrymen update` (stops the band, installs, restarts — no Windows file-lock).
+`oathwall update` (stops the band, installs, restarts — no Windows file-lock).
 
 ---
 
@@ -140,50 +140,50 @@ Pimlico key and the same wall signs for real. Upgrade any time with
 Self-hosted, terminal-first. Install once, run from anywhere. No clone.
 
 **No Node yet? One line does everything** — installs Node if missing, then
-merrymen, and puts it on PATH:
+oathwall, and puts it on PATH:
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/millw14/merrymen/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.ps1 | iex
 ```
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/millw14/merrymen/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.sh | bash
 ```
 
 **Already have Node 22.12+?**
 
 ```bash
-npm install -g merrymen            # or: npm i -g github:millw14/merrymen
-merrymen setup                     # checks node / npm / PATH, prints exact fixes
-merrymen onboard                   # optional wizard: Pimlico key, strategy, basket (all skippable)
-merrymen start                     # dashboard at localhost:3100 + the worker
+npm install -g oathwall            # or: npm i -g github:rempprandy-afk/oathwall
+oathwall setup                     # checks node / npm / PATH, prints exact fixes
+oathwall onboard                   # optional wizard: Pimlico key, strategy, basket (all skippable)
+oathwall start                     # dashboard at localhost:3100 + the worker
 ```
 
-Requires Node 22.12+. `merrymen setup` diagnoses the two things that trip people
+Requires Node 22.12+. `oathwall setup` diagnoses the two things that trip people
 up — an old Node, and npm's global-bin folder missing from PATH.
 
-> **`merrymen: command not found`?** npm's global-bin folder isn't on PATH. Use
-> `npx merrymen start` (works everywhere), or add it once:
+> **`oathwall: command not found`?** npm's global-bin folder isn't on PATH. Use
+> `npx oathwall start` (works everywhere), or add it once:
 > - **Windows:** `[Environment]::SetEnvironmentVariable("Path", [Environment]::GetEnvironmentVariable("Path","User") + ";$env:APPDATA\npm", "User")` then reopen the terminal
 > - **macOS/Linux:** put `$(npm prefix -g)/bin` on your `PATH` (in `~/.zshrc` / `~/.bashrc`)
 
 > **Windows: `running scripts is disabled on this system` / `PSSecurityException`?**
-> PowerShell's default `Restricted` policy blocks npm's and merrymen's `.ps1`
+> PowerShell's default `Restricted` policy blocks npm's and oathwall's `.ps1`
 > shims. The installer now relaxes it for you; if you installed earlier, run once
 > (no admin, current user only): `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
-> Or just call `merrymen.cmd …` (or use cmd.exe / Git Bash) to skip the policy.
+> Or just call `oathwall.cmd …` (or use cmd.exe / Git Bash) to skip the policy.
 
 The dashboard binds to **localhost only** — it has no login and holds your
 trading controls, so it isn't reachable from your network. To open it to a
 trusted LAN (your phone on home WiFi), start with
-`MERRYMEN_HOST=0.0.0.0 merrymen start`.
+`OATHWALL_HOST=0.0.0.0 oathwall start`.
 
 ---
 
 ## 2 · Create & fund your agent wallet
 
-Open `localhost:3100/grant`. There's nothing to connect — merrymen generates a
+Open `localhost:3100/grant`. There's nothing to connect — oathwall generates a
 fresh account, shows you the owner key to **back up** (lose it and the funds are
 gone), and lets you fund it. **Pick your ground:**
 
@@ -218,12 +218,12 @@ rather than left to flatter the design. On BNB that contract is deployed
 One correction inside the correction: the default singleton counts ops for the
 **life of the grant**, not per day, so wiring it under the name "trades per day"
 would have meant 48 *ever* rather than 48 a day — the agent going quiet on day
-one with nothing saying why. merrymen installs the **refilling** variant
+one with nothing saying why. oathwall installs the **refilling** variant
 explicitly, and `worker/src/wall.test.ts` pins the interval at 86,400 so the
 lifetime one cannot come back by default.
 
 > **Going live is one key.** To sign real trades, paste a free [Pimlico](https://dashboard.pimlico.io)
-> API key in `/settings` — merrymen builds the bundler URL for your wallet's chain
+> API key in `/settings` — oathwall builds the bundler URL for your wallet's chain
 > automatically, so it can never point at the wrong one. No key = **practice mode**:
 > real market, full policy + simulation, no signing. Advanced users can still supply
 > a full bundler URL (Alchemy or self-hosted) instead.
@@ -233,19 +233,19 @@ lifetime one cannot come back by default.
 ## 3 · Run it
 
 ```bash
-merrymen start      # dashboard (localhost:3100) + the 24/7 worker
-merrymen doctor     # node / keys / RPC / bundler / grant / db diagnostics
-merrymen status     # heartbeat, grant, trades, equity
-merrymen selftest   # one policy-legal no-op through the full pipeline
-merrymen kill       # kill switch from the terminal (destroys the grant)
-merrymen recover    # sweep the account's funds to a wallet you control
+oathwall start      # dashboard (localhost:3100) + the 24/7 worker
+oathwall doctor     # node / keys / RPC / bundler / grant / db diagnostics
+oathwall status     # heartbeat, grant, trades, equity
+oathwall selftest   # one policy-legal no-op through the full pipeline
+oathwall kill       # kill switch from the terminal (destroys the grant)
+oathwall recover    # sweep the account's funds to a wallet you control
 ```
 
 > **Getting your funds back out.** The address you funded is an ERC-4337 **smart
 > account**, not a plain wallet — its owner key derives a *different* address, so
 > importing that key into MetaMask shows an empty wallet, not your funds (this
 > trips everyone up once). To move money out — including after a kill switch —
-> run **`merrymen recover`**: it rebuilds the account from your owner key (or a
+> run **`oathwall recover`**: it rebuilds the account from your owner key (or a
 > backed-up key you paste) and sweeps every balance to any address you choose in
 > one signed op. It needs a bundler key, same as live trading.
 
@@ -262,12 +262,12 @@ merrymen recover    # sweep the account's funds to a wallet you control
 >    signs a brand-new session key on your existing account. **No funds move, no
 >    gas is spent.**
 >
-> merrymen runs **one agent per install**. To run two funded wallets at once, give
-> each its own `MERRYMEN_HOME` (e.g. `MERRYMEN_HOME=~/.merrymen-b merrymen start`).
+> oathwall runs **one agent per install**. To run two funded wallets at once, give
+> each its own `OATHWALL_HOME` (e.g. `OATHWALL_HOME=~/.oathwall-b oathwall start`).
 
 The worker's loop each tick: **grant sync → market safety (prices, pauses,
 sequencer) → strategy proposes → policy check → quote simulation → execute →
-record**. It re-reads `~/.merrymen/settings.json` every tick, so changes from the
+record**. It re-reads `~/.oathwall/settings.json` every tick, so changes from the
 dashboard apply within one tick — connection changes re-arm the executor,
 strategy changes rebuild in place; no restart. The dashboard shows live
 positions, the trade record (with simulation receipts), the event feed, and a
@@ -275,7 +275,7 @@ kill switch; the public scoreboard is at `/scoreboard`.
 
 ---
 
-## 4 · Chat with your merryman (Telegram)
+## 4 · Chat with your agent (Telegram)
 
 Link a bot and run the band from your phone — natural-language chat plus slash
 commands, all inside the same permission walls. Telegram is a **control surface,
@@ -299,7 +299,7 @@ doing?", "pause everything", "send 20 USDT to 0x…", "ping me when BTCB hits 80
 | command | does |
 |---|---|
 | `/status` `/positions` `/pnl` `/trades` | read the live book |
-| `/report` · `/brag` · `/why` | daily campfire report · shareable scorecard · explain the last trade |
+| `/report` · `/brag` · `/why` | daily report · shareable scorecard · explain the last trade |
 | `/buy <SYM> <amount>` `/sell <SYM> <amount>` | trade (passes the policy wall) |
 | `/transfer <0x…> <amount>` | send cash out — **always asks you to `/confirm`** |
 | `/alert <SYM> > <price>` `/alerts` `/unalert <n>` | one-shot price alerts |
@@ -310,7 +310,7 @@ doing?", "pause everything", "send 20 USDT to 0x…", "ping me when BTCB hits 80
 
 **It speaks first, too** (toggle in `/settings`): a ping the moment a trade lands
 or the wall turns one back; warnings when the grant nears expiry, drawdown nears
-the breaker, or gas runs low; your price alerts; and a **daily campfire report**
+the breaker, or gas runs low; your price alerts; and a **daily report**
 at the hour you pick.
 
 **Transfers are refused outright.** A wallet signed today registers no
@@ -318,7 +318,7 @@ withdrawal address, so its call policy carries no cash transfer permission at
 all — the chain would refuse the send, and the worker refuses it first rather
 than paying gas to be told no. A prompt-injected "send everything to 0xevil"
 gets a flat no before anything is built. Money leaves through your owner key
-(`merrymen recover`), which no wall can block and no chat message can reach.
+(`oathwall recover`), which no wall can block and no chat message can reach.
 
 Wallets signed before the withdrawal allowlist landed do carry a transfer
 permission; for those, `/transfer` still applies its own guards — off by
@@ -326,9 +326,9 @@ default, and every transfer echoes the full recipient address and waits for an
 explicit `/confirm` (90s). Turn off all state-changing commands with the
 **control** toggle for read + chat only.
 
-### Remote control — your merryman runs your PC (OpenClaw-style)
+### Remote control — your agent runs your PC (OpenClaw-style)
 
-Enable the **remote control** section in `/settings` and your merryman can act on
+Enable the **remote control** section in `/settings` and your agent can act on
 the machine it runs on, from Telegram:
 
 | capability | what it does |
@@ -357,17 +357,17 @@ Windows is fully supported; macOS/Linux use the standard tools (`screencapture`,
 `open`, `pbcopy`, …) and say so where one isn't present. Voice needs an
 OpenAI-compatible transcription key (set it in the dashboard).
 
-### Your merryman has a soul
+### Your agent has a soul
 
-Every merryman is an individual with a name **you** give it — and it grows with
-you. Its soul lives as plain markdown in **`~/.merrymen/soul/`** that it keeps up
+Every agent is an individual with a name **you** give it — and it grows with
+you. Its soul lives as plain markdown in **`~/.oathwall/soul/`** that it keeps up
 to date itself (read or edit it with any editor):
 
 | file | what it holds |
 |---|---|
 | `IDENTITY.md` | who it is — its name (`/name Will Scarlet`), born date |
 | `OWNER.md` | what it's learned about **you**, one dated line at a time |
-| `JOURNAL.md` | a first-person entry it writes at campfire time |
+| `JOURNAL.md` | a first-person entry it writes at report time |
 
 The longer you ride together, the closer the bond: *new companion* → *trusted
 companion* (a week) → *old friend* (a month) → *sworn brother-in-arms* (100
@@ -381,25 +381,25 @@ recipient into a prompt.
 
 ## Strategies
 
-Pick one in `/settings` (or `/strategy <name>` from Telegram; `MERRYMEN_STRATEGY`
+Pick one in `/settings` (or `/strategy <name>` from Telegram; `OATHWALL_STRATEGY`
 is the headless fallback):
 
 | name | what it does |
 |---|---|
 | `steady-basket` (default) | DCA a weighted basket of majors per tick. The idle-cash sweep is **off**: BNB has no ERC-4626 venue, so the tick refuses out loud rather than parking silently |
 | `llm-strategist` | Claude proposes typed buy/sell/hold at decision windows; deterministic code validates and disposes — the model never sees an address or emits calldata. Needs an Anthropic key |
-| `even-keel` 🏹 | Keeps the basket at equal weight — trims winners, tops up laggards — to harvest mean reversion. **Merry Circle** (holder-only) |
-| `dip-hunter` 🏹 | Concentrates each tick on the basket token furthest below its rolling high. **Merry Circle** (holder-only) |
+| `even-keel` 🛡 | Keeps the basket at equal weight — trims winners, tops up laggards — to harvest mean reversion. **Oathwall Circle** (holder-only) |
+| `dip-hunter` 🛡 | Concentrates each tick on the basket token furthest below its rolling high. **Oathwall Circle** (holder-only) |
 
 ### Write your own
 
-Your strategies live in **`~/.merrymen/strategies/`** — hot-reloaded on save,
+Your strategies live in **`~/.oathwall/strategies/`** — hot-reloaded on save,
 crash-isolated, and incapable of exceeding the caps you signed (every intent
 passes shape validation → the policy wall → quote simulation → the on-chain
 session key):
 
 ```bash
-merrymen strategy new my-bot       # commented template in ~/.merrymen/strategies
+oathwall strategy new my-bot       # commented template in ~/.oathwall/strategies
 # edit it, select "my-bot" in /settings — done
 ```
 
@@ -415,7 +415,7 @@ The built-in registry is the majors — WBNB, BTCB, ETH, CAKE, USDC — curated 
 Chainlink-priced. Anything else on BNB Chain you add yourself in `/settings`:
 paste the symbol, the contract address, and its decimals.
 
-**How they're priced.** There's no Chainlink feed for a memecoin, so merrymen reads
+**How they're priced.** There's no Chainlink feed for a memecoin, so oathwall reads
 the Uniswap v3 pool — but a spot price on a thin pool is worth nothing: anyone with
 moderate capital can push it for a block, and that number would feed your equity,
 your P&L and your drawdown breaker. So:
@@ -426,7 +426,7 @@ your P&L and your drawdown breaker. So:
   maximum spot-vs-average gap (default 5%). Live pools on this chain run from ~$3k
   to ~$1.2M, so the default admits the deep end and refuses the rest.
 - **A refusal is the feature.** When a pool is too thin or is being pushed right
-  now, the token stays *unpriced* and merrymen says why. Your agent keeps trading
+  now, the token stays *unpriced* and oathwall says why. Your agent keeps trading
   — you can always sell out — but equity, P&L and the breaker pause rather than
   running on a number nobody should trust.
 - **Most longtail tokens price through WBNB.** Most BNB pools quote against WBNB
@@ -456,15 +456,15 @@ needs no extra approval and no extra re-sign.
 ### Keep it running
 
 ```bash
-merrymen service install
+oathwall service install
 ```
 
-Starts your merryman when you log in, and brings it back after a reboot. On
+Starts your agent when you log in, and brings it back after a reboot. On
 Windows it uses Task Scheduler where it can and the Startup folder where that
 would need admin — a trading agent shouldn't be asking for elevation. macOS gets
 a launchd agent, Linux a `systemd --user` unit with lingering enabled. All
-user-scoped, all removed completely by `merrymen service uninstall`, and
-`merrymen doctor` tells you whether it's installed *and* whether it's actually
+user-scoped, all removed completely by `oathwall service uninstall`, and
+`oathwall doctor` tells you whether it's installed *and* whether it's actually
 running — those are different questions.
 
 **What it does not do: run while the computer is off.** Nothing does except a
@@ -480,7 +480,7 @@ a per-token approval sealed into your signature.** So a token with a live pool b
 no approval buys fine and can never be sold — the exit reverts, with your money
 inside it.
 
-merrymen refuses the buy. If your key can't sell something, it won't buy it, and
+oathwall refuses the buy. If your key can't sell something, it won't buy it, and
 it tells you which symbols and why. A missed trade is recoverable; a position with
 no way out is not. Re-sign at `/grant` to widen the list.
 
@@ -493,27 +493,27 @@ npx tsx scripts/probe-tradability.mts
 
 ---
 
-## $MERRYMEN — the Merry Circle
+## $OATHWALL — the Oathwall Circle
 
-merrymen is **free and open to everyone**, whether you hold the token or not. Holding
-**$MERRYMEN** ([the token page](https://merrymen.dev/token)) just adds
+oathwall is **free and open to everyone**, whether you hold the token or not. Holding
+**$OATHWALL** ([the token page](https://oathwall.dev/token)) just adds
 holder perks — it buys *access*, never the product. **Utility only: no price, no returns, no
 buyback/burn.**
 
-Paste the wallet you hold $MERRYMEN in into the dashboard's **Merry Circle** panel (or set
-`holderAddress` in `/settings`). merrymen reads that balance **read-only** — it never asks for or
+Paste the wallet you hold $OATHWALL in into the dashboard's **Oathwall Circle** panel (or set
+`holderAddress` in `/settings`). oathwall reads that balance **read-only** — it never asks for or
 touches the wallet's keys — and sets your tier:
 
 | tier | hold | perk |
 |---|---|---|
-| 🌱 **Villager of Sherwood** | 10k+ | **10% off** the platform performance fee · badge · 1× roadmap vote |
-| 🏹 **Merry Man** | 100k+ | **25% off** · the bonus strategy pack (`even-keel`, `dip-hunter`) · 3× vote |
-| 👑 **Lord of Sherwood** | 1M+ | **50% off** — the lowest we offer · every bonus strategy · 10× vote |
+| 🌱 **Member** | 10k+ | **10% off** the platform performance fee · badge · 1× roadmap vote |
+| 🛡 **Delegate** | 100k+ | **25% off** · the bonus strategy pack (`even-keel`, `dip-hunter`) · 3× vote |
+| 👑 **Council** | 1M+ | **50% off** — the lowest we offer · every bonus strategy · 10× vote |
 
-The fee discount is real: merrymen's performance fee is only ever taken on profit above your
+The fee discount is real: oathwall's performance fee is only ever taken on profit above your
 high-water mark, and your tier lowers it in the **actual accrual** (shown live in the panel), not
 just in the copy. Holders also steer the roadmap — which tokens join the basket, which strategies
-ship — weighted by tier ([governance](https://merrymen.dev/governance)). Thresholds live in
+ship — weighted by tier ([governance](https://oathwall.dev/governance)). Thresholds live in
 [`packages/core/src/token.ts`](./packages/core/src/token.ts).
 
 ---
@@ -535,12 +535,12 @@ ship — weighted by tier ([governance](https://merrymen.dev/governance)). Thres
   policy layer over synthetic prices.
 - `contracts` — the on-chain drawdown breaker: `BreakerRegistry` +
   `KernelBreakerPolicy` (Kernel v3 module type 5 — fails every UserOp once
-  tripped). `npm test -w @merrymen/contracts`; deployment waits on a funded key.
+  tripped). `npm test -w @oathwall/contracts`; deployment waits on a funded key.
   Until deployed, the breaker is worker-enforced.
 
 ### Develop from a clone
 ```bash
-git clone https://github.com/millw14/merrymen && cd merrymen
+git clone https://github.com/rempprandy-afk/oathwall && cd oathwall
 npm install          # prepare hook builds the dashboard
 npm run onboard && npm start
 # or run halves separately: npm run dev:web · npm run dev:worker
@@ -550,23 +550,23 @@ npm run typecheck && npm test
 ### Configuration
 The dashboard `/settings` is the source of truth (Anthropic/Telegram keys,
 bundler + RPC URLs, strategy + every trading knob, the Telegram + PC-control
-toggles and allowlists). Saved to `~/.merrymen/settings.json`; secrets are masked
+toggles and allowlists). Saved to `~/.oathwall/settings.json`; secrets are masked
 to their last 4 and never echo back to the browser. Precedence:
 **settings file > env var > default.** Env vars are the headless fallback:
 
 | var | default | meaning |
 |---|---|---|
-| `MERRYMEN_HOST` | `127.0.0.1` | dashboard bind host; set `0.0.0.0` for trusted-LAN access |
-| `MERRYMEN_BUNDLER_API_KEY` | — | Pimlico API key; the bundler URL is built for your grant's chain automatically |
-| `MERRYMEN_BUNDLER_URL` | — | advanced: full 4337 bundler RPC (overrides the key); without either, execution is stubbed |
-| `MERRYMEN_SWAP_VENUE` | `pancakeswap` | the only venue on this chain; a stale `rialto` is refused at execution rather than silently rerouted |
-| `MERRYMEN_SLIPPAGE_BPS` | `100` | max slippage vs the QuoterV2 simulation |
-| `MERRYMEN_GRANT_FILE` | `~/.merrymen/grant.json` | grant handoff written by the web app |
-| `MERRYMEN_STRATEGY` | `steady-basket` | strategy name (see table above) |
-| `MERRYMEN_PERF_FEE_BPS` | `1000` | performance fee on profit above the high-water mark (accrual-only) |
-| `MERRYMEN_BREAKER_ADDRESS` | — | deployed BreakerRegistry; a tripped breaker halts all intents |
+| `OATHWALL_HOST` | `127.0.0.1` | dashboard bind host; set `0.0.0.0` for trusted-LAN access |
+| `OATHWALL_BUNDLER_API_KEY` | — | Pimlico API key; the bundler URL is built for your grant's chain automatically |
+| `OATHWALL_BUNDLER_URL` | — | advanced: full 4337 bundler RPC (overrides the key); without either, execution is stubbed |
+| `OATHWALL_SWAP_VENUE` | `pancakeswap` | the only venue on this chain; a stale `rialto` is refused at execution rather than silently rerouted |
+| `OATHWALL_SLIPPAGE_BPS` | `100` | max slippage vs the QuoterV2 simulation |
+| `OATHWALL_GRANT_FILE` | `~/.oathwall/grant.json` | grant handoff written by the web app |
+| `OATHWALL_STRATEGY` | `steady-basket` | strategy name (see table above) |
+| `OATHWALL_PERF_FEE_BPS` | `1000` | performance fee on profit above the high-water mark (accrual-only) |
+| `OATHWALL_BREAKER_ADDRESS` | — | deployed BreakerRegistry; a tripped breaker halts all intents |
 | `ANTHROPIC_API_KEY` | — | LLM strategist driver + Telegram natural-language chat + vision |
-| `MERRYMEN_TELEGRAM_BOT_TOKEN` | — | @BotFather token; enables the Telegram bridge (all other Telegram + PC-control settings live in `/settings`) |
+| `OATHWALL_TELEGRAM_BOT_TOKEN` | — | @BotFather token; enables the Telegram bridge (all other Telegram + PC-control settings live in `/settings`) |
 
 `npm test` covers the policy mirror, strategies, venue math (slippage, quote
 selection, calldata), the cash-decimals invariant that a position's value scales

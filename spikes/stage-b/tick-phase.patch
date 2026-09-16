@@ -19,7 +19,7 @@ index d0373a9..cde1a4a 100644
 +  // WHERE this tenant sits inside the tick period, forever. See tick-phase.ts
 +  // for why the phase is derived rather than random, and why the grid is
 +  // absolute rather than relative.
-+  const phase = tenantIdentity(process.env, merrymenHome());
++  const phase = tenantIdentity(process.env, oathwallHome());
 +  console.log(
 +    `[tick] phase +${(tickOffsetMs(phase.id, cfg.tickSeconds) / 1000).toFixed(3)}s ` +
 +      `of ${cfg.tickSeconds}s, resolved from ${phase.source}` +
@@ -79,16 +79,16 @@ index 8162c57..890df1a 100644
 +++ b/worker/src/orchestrator.ts
 @@ -138,6 +138,14 @@ export function childEnv(tenant: string): NodeJS.ProcessEnv {
    for (const k of CHILD_SECRET_STRIP) delete env[k];
-   env.MERRYMEN_HOSTED = "1";
-   env.MERRYMEN_HOME = childHome(tenant);
+   env.OATHWALL_HOSTED = "1";
+   env.OATHWALL_HOME = childHome(tenant);
 +  // WHO THIS CHILD IS, said out loud rather than inferred from the path above.
 +  // tick-phase.ts derives this process's permanent tick offset from it, and it
-+  // otherwise falls back to the MERRYMEN_HOME basename — so if that layout ever
++  // otherwise falls back to the OATHWALL_HOME basename — so if that layout ever
 +  // changed, every child would hash the same string and the whole fleet would
 +  // silently re-synchronise into the spawn burst the offset exists to break up.
 +  // One explicit variable removes the inference. Not a secret: it is the
 +  // tenant's own public address, and the child already reads it from grant.json.
-+  env.MERRYMEN_TENANT = tenant.toLowerCase();
++  env.OATHWALL_TENANT = tenant.toLowerCase();
    return env;
  }
  
@@ -206,7 +206,7 @@ index 0000000..b49e708
 +/**
 + * Which tenant am I?
 + *
-+ * MERRYMEN_TENANT is set explicitly by childEnv(). The MERRYMEN_HOME basename is
++ * OATHWALL_TENANT is set explicitly by childEnv(). The OATHWALL_HOME basename is
 + * the fallback, because childHome() is `<home>/children/<lowercased tenant>` —
 + * but it is ONLY a fallback, and the caller logs which one answered. If this
 + * ever silently stopped resolving to a tenant address, every child would hash
@@ -218,11 +218,11 @@ index 0000000..b49e708
 +  env: NodeJS.ProcessEnv,
 +  homeDir: string,
 +): { id: string; source: string } {
-+  const explicit = (env.MERRYMEN_TENANT ?? "").trim().toLowerCase();
-+  if (/^0x[0-9a-f]{40}$/.test(explicit)) return { id: explicit, source: "MERRYMEN_TENANT" };
++  const explicit = (env.OATHWALL_TENANT ?? "").trim().toLowerCase();
++  if (/^0x[0-9a-f]{40}$/.test(explicit)) return { id: explicit, source: "OATHWALL_TENANT" };
 +  const base = String(homeDir).split(/[\\/]/).filter(Boolean).pop() ?? "";
 +  const low = base.trim().toLowerCase();
-+  if (/^0x[0-9a-f]{40}$/.test(low)) return { id: low, source: "MERRYMEN_HOME basename" };
++  if (/^0x[0-9a-f]{40}$/.test(low)) return { id: low, source: "OATHWALL_HOME basename" };
 +  // Self-hosted: one process, nothing to spread against. Deterministic anyway.
 +  return { id: String(homeDir).toLowerCase(), source: "home path (not a tenant address)" };
 +}

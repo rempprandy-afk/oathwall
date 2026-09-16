@@ -44,7 +44,7 @@
  */
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { merrymenHome } from "./home";
+import { oathwallHome } from "./home";
 
 /**
  * How many agents one owner may wire in.
@@ -85,7 +85,7 @@ const newestFirst = (a: FollowEdge, b: FollowEdge) => b.createdAt - a.createdAt;
 // ── file backend ─────────────────────────────────────────────────────────────
 
 export class FileFollowStore implements FollowStore {
-  private dir = path.join(merrymenHome(), "follows");
+  private dir = path.join(oathwallHome(), "follows");
   private file(tenant: string) {
     return path.join(this.dir, `${tenant.toLowerCase()}.json`);
   }

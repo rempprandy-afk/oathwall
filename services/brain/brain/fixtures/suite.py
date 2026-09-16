@@ -84,7 +84,7 @@ _DEGRADED = PortfolioQuality(
 
 def _held(symbol: str, value: float, cost: float) -> Position:
     return Position(
-        instrument_id=f"merrymen:{symbol.lower()}",
+        instrument_id=f"oathwall:{symbol.lower()}",
         symbol=symbol,
         qty="1",
         value_usdg=int(value * USDG),

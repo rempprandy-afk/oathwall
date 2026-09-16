@@ -31,7 +31,7 @@ const GOOD: PortfolioQuality = {
 };
 
 const pos = (over: Partial<SnapshotPosition> = {}): SnapshotPosition => ({
-  instrumentId: "merrymen:tsla",
+  instrumentId: "oathwall:tsla",
   symbol: "TSLA",
   qtyRaw: "4420417000000000",
   valueUsdg: toMicro(6.55),

@@ -8,7 +8,7 @@
  * attached; a boolean makes it a typo.
  *
  * Prefix matching, comma separated, `all` accepted — the exact shape
- * `MERRYMEN_RECONCILE_SHADOW` already uses, so an operator who has enabled one
+ * `OATHWALL_RECONCILE_SHADOW` already uses, so an operator who has enabled one
  * shadow feature already knows how to enable this one. Reusing a convention is
  * worth more than a marginally better one nobody remembers.
  *
@@ -16,7 +16,7 @@
  * for a feature that spends money has to be silence.
  */
 export function shadowBrainEnabledFor(id: string, env: NodeJS.ProcessEnv = process.env): boolean {
-  const raw = (env.MERRYMEN_BRAIN_SHADOW ?? "").trim();
+  const raw = (env.OATHWALL_BRAIN_SHADOW ?? "").trim();
   if (!raw) return false;
   const want = id.trim().toLowerCase();
   if (!want) return false;

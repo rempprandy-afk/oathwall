@@ -8,7 +8,7 @@ const MAINNET = bnbChain.id; // 56
 const TESTNET = bnbTestnet.id; // 97
 
 const statusCtx = (chainId: number | null): StatusContext => ({
-  name: "Robin",
+  name: "Warden",
   strategy: "steady-basket",
   venue: "pancakeswap",
   paused: false,
@@ -25,7 +25,7 @@ describe("/status chain line — you always know which mode the band rides", () 
   it("testnet reads as practice only", () => {
     assert.match(readStatus(statusCtx(TESTNET)), new RegExp(`testnet ${TESTNET} — <b>practice only</b>`));
   });
-  // People fund testnet, see 0, and think merrymen is broken. /status must say why.
+  // People fund testnet, see 0, and think oathwall is broken. /status must say why.
   it("testnet explains that funded balances are neither used nor shown", () => {
     const out = readStatus({ ...statusCtx(TESTNET), paperStartUsdg: 1000 });
     assert.match(out, /not used and not shown/);
@@ -93,7 +93,7 @@ describe("bundlerChainMismatch — the silent-failure guard", () => {
   it("does NOT match a chain id that is merely a PREFIX of the one in the URL", () => {
     // The BNB-era version of the old 4663-inside-46630 collision: 56 is a
     // prefix of 5611 (opBNB testnet). A bare substring search would report a
-    // mismatch against a URL that names a chain merrymen has no opinion about,
+    // mismatch against a URL that names a chain oathwall has no opinion about,
     // and refuse to arm a perfectly good install.
     assert.equal(bundlerChainMismatch("https://api.pimlico.io/v2/5611/rpc", MAINNET), null);
     assert.equal(bundlerChainMismatch("https://api.pimlico.io/v2/970/rpc", TESTNET), null);

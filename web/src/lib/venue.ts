@@ -15,7 +15,7 @@
  *    set `httpOnly, secure, sameSite:"strict", path:"/"` — `path:"/"` is what
  *    matters. `/yahoo/…` is same-origin, so the browser attaches the cookie,
  *    and a Next rewrite proxies the request upstream with its headers. Every
- *    chart view on a hosted deployment posted a live merrymen session to
+ *    chart view on a hosted deployment posted a live oathwall session to
  *    Yahoo. `sameSite:"strict"` does not help: this IS the site.
  *
  * 2. IT IS AN OPEN PROXY. `:path*` means anyone on the internet can drive our
@@ -40,7 +40,7 @@
  * fetched, so the decision can be tested without one.
  */
 
-import { TRADABLE_TOKENS } from "@merrymen/core";
+import { TRADABLE_TOKENS } from "@oathwall/core";
 
 /** Hosts this app will talk to on a reader's behalf, and nothing else. */
 export const VENUE_HOSTS = {
@@ -133,7 +133,7 @@ export function holdersUrl(address: string): string | null {
  *
  * THE POINT OF THIS FUNCTION IS WHAT IT DOES NOT RETURN. No cookie, no
  * authorization, no referer, no forwarded-for — nothing that identifies the
- * reader. A venue learns that merrymen asked about TSLA; it does not learn who
+ * reader. A venue learns that oathwall asked about TSLA; it does not learn who
  * was looking, and it cannot be handed a session to replay.
  */
 export function venueHeaders(): Record<string, string> {
@@ -141,7 +141,7 @@ export function venueHeaders(): Record<string, string> {
     accept: "application/json",
     // Yahoo's chart endpoint returns 401 to a bare client. A product name is
     // the honest thing to send and is also the thing a rate-limiter should see.
-    "user-agent": "merrymen/1 (+https://merrymen.dev)",
+    "user-agent": "oathwall/1 (+https://oathwall.dev)",
   };
 }
 

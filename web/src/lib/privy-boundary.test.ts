@@ -1,18 +1,18 @@
 /**
  * WHAT PRIVY IS NOT ALLOWED TO BE HERE.
  *
- * Two Privy features would quietly replace architecture merrymen already has,
+ * Two Privy features would quietly replace architecture oathwall already has,
  * and both are opt-in — which means the only thing standing between "not
  * enabled" and "enabled" is that nobody imported them. That is not a boundary,
  * it is an absence, so this file makes the absence a test.
  *
- *   SMART WALLETS. Privy can create its own ERC-4337 account. Merrymen already
+ *   SMART WALLETS. Privy can create its own ERC-4337 account. Oathwall already
  *   has Kernel v3.3, the permission wall, existing smart-account addresses and
  *   a bundler path. A second smart-account implementation beside them means two
  *   answers to "where are the funds", and the ledger keys on one of them.
  *
  *   SERVER-SIDE SIGNERS. Privy can be delegated authority to sign on a user's
- *   behalf from a backend. Merrymen's whole custody story is that the server is
+ *   behalf from a backend. Oathwall's whole custody story is that the server is
  *   never custodian — the hosted grant intake returns 422 for a payload
  *   carrying key material. A delegated signer is that, with extra steps.
  *
@@ -83,7 +83,7 @@ describe("privy smart wallets are absent, not merely unused", () => {
     assert.equal(
       existsSync(join(ROOT, "node_modules", "permissionless")),
       false,
-      "permissionless is installed — check why; merrymen must not gain a second smart-account stack",
+      "permissionless is installed — check why; oathwall must not gain a second smart-account stack",
     );
   });
 });
@@ -192,7 +192,7 @@ describe("the beta flag is separate from the credentials", () => {
     // Shipping the code and enabling the login are two decisions. Merging must
     // not change what a user sees; one variable must.
     const src = codeOf("web/src/lib/privy-client.ts");
-    assert.match(src, /NEXT_PUBLIC_MERRYMEN_PRIVY_BETA/);
+    assert.match(src, /NEXT_PUBLIC_OATHWALL_PRIVY_BETA/);
     assert.match(src, /return BETA && /, "both the switch AND a well-formed id");
   });
 
@@ -229,6 +229,6 @@ describe("the client picks the embedded wallet deliberately", () => {
       "the flat v2 shape is silently ignored on v3 — no wallet, no error",
     );
     assert.match(src, /supportedChains:\s*\[bnbChain\]/);
-    assert.ok(!/defineChain\(/.test(src), "chain 4663 comes from @merrymen/core, never a second definition");
+    assert.ok(!/defineChain\(/.test(src), "chain 4663 comes from @oathwall/core, never a second definition");
   });
 });

@@ -26,8 +26,8 @@ import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-paper-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-paper-"));
+process.env.OATHWALL_HOME = HOME;
 
 const { admitCapitalFlow, tradingModeOf } = await import("./paper-boundary");
 const { initStore, addFlow, ensureAgent, setAgentMode, listFlows, getNetContributionsUsdg } = await import("./store");

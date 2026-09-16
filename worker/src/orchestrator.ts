@@ -1,7 +1,7 @@
 /**
  * The hosted supervisor — one worker child per tenant.
  *
- * merrymen's worker keeps ~35 pieces of per-agent state (the `active` handle, the
+ * oathwall's worker keeps ~35 pieces of per-agent state (the `active` handle, the
  * money counters, the price/HWM caches, the discovery cursors) as locals INSIDE
  * main()'s closure, and only four true module globals (the sqlite handle, the
  * mainnet client, the grant-store cache, the ensureHome latch) — all per-process.
@@ -13,7 +13,7 @@
  *  - reconcile: read the grant store, spawn a child for every tenant that has a
  *    grant and isn't running, stop the child of any tenant whose grant is gone
  *    (the kill switch);
- *  - each child gets its OWN MERRYMEN_HOME (…/children/<tenant>) with the tenant's
+ *  - each child gets its OWN OATHWALL_HOME (…/children/<tenant>) with the tenant's
  *    session-key-only grant written to grant.json, and a curated env that carries
  *    the platform's house keys (bundler/RPC/LLM) but NOT the orchestrator-only
  *    secrets (the store DEK, the session secret, the database URL);
@@ -40,12 +40,12 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { merrymenHome } from "./home";
+import { oathwallHome } from "./home";
 import { getGrantStore } from "./grant-store";
 import { getIdentityStore } from "./identity-store";
 import { getSettingsStore } from "./settings-store";
 import { acquireTenantLease, type TenantLease } from "./tenant-lease";
-import { CASH, bnbChain, cashToNumber, isHostedMode, TRADABLE_TOKENS, type MerrymenSettings } from "../../packages/core/src/index";
+import { CASH, bnbChain, cashToNumber, isHostedMode, TRADABLE_TOKENS, type OathwallSettings } from "../../packages/core/src/index";
 import { makePgDb, translateSchema, type Db } from "./db";
 import { BOOTSTRAP_FILE, BOOTSTRAP_SCHEMA_VERSION, type TenantBootstrapState } from "./bootstrap-state";
 import { deriveBootstrapAccounting } from "./bootstrap-source";
@@ -95,7 +95,7 @@ let cohortPasses = 0;
  *
  * A CONSTANT HERE WAS A BUG, AND IT WAS ARITHMETIC RATHER THAN A RACE. The
  * heartbeat is written once per tick, so the minimum possible gap between two
- * beats is the tick period. With `MERRYMEN_TICK_SECONDS=240` on the hosted
+ * beats is the tick period. With `OATHWALL_TICK_SECONDS=240` on the hosted
  * fleet and this fixed at 180, every child was SIGKILLed at ~185s — before its
  * SECOND TICK EVER RAN. Measured: all 71 observed `heartbeat stale` events
  * landed in a 181-196s band, which is exactly 180 plus one 15s poll interval.
@@ -156,8 +156,8 @@ const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..", "..")
  * still has PATH and the OS essentials node needs to run.
  */
 const CHILD_SECRET_STRIP = [
-  "MERRYMEN_STORE_DEK",
-  "MERRYMEN_SESSION_SECRET",
+  "OATHWALL_STORE_DEK",
+  "OATHWALL_SESSION_SECRET",
   "DATABASE_URL",
   // THE NEWS PROVIDER TOKEN. A fourth kind of secret and it belongs here for a
   // fourth reason: it is not what a child could misuse, it is what a child
@@ -167,21 +167,21 @@ const CHILD_SECRET_STRIP = [
   // any of those is a published key. Stripping it makes "the Brain service
   // never sees this token" a fact about the process boundary rather than a
   // claim about our own carefulness. See research-files.ts.
-  "MERRYMEN_MARKETAUX_API_KEY",
+  "OATHWALL_MARKETAUX_API_KEY",
   // Privy authenticates PEOPLE at the web edge. A worker child acts for an
   // agent that is already authorized by a signed grant; it has no login to
   // verify and no reason to hold the key that would verify one.
   "PRIVY_APP_SECRET",
 ] as const;
 
-/** Where a tenant's child keeps its own ~/.merrymen — isolated from every other. */
+/** Where a tenant's child keeps its own ~/.oathwall — isolated from every other. */
 export function childHome(tenant: string): string {
-  return path.join(merrymenHome(), "children", tenant.toLowerCase());
+  return path.join(oathwallHome(), "children", tenant.toLowerCase());
 }
 
 /** The fleet-halt marker: present = stop every child and spawn none. Operator-only. */
 export function fleetHaltFile(): string {
-  return path.join(merrymenHome(), "FLEET_HALT");
+  return path.join(oathwallHome(), "FLEET_HALT");
 }
 
 /**
@@ -193,7 +193,7 @@ export function fleetHaltFile(): string {
  * stripped rather than clobbering. Mutates `settings` and returns true when it
  * stripped a duplicate.
  */
-export function dedupeBotToken(settings: MerrymenSettings, seen: Set<string>): boolean {
+export function dedupeBotToken(settings: OathwallSettings, seen: Set<string>): boolean {
   const token = settings.telegramBotToken;
   if (!token) return false;
   if (seen.has(token)) {
@@ -212,8 +212,8 @@ export function dedupeBotToken(settings: MerrymenSettings, seen: Set<string>): b
 export function childEnv(tenant: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env };
   for (const k of CHILD_SECRET_STRIP) delete env[k];
-  env.MERRYMEN_HOSTED = "1";
-  env.MERRYMEN_HOME = childHome(tenant);
+  env.OATHWALL_HOSTED = "1";
+  env.OATHWALL_HOME = childHome(tenant);
   return env;
 }
 
@@ -399,7 +399,7 @@ async function refreshGrantForChild(tenant: `0x${string}`): Promise<void> {
 async function writeSettingsForChild(
   tenant: `0x${string}`,
   seenBotTokens?: Set<string>,
-): Promise<MerrymenSettings | null> {
+): Promise<OathwallSettings | null> {
   try {
     const settings = await getSettingsStore().get(tenant);
     if (!settings) return null;
@@ -574,7 +574,7 @@ async function spawnChild(tenant: `0x${string}`, restarts = 0): Promise<void> {
 
 /** The fleet-wide tick, for a tenant whose own settings do not name one. */
 function envTickSeconds(): number {
-  const raw = Number(process.env.MERRYMEN_TICK_SECONDS);
+  const raw = Number(process.env.OATHWALL_TICK_SECONDS);
   return Number.isFinite(raw) && raw > 0 ? raw : 60;
 }
 
@@ -874,7 +874,7 @@ async function fleetHealth(): Promise<void> {
  * the flag; and it must never be able to stop the fleet arming, hence the catch.
  */
 async function runAccountingDiagnosisIfAsked(): Promise<void> {
-  if ((process.env.MERRYMEN_ACCOUNTING_DIAGNOSE ?? "").trim() !== "1") return;
+  if ((process.env.OATHWALL_ACCOUNTING_DIAGNOSE ?? "").trim() !== "1") return;
   const url = process.env.DATABASE_URL;
   if (!url) {
     log("accounting diagnosis asked for, but there is no DATABASE_URL");
@@ -901,7 +901,7 @@ async function runAccountingDiagnosisIfAsked(): Promise<void> {
 /**
  * WHERE THE GAS WENT, for one or more named accounts. READ ONLY.
  *
- * `MERRYMEN_GAS_AUDIT=0xabc,0xdef` (or `all`). Only SELECTs, and the module it
+ * `OATHWALL_GAS_AUDIT=0xabc,0xdef` (or `all`). Only SELECTs, and the module it
  * calls has no database handle at all — it is handed rows and returns strings,
  * which is the same shape `accounting-preview` uses and for the same reason:
  * a reporting path that cannot write cannot be argued with.
@@ -911,7 +911,7 @@ async function runAccountingDiagnosisIfAsked(): Promise<void> {
  * writes ~200 lines a minute. A report that does not fit is not a report.
  */
 async function runGasAuditIfAsked(): Promise<void> {
-  const want = (process.env.MERRYMEN_GAS_AUDIT ?? "").trim();
+  const want = (process.env.OATHWALL_GAS_AUDIT ?? "").trim();
   if (!want) return;
   const url = process.env.DATABASE_URL;
   if (!url) {
@@ -980,12 +980,12 @@ async function runGasAuditIfAsked(): Promise<void> {
 /**
  * WHICH AGENTS ARE WORTH SHADOWING. READ ONLY.
  *
- * `MERRYMEN_COHORT_VET=1`. Prints one block per agent so a cohort is chosen
+ * `OATHWALL_COHORT_VET=1`. Prints one block per agent so a cohort is chosen
  * from evidence rather than from balances — see cohort-vetting.ts for why the
  * balance is the wrong signal.
  */
 async function runCohortVettingIfAsked(): Promise<void> {
-  if ((process.env.MERRYMEN_COHORT_VET ?? "").trim() !== "1") return;
+  if ((process.env.OATHWALL_COHORT_VET ?? "").trim() !== "1") return;
   const url = process.env.DATABASE_URL;
   if (!url) {
     log("cohort vetting asked for, but there is no DATABASE_URL");
@@ -1090,7 +1090,7 @@ async function runCohortVettingIfAsked(): Promise<void> {
 }
 
 /**
- * THE SHADOW DATASET. READ ONLY. `MERRYMEN_BRAIN_DATASET=1`.
+ * THE SHADOW DATASET. READ ONLY. `OATHWALL_BRAIN_DATASET=1`.
  *
  * Every field is already persisted; this is the only way to read it back.
  * Shared Postgres is private-network-only and `railway logs` is a 503-line
@@ -1098,7 +1098,7 @@ async function runCohortVettingIfAsked(): Promise<void> {
  * an afternoon is durable in the database and invisible to anyone looking.
  */
 async function runBrainDatasetIfAsked(): Promise<void> {
-  if ((process.env.MERRYMEN_BRAIN_DATASET ?? "").trim() !== "1") return;
+  if ((process.env.OATHWALL_BRAIN_DATASET ?? "").trim() !== "1") return;
   const url = process.env.DATABASE_URL;
   if (!url) {
     log("brain dataset asked for, but there is no DATABASE_URL");
@@ -1144,7 +1144,7 @@ async function runBrainDatasetIfAsked(): Promise<void> {
 }
 
 /**
- * THE IDENTITY AUDIT. READ ONLY. `MERRYMEN_IDENTITY_AUDIT=1`.
+ * THE IDENTITY AUDIT. READ ONLY. `OATHWALL_IDENTITY_AUDIT=1`.
  *
  * Runs before any uniqueness constraint is added, because a UNIQUE index over a
  * table that already violates it fails inside the store's lazy bootstrap — and
@@ -1154,7 +1154,7 @@ async function runBrainDatasetIfAsked(): Promise<void> {
  * person owns an agent.
  */
 async function runIdentityAuditIfAsked(): Promise<void> {
-  if ((process.env.MERRYMEN_IDENTITY_AUDIT ?? "").trim() !== "1") return;
+  if ((process.env.OATHWALL_IDENTITY_AUDIT ?? "").trim() !== "1") return;
   const url = process.env.DATABASE_URL;
   if (!url) {
     log("identity audit asked for, but there is no DATABASE_URL");
@@ -1226,7 +1226,7 @@ async function runIdentityAuditIfAsked(): Promise<void> {
 }
 
 async function runReconstructionDryRunIfAsked(): Promise<void> {
-  if ((process.env.MERRYMEN_ACCOUNTING_RECONSTRUCT ?? "").trim() !== "1") return;
+  if ((process.env.OATHWALL_ACCOUNTING_RECONSTRUCT ?? "").trim() !== "1") return;
   const url = process.env.DATABASE_URL;
   if (!url) {
     log("reconstruction dry run asked for, but there is no DATABASE_URL");
@@ -1303,7 +1303,7 @@ async function runReconstructionDryRunIfAsked(): Promise<void> {
 
     // SCAN ONLY WHAT IS BEING REPAIRED.
     //
-    // A scoped run — MERRYMEN_REPAIR_ACCOUNT naming one account — was still
+    // A scoped run — OATHWALL_REPAIR_ACCOUNT naming one account — was still
     // sweeping the chain for all 24, which is both pointless and actively
     // harmful: the sweep shares an RPC with 24 live children, and the extra
     // load is what earns the rate limits that mark coverage short. The canary's
@@ -1318,7 +1318,7 @@ async function runReconstructionDryRunIfAsked(): Promise<void> {
     // scoped run still reports 24/24 — the accounts outside the scope simply
     // carry no chain evidence and say so.
     const scopeTo = new Set(
-      (process.env.MERRYMEN_REPAIR_ACCOUNT ?? "")
+      (process.env.OATHWALL_REPAIR_ACCOUNT ?? "")
         .split(",")
         .map((a) => a.trim().toLowerCase())
         .filter((a) => a.startsWith("0x")),
@@ -1326,7 +1326,7 @@ async function runReconstructionDryRunIfAsked(): Promise<void> {
     const allAccounts = agents.map((a) => String(a.smart_account)).filter((a) => a.startsWith("0x"));
     const accounts = scopeTo.size ? allAccounts.filter((a) => scopeTo.has(a.toLowerCase())) : allAccounts;
     if (scopeTo.size && accounts.length === 0) {
-      log("recon| MERRYMEN_REPAIR_ACCOUNT matches no account in the roster — nothing to scan");
+      log("recon| OATHWALL_REPAIR_ACCOUNT matches no account in the roster — nothing to scan");
     }
     if (scopeTo.size > accounts.length) {
       // LOUD. A named account that is not in the roster will silently do
@@ -1338,9 +1338,9 @@ async function runReconstructionDryRunIfAsked(): Promise<void> {
     }
     // The registry's own endpoint, not a second copy — this default was the
     // last live Robinhood Chain RPC in the worker, so an operator who set no
-    // MERRYMEN_RPC_MAINNET had the reconciler reading 4663 while everything
+    // OATHWALL_RPC_MAINNET had the reconciler reading 4663 while everything
     // else read BNB.
-    const rpcUrl = process.env.MERRYMEN_RPC_MAINNET ?? bnbChain.rpcUrls.default.http[0]!;
+    const rpcUrl = process.env.OATHWALL_RPC_MAINNET ?? bnbChain.rpcUrls.default.http[0]!;
     let rpcId = 1;
     const rpc = async (method: string, params: unknown[]): Promise<unknown> => {
       const r = await fetch(rpcUrl, {
@@ -1439,11 +1439,11 @@ async function runRepairIfAsked(shared: Db, plans: readonly AccountPlan[]): Prom
     // The accounts being mutated are always named. runRepair refuses this too;
     // saying it here as well means the log shows WHY nothing happened rather
     // than just showing nothing happening.
-    log("repair| refusing a commit with no named accounts — set MERRYMEN_REPAIR_ACCOUNT");
+    log("repair| refusing a commit with no named accounts — set OATHWALL_REPAIR_ACCOUNT");
     return;
   }
 
-  const chainId = Number(process.env.MERRYMEN_CHAIN_ID ?? bnbChain.id);
+  const chainId = Number(process.env.OATHWALL_CHAIN_ID ?? bnbChain.id);
   const results = await runRepair(shared, plans, opts, chainId, (r) =>
     log(`repair| ${r.account.slice(0, 10)} ${r.stage} — ${r.why}`),
   );
@@ -1569,13 +1569,13 @@ async function runNewsPass(): Promise<void> {
       fleetNewsDesk = makeNewsDesk({
         // Read here and nowhere else. CHILD_SECRET_STRIP removes it from every
         // child's environment, so this process is the only one that holds it.
-        apiKey: process.env.MERRYMEN_MARKETAUX_API_KEY ?? "",
-        dailyLimit: Number(process.env.MERRYMEN_MARKETAUX_DAILY_LIMIT) || undefined,
-        articlesPerRequest: Number(process.env.MERRYMEN_MARKETAUX_LIMIT) || undefined,
+        apiKey: process.env.OATHWALL_MARKETAUX_API_KEY ?? "",
+        dailyLimit: Number(process.env.OATHWALL_MARKETAUX_DAILY_LIMIT) || undefined,
+        articlesPerRequest: Number(process.env.OATHWALL_MARKETAUX_LIMIT) || undefined,
         // Unset by default: the derived window is chosen so the allowance lasts
         // a whole day, and overriding it is how an operator on a paid tier buys
         // a fresher desk — or how one on a shared key exhausts it.
-        windowSec: Number(process.env.MERRYMEN_MARKETAUX_WINDOW_SEC) || undefined,
+        windowSec: Number(process.env.OATHWALL_MARKETAUX_WINDOW_SEC) || undefined,
       });
       log(`news: ${fleetNewsDesk.plan().why}`);
     }
@@ -1817,10 +1817,10 @@ function haltRequested(): boolean {
 
 export async function runOrchestrator(): Promise<void> {
   if (!isHostedMode()) {
-    log("MERRYMEN_HOSTED is not set — the orchestrator only runs in hosted mode. Refusing to start.");
+    log("OATHWALL_HOSTED is not set — the orchestrator only runs in hosted mode. Refusing to start.");
     process.exit(1);
   }
-  log(`starting — home ${merrymenHome()}, worker ${WORKER_ENTRY}`);
+  log(`starting — home ${oathwallHome()}, worker ${WORKER_ENTRY}`);
   await runAccountingDiagnosisIfAsked();
   await runReconstructionDryRunIfAsked();
   await runGasAuditIfAsked();

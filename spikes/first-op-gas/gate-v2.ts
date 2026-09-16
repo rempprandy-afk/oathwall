@@ -105,7 +105,7 @@ export const FIRST_ENABLE_ABSOLUTE_CAP = 12_000_000n;
 /**
  * WHY SIZE THE CEILING AT ALL, WHEN 12,000,000 IS ALREADY A CEILING?
  *
- * Because 12,000,000 is the ceiling for the LARGEST wall merrymen will sign,
+ * Because 12,000,000 is the ceiling for the LARGEST wall oathwall will sign,
  * and it is handed to every enable regardless of the wall it actually carries.
  * A grant with a 2-permission wall estimates at ~1.5M and, under a flat ceiling,
  * carries 10.5M of unused authority. Nothing today exploits that gap — but it is
@@ -281,7 +281,7 @@ export function isFirstEnable(nonce: bigint): boolean {
  * A permission validator's ORDINARY stub signature is the session key's bare
  * ECDSA stub: 65 bytes. An ENABLE stub is
  * `hook(20) ‖ abi.encode(enableData, hookData, selectorData, enableSig, userOpSig)`
- * and measures 10,932 bytes for merrymen's 18-permission wall, ~2,388 bytes for
+ * and measures 10,932 bytes for oathwall's 18-permission wall, ~2,388 bytes for
  * a 2-permission wall, and (measured in gate-v2-measure.ts) never below ~1,900
  * bytes for a wall with a single permission — because the ONE_OF lists, the
  * timestamp policy and the owner's EIP-712 enable signature are all present

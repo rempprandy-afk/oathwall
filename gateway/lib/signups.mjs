@@ -22,7 +22,7 @@ import { appendFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 /** Where the volume is mounted. Overridable so tests can point somewhere else. */
-const DIR = process.env.MERRYMEN_DATA_DIR || "/data";
+const DIR = process.env.OATHWALL_DATA_DIR || "/data";
 const FILE = path.join(DIR, "ios-beta.jsonl");
 
 /** Generous but finite — the longest real addresses are ~60 chars. */

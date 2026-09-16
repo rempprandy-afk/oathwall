@@ -92,7 +92,7 @@
 .sc-root .agentchip .glyph { width: 34px; height: 34px; border-radius: 9px; flex: none; display: grid; place-items: center; font-size: 17px; background: var(--panel-2); border: 1px solid var(--line-2); }
 .sc-root .agentchip .nm { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
 /* The name is the control. No new button for people who don't care what he's
-   called — the nudge shows only while he's still the default "Robin". */
+   called — the nudge shows only while he's still the default "Warden". */
 .sc-root .namechip { display: inline-flex; align-items: center; gap: 8px; }
 .sc-root button.nm { font-family: inherit; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; border-bottom: 1px dashed transparent; transition: border-color .16s; }
 .sc-root button.nm:hover { border-bottom-color: var(--line-2); }

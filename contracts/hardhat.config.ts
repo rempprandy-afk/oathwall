@@ -36,19 +36,19 @@ const config: HardhatUserConfig = {
   // probed on 2026-09-09: 56 at block 120,892,489 and 97 at 130,037,320.
   //
   // The deployer key comes from the ENVIRONMENT, never a file: set
-  // MERRYMEN_DEPLOYER_PRIVATE_KEY in the shell that runs the deploy, and close
+  // OATHWALL_DEPLOYER_PRIVATE_KEY in the shell that runs the deploy, and close
   // that shell afterwards. When it is absent, `accounts` is empty and
   // compile/test behave exactly as before — nothing in CI needs the key.
   networks: {
     bnbTestnet: {
       url: "https://bsc-testnet-dataseed.bnbchain.org",
       chainId: 97,
-      accounts: process.env.MERRYMEN_DEPLOYER_PRIVATE_KEY ? [process.env.MERRYMEN_DEPLOYER_PRIVATE_KEY] : [],
+      accounts: process.env.OATHWALL_DEPLOYER_PRIVATE_KEY ? [process.env.OATHWALL_DEPLOYER_PRIVATE_KEY] : [],
     },
     bnb: {
       url: "https://bsc-dataseed.bnbchain.org",
       chainId: 56,
-      accounts: process.env.MERRYMEN_DEPLOYER_PRIVATE_KEY ? [process.env.MERRYMEN_DEPLOYER_PRIVATE_KEY] : [],
+      accounts: process.env.OATHWALL_DEPLOYER_PRIVATE_KEY ? [process.env.OATHWALL_DEPLOYER_PRIVATE_KEY] : [],
     },
   },
 };

@@ -46,7 +46,7 @@ function resolve(fromFile: string, spec: string): string | null {
   let base: string;
   if (spec.startsWith("@/")) base = path.join(SRC, spec.slice(2));
   else if (spec.startsWith(".")) base = path.resolve(path.dirname(fromFile), spec);
-  else return null; // a package, or a @merrymen/* alias into worker/core
+  else return null; // a package, or a @oathwall/* alias into worker/core
   for (const candidate of [
     base,
     `${base}.ts`,

@@ -25,6 +25,10 @@
  * test here rather than rendering as nothing on a funding page.
  */
 
+import { CASH_SYMBOL, bnbChain, gasSymbol } from "@oathwall/core";
+
+const GAS = gasSymbol(bnbChain.id);
+
 /** What a funding screen says about one blocker. Null where funding is not the fix. */
 export interface BlockerAdvice {
   /** One line, addressed to the person who can act. */
@@ -37,11 +41,11 @@ const ADVICE: Readonly<Record<string, BlockerAdvice>> = Object.freeze({
   // THE ONE THIS WAS BUILT FOR. Every operation pays its own fee before it
   // reaches the chain, and USDG cannot pay it.
   "no-gas": {
-    say: "Your agent has no ETH, and every trade pays a network fee before it reaches the chain. Send a small amount of ETH to the same address — a few dollars covers a lot of trades.",
+    say: `Your agent has no ${GAS}, and every trade pays a network fee before it reaches the chain. Send a small amount of ${GAS} to the same address, on ${bnbChain.name} — a few dollars covers a lot of trades.`,
     funding: true,
   },
   "no-cash": {
-    say: "Your agent has no USDG to trade with. Send USDG to the address below.",
+    say: `Your agent has no ${CASH_SYMBOL} to trade with. Send ${CASH_SYMBOL} (BEP-20, on ${bnbChain.name}) to the address below.`,
     funding: true,
   },
   // MONEY IS NOT THE FIX FOR THESE THREE, and saying "add funds" would be the
@@ -52,7 +56,7 @@ const ADVICE: Readonly<Record<string, BlockerAdvice>> = Object.freeze({
     funding: false,
   },
   "wrong-chain": {
-    say: "This agent's permission is for a different network than the one trading happens on. It needs a new grant on Robinhood Chain; funds sent here will sit unused.",
+    say: `This agent's permission is for a different network than the one trading happens on. It needs a new grant on ${bnbChain.name}; funds sent here will sit unused.`,
     funding: false,
   },
   "not-armed": {

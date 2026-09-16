@@ -68,7 +68,7 @@ export interface TriggerConfig {
  * and the per-reason cooldowns and the per-run budget still apply underneath.
  */
 export function scheduledInterval(env: NodeJS.ProcessEnv = process.env): number {
-  const raw = Number((env.MERRYMEN_BRAIN_INTERVAL_SEC ?? "").trim());
+  const raw = Number((env.OATHWALL_BRAIN_INTERVAL_SEC ?? "").trim());
   if (!Number.isFinite(raw) || raw < 60) return 4 * 3600;
   return Math.floor(raw);
 }

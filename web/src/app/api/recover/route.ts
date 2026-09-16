@@ -4,10 +4,10 @@
  * The funded address is a counterfactual ERC-4337 smart account; its owner key
  * controls it but derives a DIFFERENT address, and after a kill the session key
  * is gone. This rebuilds the account from the OWNER key (sudo) and sweeps every
- * balance to an address the user controls — the same engine `merrymen recover`
+ * balance to an address the user controls — the same engine `oathwall recover`
  * runs on the CLI (worker/src/recover.ts), reused here so there's one code path.
  *
- * Key handling: for an active grant the owner key is read from ~/.merrymen/
+ * Key handling: for an active grant the owner key is read from ~/.oathwall/
  * grant.json and NEVER leaves the server. For a killed/expired agent (no grant
  * file) the user pastes their backed-up key; it reaches only this localhost
  * route, is used to sign one op, and is never logged or echoed back. The bundler
@@ -20,17 +20,17 @@
 
 import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
-import { homePaths } from "@merrymen/home";
+import { homePaths } from "@oathwall/home";
 import {
   chainForId,
   explorerFor,
   isHostedMode,
   pimlicoBundlerUrl,
   bnbChain,
-  type MerrymenSettings,
+  type OathwallSettings,
   type StoredGrant,
-} from "@merrymen/core";
-import { planRecovery, recoverFunds } from "@merrymen/recover";
+} from "@oathwall/core";
+import { planRecovery, recoverFunds } from "@oathwall/recover";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,24 +47,24 @@ async function readGrant(): Promise<StoredGrant | null> {
   }
 }
 
-async function readSettings(): Promise<MerrymenSettings> {
+async function readSettings(): Promise<OathwallSettings> {
   try {
-    return JSON.parse((await readFile(homePaths.settings(), "utf8")).replace(/^﻿/, "")) as MerrymenSettings;
+    return JSON.parse((await readFile(homePaths.settings(), "utf8")).replace(/^﻿/, "")) as OathwallSettings;
   } catch {
     return {};
   }
 }
 
 /** The effective bundler URL: explicit URL wins, else build Pimlico's from the key. */
-function bundlerFor(settings: MerrymenSettings, chainId: number): string | undefined {
+function bundlerFor(settings: OathwallSettings, chainId: number): string | undefined {
   if (settings.bundlerUrl) return settings.bundlerUrl;
   if (settings.bundlerApiKey) return pimlicoBundlerUrl(chainId, settings.bundlerApiKey);
-  if (process.env.MERRYMEN_BUNDLER_URL) return process.env.MERRYMEN_BUNDLER_URL;
-  if (process.env.MERRYMEN_BUNDLER_API_KEY) return pimlicoBundlerUrl(chainId, process.env.MERRYMEN_BUNDLER_API_KEY);
+  if (process.env.OATHWALL_BUNDLER_URL) return process.env.OATHWALL_BUNDLER_URL;
+  if (process.env.OATHWALL_BUNDLER_API_KEY) return pimlicoBundlerUrl(chainId, process.env.OATHWALL_BUNDLER_API_KEY);
   return undefined;
 }
 
-function rpcFor(settings: MerrymenSettings, chainId: number): string | undefined {
+function rpcFor(settings: OathwallSettings, chainId: number): string | undefined {
   return chainId === bnbChain.id ? settings.rpcMainnet : settings.rpcTestnet;
 }
 

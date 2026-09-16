@@ -121,7 +121,7 @@ async function main() {
   console.log(`vanilla v4 pools found at standard tiers: ${total}`);
   if (total === 0) {
     console.log(`\nNothing reachable by guessing a PoolKey. Either the liquidity is on v3`);
-    console.log(`(which merrymen already trades), or the v4 pools here are HOOKED — and a`);
+    console.log(`(which oathwall already trades), or the v4 pools here are HOOKED — and a`);
     console.log(`hook address cannot be guessed, so those need Bitquery's Initialize events`);
     console.log(`to discover the real PoolKey before any of them can be quoted or traded.`);
   }

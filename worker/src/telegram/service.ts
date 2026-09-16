@@ -1,5 +1,5 @@
 /**
- * Telegram poll service — the merryman's always-on ear.
+ * Telegram poll service — the agent's always-on ear.
  *
  * An independent, self-scheduling long-poll loop (setTimeout + .finally, NEVER
  * setInterval, NEVER inside the trading tick) started once from the worker's
@@ -19,7 +19,7 @@
  */
 
 import { existsSync, rmSync, writeFileSync } from "node:fs";
-// RELATIVE import only — the "@merrymen/core" alias exists solely in dev
+// RELATIVE import only — the "@oathwall/core" alias exists solely in dev
 // tsconfigs; inside the installed package tsx can't resolve it and the worker
 // dies at startup (which silently kills Telegram). Never alias-import in worker/.
 import { PC_CAPABILITIES } from "../../../packages/core/src/index";
@@ -136,7 +136,7 @@ export function startTelegram(deps: TelegramServiceDeps): { stop: () => void } {
   const stateRef = deps.stateRef;
   let warnedUnreachable = false;
   const now = deps.now ?? (() => Math.floor(Date.now() / 1000));
-  ensureSoul(now()); // the merryman is born (IDENTITY/OWNER/JOURNAL.md) on first run
+  ensureSoul(now()); // the agent is born (IDENTITY/OWNER/JOURNAL.md) on first run
 
   // Per-chat runtime (in-memory only — cleared on restart, which is safe):
   // Keyed by `${chatId}:${fromId}` — a parked action is bound to the USER who
@@ -178,7 +178,7 @@ export function startTelegram(deps: TelegramServiceDeps): { stop: () => void } {
    * The in-memory map is now a CACHE over the sqlite log, not the source of
    * truth. First touch of a chat after a restart pulls the conversation back
    * from disk — before this, every restart silently wiped the thread and the
-   * merryman greeted a mid-conversation owner like a stranger.
+   * agent greeted a mid-conversation owner like a stranger.
    */
   const historyFor = async (chatId: number): Promise<{ role: "user" | "assistant"; content: string }[]> => {
     let h = history.get(chatId);
@@ -203,7 +203,7 @@ export function startTelegram(deps: TelegramServiceDeps): { stop: () => void } {
       }).filter((t) => t.content.length > 0);
       history.set(chatId, h);
       // Restore the last turn's recalled ids too, so a pronoun sent right after
-      // a restart still lands on whatever the merryman was just talking about.
+      // a restart still lands on whatever the agent was just talking about.
       const lastWithIds = [...(await recentChatTurns(chatId, 4))].reverse().find((t) => t.memoryIds?.length);
       if (lastWithIds?.memoryIds?.length) stickyIds.set(chatId, new Set(lastWithIds.memoryIds));
     }
@@ -307,7 +307,7 @@ export function startTelegram(deps: TelegramServiceDeps): { stop: () => void } {
       ].filter((s): s is string => typeof s === "string" && s.length >= 8);
       const stopFlag = { stopped: false };
       agentRuns.set(msg.chatId, stopFlag);
-      await sendMessage({ token }, msg.chatId, "🏹 on it — I'll message progress here. Say “stop” to halt me.");
+      await sendMessage({ token }, msg.chatId, "🛡 on it — I'll message progress here. Say “stop” to halt me.");
       void runAgentTask(task, {
         creds: llm,
         cfg: {
@@ -476,7 +476,7 @@ export function startTelegram(deps: TelegramServiceDeps): { stop: () => void } {
         const r = setSoulName(name);
         if (r.ok) {
           deps.onNameChange?.(r.name);
-          deps.note("ok", `Telegram: the merryman is now called ${r.name}`);
+          deps.note("ok", `Telegram: the agent is now called ${r.name}`);
         }
         return r;
       },
@@ -486,14 +486,14 @@ export function startTelegram(deps: TelegramServiceDeps): { stop: () => void } {
         const rel = relationship(st.linkedAt, st.messageCount, now());
         const facts = ownerFacts();
         return [
-          `🌳 <b>${esc(getName())}</b> of the merrymen`,
+          `🌳 <b>${esc(getName())}</b> of the oathwall`,
           `• ${ageDays(now())} days old · born ${getBornDate()} · ${rel.stage}`,
           `• ${rel.daysTogether} day(s) riding with you · ${rel.messageCount} messages shared`,
           facts.length
             ? `• what I know about you:\n${facts.slice(-8).map((f) => `  ${esc(f.replace(/^- /, "· "))}`).join("\n")}`
             : `• I don't know much about you yet — tell me things, or /remember them for me`,
           ``,
-          `my soul lives in ~/.merrymen/soul/ — read it, edit it, it's yours. /name renames me · /forget wipes what I know.`,
+          `my soul lives in ~/.oathwall/soul/ — read it, edit it, it's yours. /name renames me · /forget wipes what I know.`,
         ].join("\n");
       },
       // /forget must now clear the CONVERSATION too, not just OWNER.md —

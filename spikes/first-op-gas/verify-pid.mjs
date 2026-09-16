@@ -6,12 +6,12 @@ async function rpc(m,p){for(let a=0;a<6;a++){try{
   const j=await r.json(); if(j.error) return {ERR:j.error.message}; return j.result;
 }catch(e){await new Promise(s=>setTimeout(s,700*(a+1)));}} return "UNREAD";}
 const SEL="0xc3e58978"; // permissionConfig(bytes4)
-const M="0x032Da6A0Ccf866474e45854E7fDEF9afd1509036"; // merrymen's live account
+const M="0x032Da6A0Ccf866474e45854E7fDEF9afd1509036"; // oathwall's live account
 const A="0xa48cE91e2F3237E69660C1543042c007B8D33e75"; // has an installed permission validator
 const cases=[
   [A,"0x3ca1cec8","POSITIVE CONTROL — pId provably installed on THIS account"],
   [A,"0xdeadbeef","NEGATIVE CONTROL — bogus pId, same account"],
-  [M,"0x3ca1cec8","merrymen live acct, a pId installed on a DIFFERENT account"],
+  [M,"0x3ca1cec8","oathwall live acct, a pId installed on a DIFFERENT account"],
 ];
 for(let i=0;i<5;i++){
   const r="0x"+[...crypto.getRandomValues(new Uint8Array(4))].map(x=>x.toString(16).padStart(2,"0")).join("");

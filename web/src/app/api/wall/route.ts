@@ -14,8 +14,8 @@ import {
   chainForId,
   explorerFor,
   type StoredGrant,
-} from "@merrymen/core";
-import { runWallBattery } from "@merrymen/wall-battery";
+} from "@oathwall/core";
+import { runWallBattery } from "@oathwall/wall-battery";
 
 export interface WallInfo {
   armed: boolean;

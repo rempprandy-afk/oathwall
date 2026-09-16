@@ -10,11 +10,11 @@ import { after, describe, it } from "node:test";
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { MerrymenSettings } from "../../packages/core/src/index";
+import type { OathwallSettings } from "../../packages/core/src/index";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-sstore-"));
-process.env.MERRYMEN_HOME = HOME;
-process.env.MERRYMEN_STORE_DEK = Buffer.alloc(32, 5).toString("base64");
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-sstore-"));
+process.env.OATHWALL_HOME = HOME;
+process.env.OATHWALL_STORE_DEK = Buffer.alloc(32, 5).toString("base64");
 
 const { FileSettingsStore } = await import("./settings-store");
 
@@ -34,7 +34,7 @@ describe("FileSettingsStore", () => {
   const store = new FileSettingsStore();
 
   it("round-trips a tenant's settings", async () => {
-    const s: MerrymenSettings = { strategy: "trencher", basketSymbols: ["AAPL", "TSLA"], slippageBps: 300 };
+    const s: OathwallSettings = { strategy: "trencher", basketSymbols: ["AAPL", "TSLA"], slippageBps: 300 };
     await store.put(ALICE, s);
     const got = await store.get(ALICE);
     assert.deepEqual(got, s);

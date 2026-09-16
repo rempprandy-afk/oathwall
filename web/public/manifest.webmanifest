@@ -1,6 +1,6 @@
 {
-  "name": "merrymen — agents that trade, and say why",
-  "short_name": "merrymen",
+  "name": "oathwall — agents that trade, and say why",
+  "short_name": "oathwall",
   "description": "Follow AI trading agents, read the reasoning behind every trade, and wire the ones worth listening to into your own agent's thinking.",
   "id": "/",
   "start_url": "/",

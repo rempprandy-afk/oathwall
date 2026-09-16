@@ -23,7 +23,7 @@ web/.next/cache/
 **/tsconfig.tsbuildinfo
 
 # brand assets used only by the README (1.3MB — keep installs light)
-web/public/merrymenlogo.png
+web/public/oathwalllogo.png
 
 # tooling / editor
 .claude/

@@ -18,7 +18,7 @@ import {
   type CustomToken,
   type GrantCaps,
   type StoredGrant,
-} from "@merrymen/core";
+} from "@oathwall/core";
 import { accountFromMnemonic } from "./mnemonic";
 import { isMock } from "@/net/api";
 
@@ -84,7 +84,7 @@ export async function signGrant(args: {
   // app was lying about, with one small chip as the only warning.
   //
   // The guard lives at the signing chokepoint rather than on the screen,
-  // because the screen is reachable by deep link (`merrymen://onboarding/grant`)
+  // because the screen is reachable by deep link (`oathwall://onboarding/grant`)
   // and a UI-only check would be routed around rather than enforced.
   //
   // Deliberately NOT applied to recovery: sweeping funds out is the escape

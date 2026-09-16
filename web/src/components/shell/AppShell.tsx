@@ -42,7 +42,7 @@ export function AppShell({
       <nav className="mm-rail" aria-label="Main">
         <Link href="/" className="mm-brand">
           <LogoMark size={22} />
-          <span>merrymen</span>
+          <span>oathwall</span>
         </Link>
         <ul>
           {NAV.map((n) => (

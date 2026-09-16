@@ -17,7 +17,7 @@ import type { WallTape } from "@/lib/read-wall-tape";
  * their real time distribution, so a quiet night is a sparse stretch and a busy
  * hour is a burst. Nothing is topped up to make the picture denser.
  *
- * WHY THIS AND NOT SOMETHING PRETTIER. merrymen is a boundary — agents are
+ * WHY THIS AND NOT SOMETHING PRETTIER. oathwall is a boundary — agents are
  * refused constantly and visibly, and one live agent is sitting on 1,225
  * refusals and zero fills. The product already shipped that fact as a button
  * that fires malicious intents through the policy code to watch them bounce,

@@ -1,7 +1,7 @@
 /**
- * The Merry Circle — read a holder's $MERRYMEN balance and resolve their tier.
+ * The Oathwall Circle — read a holder's $OATHWALL balance and resolve their tier.
  *
- * $MERRYMEN lives on Robinhood Chain mainnet (4663), so the balance is read
+ * $OATHWALL lives on Robinhood Chain mainnet (4663), so the balance is read
  * there regardless of which chain the agent trades on. Read-only: this only ever
  * calls balanceOf; the holder address is never a spend key. The tier lowers the
  * platform performance fee (worker/src/index.ts) and unlocks perks — utility,
@@ -12,7 +12,7 @@ import { createPublicClient, erc20Abi, http, type PublicClient } from "viem";
 import { chainRead } from "./rpc-meter";
 import {
   CIRCLE_TIERS,
-  MERRYMEN_TOKEN,
+  OATHWALL_TOKEN,
   bnbChain,
   tierForBalance,
   type CircleTier,
@@ -41,7 +41,7 @@ export async function readHolderStatus(
       transport: chainRead(rpcMainnet),
     });
     const raw = (await client.readContract({
-      address: MERRYMEN_TOKEN.address,
+      address: OATHWALL_TOKEN.address,
       abi: erc20Abi,
       functionName: "balanceOf",
       args: [holderAddress],

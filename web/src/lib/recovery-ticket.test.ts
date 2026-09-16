@@ -11,7 +11,7 @@ import { mintTicket, readTicket, recoveryChallengeMessage, TICKET_TTL_MS } from 
 const ACCOUNT = "0x032da6a0ccf866474e45854e7fdef9afd1509036" as const;
 
 before(() => {
-  process.env.MERRYMEN_SESSION_SECRET = "x".repeat(48);
+  process.env.OATHWALL_SESSION_SECRET = "x".repeat(48);
 });
 
 describe("recovery tickets", () => {
@@ -64,8 +64,8 @@ describe("the challenge text", () => {
     // A fixed message would make the signature a permanent bearer credential:
     // anyone who ever saw it — a log line, a support paste, a screenshot — could
     // mint tickets for that account forever, and could replay it at another site.
-    const m = recoveryChallengeMessage("https://app.merrymen.dev", "NONCE123");
-    assert.match(m, /https:\/\/app\.merrymen\.dev/);
+    const m = recoveryChallengeMessage("https://app.oathwall.dev", "NONCE123");
+    assert.match(m, /https:\/\/app\.oathwall\.dev/);
     assert.match(m, /NONCE123/);
     assert.notEqual(
       m,
@@ -74,7 +74,7 @@ describe("the challenge text", () => {
     );
     assert.notEqual(
       m,
-      recoveryChallengeMessage("https://app.merrymen.dev", "OTHER"),
+      recoveryChallengeMessage("https://app.oathwall.dev", "OTHER"),
       "and must not be reusable with a fresh nonce",
     );
   });
@@ -82,7 +82,7 @@ describe("the challenge text", () => {
   it("tells the signer, in words, that it moves no funds", () => {
     // Somebody is being asked to sign with the key that controls all their
     // money. They deserve a sentence rather than a hex blob.
-    const m = recoveryChallengeMessage("https://app.merrymen.dev", "N");
+    const m = recoveryChallengeMessage("https://app.oathwall.dev", "N");
     assert.match(m, /moves no funds/i);
   });
 });

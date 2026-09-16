@@ -1,5 +1,5 @@
 """
-HOW A MERRYMAN THINKS: analysts → debate → synthesis → risk → decision.
+HOW A AGENT THINKS: analysts → debate → synthesis → risk → decision.
 
 The topology is TradingAgents', and it is the part worth keeping — a fan-in of
 independent analysts, an adversarial bull/bear pass, a synthesising manager, and
@@ -55,7 +55,7 @@ from .schemas import (
 log = logging.getLogger(__name__)
 
 # ── The one instruction every node gets ────────────────────────────────────
-HOUSE_RULES = """You are one voice on a trading desk called Merrymen.
+HOUSE_RULES = """You are one voice on a trading desk called Oathwall.
 
 ABSOLUTE RULES:
 - Never output a blockchain address, contract address, calldata, or any 0x hex
@@ -520,7 +520,7 @@ class BrainGraph:
 
 def _lenses_for(instrument_class: str) -> list[str]:
     """
-    THE DESK IS INSTRUMENT-AWARE, and Merrymen decides the class, not the model.
+    THE DESK IS INSTRUMENT-AWARE, and Oathwall decides the class, not the model.
 
     Fundamentals is not deleted — it is routed. A tokenised equity has earnings;
     a memecoin has liquidity and a crowd. Running an earnings analyst on a
@@ -531,7 +531,7 @@ def _lenses_for(instrument_class: str) -> list[str]:
     # two answer different questions — what happened, and how a data provider
     # scored the tone of the reporting — and an analyst handed them together
     # cannot separate the observation from somebody else's verdict about it.
-    # It sits beside `sentiment`, which on this fleet is what other Merrymen
+    # It sits beside `sentiment`, which on this fleet is what other Oathwall
     # published; those are also different things and are also not merged.
     return {
         "equity-token": ["technical", "news", "news-sentiment", "sentiment", "fundamentals"],

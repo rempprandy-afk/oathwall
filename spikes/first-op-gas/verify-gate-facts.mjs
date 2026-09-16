@@ -47,8 +47,8 @@ async function permissionConfig(account, pId4) {
 }
 
 const ACCOUNTS = {
-  // merrymen's own live account: one UserOperation ever, a sudo deploy.
-  merrymen: "0x032Da6A0Ccf866474e45854E7fDEF9afd1509036",
+  // oathwall's own live account: one UserOperation ever, a sudo deploy.
+  oathwall: "0x032Da6A0Ccf866474e45854E7fDEF9afd1509036",
   // A live Kernel v3.3 account whose permission validator DID land.
   walled: "0xa48cE91e2F3237E69660C1543042c007B8D33e75",
   // No code at all.
@@ -104,7 +104,7 @@ async function main() {
     ["walled  · landed enable key", ACCOUNTS.walled, 0x01, 0x02, LANDED_PID],
     ["walled  · default key      ", ACCOUNTS.walled, 0x00, 0x02, LANDED_PID],
     ["walled  · never-used id    ", ACCOUNTS.walled, 0x01, 0x02, NEVER_PID],
-    ["merrymen· same id, never   ", ACCOUNTS.merrymen, 0x01, 0x02, LANDED_PID],
+    ["oathwall· same id, never   ", ACCOUNTS.oathwall, 0x01, 0x02, LANDED_PID],
   ];
   for (const [label, addr, mode, vType, pid] of cases) {
     const k = nonceKey(mode, vType, pid.replace(/^0x/, "") + "0".repeat(32));

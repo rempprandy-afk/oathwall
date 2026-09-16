@@ -2,7 +2,7 @@
  * METHOD B, PART 3 — VALIDATE THE SYNTHETIC DEPLOYMENT AGAINST GROUND TRUTH,
  * AND CHECK IT REPEATS.
  *
- * synth-deployed.ts measured a merrymen renewal on an account that was deployed
+ * synth-deployed.ts measured a oathwall renewal on an account that was deployed
  * only inside a state override. That number is worth nothing unless the same
  * harness, pointed at a SMALL wall, reproduces what small walls actually cost
  * when they land on chain 4663 for real.
@@ -89,8 +89,8 @@ const readEst = (r: { result?: unknown }) => {
 const f = (n: bigint | number) => Number(n).toLocaleString("en-US");
 
 async function main() {
-  const apiKey = process.env.MERRYMEN_BUNDLER_API_KEY;
-  if (!apiKey) { console.error("no MERRYMEN_BUNDLER_API_KEY — run under `railway run --service orchestrator --`"); process.exit(1); }
+  const apiKey = process.env.OATHWALL_BUNDLER_API_KEY;
+  if (!apiKey) { console.error("no OATHWALL_BUNDLER_API_KEY — run under `railway run --service orchestrator --`"); process.exit(1); }
   const bundler = pimlicoBundlerUrl(CHAIN_ID, apiKey);
   const publicClient = createPublicClient({ chain: chainForId(CHAIN_ID), transport: http(RPC) });
   const entryPoint = getEntryPoint("0.7");
@@ -171,8 +171,8 @@ async function main() {
     return { vD, vU, blob: (stubD.length - 2) / 2, S };
   };
 
-  // ── 1. REPEATABILITY: the full merrymen wall, three independent accounts ──
-  console.log(`\n── 1. REPEATABILITY · full merrymen wall · 3 independent throwaway accounts ──`);
+  // ── 1. REPEATABILITY: the full oathwall wall, three independent accounts ──
+  console.log(`\n── 1. REPEATABILITY · full oathwall wall · 3 independent throwaway accounts ──`);
   const reps: Array<{ vD: ReturnType<typeof readEst>; vU: ReturnType<typeof readEst>; blob: number }> = [];
   for (let i = 0; i < 3; i++) {
     const ownerKey = generatePrivateKey();
@@ -195,7 +195,7 @@ async function main() {
   const ec2 = await signerToEcdsaValidator(publicClient, { signer: own2, entryPoint, kernelVersion: KERNEL_V3_3 });
   const so2 = await createKernelAccount(publicClient, { entryPoint, kernelVersion: KERNEL_V3_3, plugins: { sudo: ec2 } });
   const all = buildCallPermissions(CAPS, so2.address, {});
-  console.log(`  merrymen's full wall carries ${all.length} call permissions`);
+  console.log(`  oathwall's full wall carries ${all.length} call permissions`);
   const now = Math.floor(Date.now() / 1000);
   const curve: Array<{ n: number; blob: number; ver: bigint | null; raw: bigint | null }> = [];
   for (const keep of [all.length, 8, 4, 2, 1]) {

@@ -6,13 +6,13 @@
  * can't import TypeScript at all — a constraint its own comments already note
  * about the provider list. So the value is mirrored by hand:
  *
- *   packages/core/src/token.ts   MERRYMEN_GATEWAY_ORIGIN  (the merrymen client)
+ *   packages/core/src/token.ts   OATHWALL_GATEWAY_ORIGIN  (the oathwall client)
  *   site/lib/gateway.ts          GATEWAY_ORIGIN           (the memescope page)
- *   cli/bin.mjs                  the merrymen provider's `key` hint, shown
+ *   cli/bin.mjs                  the oathwall provider's `key` hint, shown
  *                                during onboarding as where to claim a token
  *
  * Three hand-copies with one pending migration between them is a half-flip
- * waiting to happen: someone moves the client to ai.merrymen.dev, the website
+ * waiting to happen: someone moves the client to ai.oathwall.dev, the website
  * keeps calling Railway, and the onboarding text sends people to a third thing.
  * Each would look fine in isolation. This test is the thing that notices.
  */
@@ -26,8 +26,8 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /** The two hosts this project is allowed to point at, and why each exists. */
-const RAILWAY = "merrymen-gateway-production.up.railway.app";
-const CUSTOM = "ai.merrymen.dev";
+const RAILWAY = "oathwall-gateway-production.up.railway.app";
+const CUSTOM = "ai.oathwall.dev";
 
 function read(rel: string): string | null {
   const p = path.join(ROOT, rel);
@@ -45,8 +45,8 @@ test("the client and the website point at the same gateway", () => {
   const core = read("packages/core/src/token.ts");
   assert.ok(core, "packages/core/src/token.ts must exist");
 
-  const coreOrigin = /MERRYMEN_GATEWAY_ORIGIN\s*=\s*"https:\/\/([^"]+)"/.exec(core!)?.[1];
-  assert.ok(coreOrigin, "MERRYMEN_GATEWAY_ORIGIN should be a literal https URL");
+  const coreOrigin = /OATHWALL_GATEWAY_ORIGIN\s*=\s*"https:\/\/([^"]+)"/.exec(core!)?.[1];
+  assert.ok(coreOrigin, "OATHWALL_GATEWAY_ORIGIN should be a literal https URL");
   assert.ok([RAILWAY, CUSTOM].includes(coreOrigin!), `unexpected gateway host "${coreOrigin}" — add it here deliberately`);
 
   // site/ is not part of the published npm package, so this half only applies
@@ -65,13 +65,13 @@ test("the client and the website point at the same gateway", () => {
 
 test("onboarding sends people to the gateway the client actually calls", () => {
   const core = read("packages/core/src/token.ts")!;
-  const coreOrigin = /MERRYMEN_GATEWAY_ORIGIN\s*=\s*"https:\/\/([^"]+)"/.exec(core)![1];
+  const coreOrigin = /OATHWALL_GATEWAY_ORIGIN\s*=\s*"https:\/\/([^"]+)"/.exec(core)![1];
   const bin = read("cli/bin.mjs");
   assert.ok(bin, "cli/bin.mjs must exist");
 
   // The claim hint is a bare host + /claim, not a full URL, so match on the host.
-  const line = bin!.split("\n").find((l) => l.includes('id: "merrymen"'));
-  assert.ok(line, 'the CLI should still declare an id: "merrymen" provider');
+  const line = bin!.split("\n").find((l) => l.includes('id: "oathwall"'));
+  assert.ok(line, 'the CLI should still declare an id: "oathwall" provider');
   const hosts = hostsIn(line!);
   assert.deepEqual(
     hosts,
@@ -82,7 +82,7 @@ test("onboarding sends people to the gateway the client actually calls", () => {
 
 test("no file quietly references the other gateway host", () => {
   const core = read("packages/core/src/token.ts")!;
-  const coreOrigin = /MERRYMEN_GATEWAY_ORIGIN\s*=\s*"https:\/\/([^"]+)"/.exec(core)![1];
+  const coreOrigin = /OATHWALL_GATEWAY_ORIGIN\s*=\s*"https:\/\/([^"]+)"/.exec(core)![1];
   const other = coreOrigin === RAILWAY ? CUSTOM : RAILWAY;
 
   // Comments legitimately discuss the host we are NOT using — that's how the

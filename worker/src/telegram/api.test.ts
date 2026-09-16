@@ -16,10 +16,10 @@ const OK = (result: unknown) => ({ ok: true, result });
 
 describe("getMe", () => {
   it("returns the bot identity on a valid token", async () => {
-    const f = fakeFetch(200, OK({ id: 42, username: "merryman_bot", is_bot: true }));
+    const f = fakeFetch(200, OK({ id: 42, username: "agent_bot", is_bot: true }));
     const { bot, reason } = await getMe({ token: "123:abc", fetchFn: f });
     assert.equal(reason, undefined);
-    assert.deepEqual(bot, { id: 42, username: "merryman_bot" });
+    assert.deepEqual(bot, { id: 42, username: "agent_bot" });
     assert.match(f.lastUrl!, /\/bot123:abc\/getMe$/);
   });
 

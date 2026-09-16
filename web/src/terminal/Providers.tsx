@@ -16,18 +16,18 @@
  *
  * WHAT IS DELIBERATELY ABSENT, and provable by grep:
  *   - `@privy-io/react-auth/smart-wallets`, `SmartWalletsProvider`,
- *     `useSmartWallets` — merrymen already has Kernel v3.3, ERC-4337 and the
+ *     `useSmartWallets` — oathwall already has Kernel v3.3, ERC-4337 and the
  *     permission wall. A second smart-account implementation beside them is the
  *     thing this integration was scoped to avoid.
  *   - `useSigners`, `addSigners`, `useSessionSigners`, `delegateWallet` — server
- *     side signing would put a key merrymen does not hold in a place merrymen
+ *     side signing would put a key oathwall does not hold in a place oathwall
  *     cannot audit.
  * `privy-boundary.test.ts` asserts both, plus that `permissionless` is not even
  * installed.
  */
 
 import { PrivyProvider } from "@privy-io/react-auth";
-import { bnbChain } from "@merrymen/core";
+import { bnbChain } from "@oathwall/core";
 import type { ReactNode } from "react";
 import { PRIVY_APP_ID, privyEnabled } from "@/lib/privy-client";
 
@@ -47,7 +47,7 @@ export function Providers({ children }: { children: ReactNode }) {
         //
         // "Continue with a wallet" is removed deliberately: an external wallet
         // can authenticate somebody, but it cannot be the Kernel OWNER — that
-        // has to be the embedded wallet, whose key merrymen never sees. Offering
+        // has to be the embedded wallet, whose key oathwall never sees. Offering
         // it as a third door produced exactly one outcome in testing, which was
         // a session whose wallet was not its owner and a mismatch error nobody
         // could act on.
@@ -62,7 +62,7 @@ export function Providers({ children }: { children: ReactNode }) {
         // however somebody authenticated.
         embeddedWallets: { ethereum: { createOnLogin: "all-users" } },
         // Chain 4663 is not one of Privy's built-ins, so it is supplied
-        // explicitly — from @merrymen/core, never redefined here. A second
+        // explicitly — from @oathwall/core, never redefined here. A second
         // definition is how a testnet id ends up in a mainnet signature.
         defaultChain: bnbChain,
         supportedChains: [bnbChain],
@@ -77,7 +77,7 @@ export function Providers({ children }: { children: ReactNode }) {
           // old value was /icon.png — which is not a file in web/public at all —
           // fetched through a middleware that answered with the password page.
           // Three separate reasons for one broken image.
-          logo: "https://app.merrymen.dev/icon-192.png",
+          logo: "https://app.oathwall.dev/icon-192.png",
         },
       }}
     >

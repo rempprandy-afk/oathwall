@@ -1,5 +1,5 @@
 /**
- * `merrymen preflight` — gather, then judge.
+ * `oathwall preflight` — gather, then judge.
  *
  * The gathering lives here and the judging lives in preflight.ts, so the
  * decisions are testable without a chain. This half does the I/O: read the
@@ -170,7 +170,7 @@ async function main(): Promise<void> {
   ]);
 
   // Resolved through the worker's OWN resolver rather than by re-reading the
-  // settings file here: sponsorship comes from the file OR MERRYMEN_SPONSOR_GAS,
+  // settings file here: sponsorship comes from the file OR OATHWALL_SPONSOR_GAS,
   // and `settings` above is the raw file only. resolveConfig already merges both
   // and already tolerates an absent or malformed file, so this borrows a rule
   // that is correct instead of spelling a third copy of it.

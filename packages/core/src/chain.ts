@@ -7,7 +7,7 @@ import { defineChain } from "viem";
  * Do not add addresses here without probing them first.
  *
  * Defined explicitly rather than imported from viem/chains: the point of this
- * file is that every constant in it has been probed on the chain merrymen
+ * file is that every constant in it has been probed on the chain oathwall
  * actually talks to, and re-exporting a third party's table would quietly break
  * that rule the first time they changed an entry.
  */
@@ -65,6 +65,11 @@ export function explorerFor(chainId: number): string {
   return chainForId(chainId).blockExplorers!.default.url;
 }
 
+/** The asset that pays gas on a chain id — BNB on mainnet, tBNB on testnet. */
+export function gasSymbol(chainId: number): string {
+  return chainForId(chainId).nativeCurrency.symbol;
+}
+
 /**
  * Build the Pimlico bundler RPC for a chain from just an API key. The chain id
  * is stamped from the grant itself, so the URL can never point at the wrong
@@ -88,7 +93,7 @@ export function pimlicoBundlerUrl(chainId: number, apiKey: string): string {
  * `pm_getPaymasterStubData` and reading back a real paymaster address and signed
  * paymasterData. That probe has NOT been re-run against 56/97, because it needs a
  * live Pimlico key. Until it is, treat sponsored gas as unproven here: the
- * account pays its own gas in BNB, which is the path merrymen uses anyway.
+ * account pays its own gas in BNB, which is the path oathwall uses anyway.
  */
 export function pimlicoPaymasterUrl(chainId: number, apiKey: string): string {
   return `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${encodeURIComponent(apiKey)}`;
@@ -116,7 +121,7 @@ export const INFRA = {
  * They are the SAME addresses the accounts on Robinhood Chain were deployed
  * through, which has a consequence worth stating: an owner key derives the SAME
  * smart-account address on BNB as it did on 4663. Same factory, same
- * implementation, same CREATE2 salt. That is convenient for `merrymen recover`
+ * implementation, same CREATE2 salt. That is convenient for `oathwall recover`
  * and dangerous for a human reading an explorer — the address matching proves
  * nothing about which chain holds the funds.
  */

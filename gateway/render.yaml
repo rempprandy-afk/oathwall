@@ -1,19 +1,19 @@
-# Render Blueprint for the Merrymen AI gateway (a persistent Node web service).
+# Render Blueprint for the Oathwall AI gateway (a persistent Node web service).
 #
 # One-time deploy:
-#   1. Render dashboard → New → Blueprint → connect the millw14/merrymen repo.
+#   1. Render dashboard → New → Blueprint → connect the rempprandy-afk/oathwall repo.
 #   2. Render reads this file (rootDir: gateway). Fill in the three secret env vars
 #      it prompts for (they're marked sync:false so they're never committed):
-#        MERRYMEN_GATEWAY_UPSTREAM_KEY  — your real Groq/OpenAI key (server-only)
-#        MERRYMEN_GATEWAY_SECRET        — 32+ random bytes (node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))")
-#        MERRYMEN_GATEWAY_RPC           — Robinhood Chain (4663) RPC URL
+#        OATHWALL_GATEWAY_UPSTREAM_KEY  — your real Groq/OpenAI key (server-only)
+#        OATHWALL_GATEWAY_SECRET        — 32+ random bytes (node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))")
+#        OATHWALL_GATEWAY_RPC           — Robinhood Chain (4663) RPC URL
 #   3. Apply → Render builds + starts it and gives you an onrender.com URL.
-#   4. Add the custom domain ai.merrymen.dev in Render → repoint that DNS record
+#   4. Add the custom domain ai.oathwall.dev in Render → repoint that DNS record
 #      away from Vercel to Render's target. Then it's live at the URL the client
-#      already expects (packages/core/src/llm-providers.ts → the "merrymen" entry).
+#      already expects (packages/core/src/llm-providers.ts → the "oathwall" entry).
 services:
   - type: web
-    name: merrymen-ai-gateway
+    name: oathwall-ai-gateway
     runtime: node
     rootDir: gateway
     plan: starter
@@ -22,11 +22,11 @@ services:
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
-      - key: MERRYMEN_GATEWAY_UPSTREAM_KEY
+      - key: OATHWALL_GATEWAY_UPSTREAM_KEY
         sync: false
-      - key: MERRYMEN_GATEWAY_SECRET
+      - key: OATHWALL_GATEWAY_SECRET
         sync: false
-      - key: MERRYMEN_GATEWAY_RPC
+      - key: OATHWALL_GATEWAY_RPC
         sync: false
-      - key: MERRYMEN_GATEWAY_DOMAIN
-        value: ai.merrymen.dev
+      - key: OATHWALL_GATEWAY_DOMAIN
+        value: ai.oathwall.dev

@@ -6,7 +6,7 @@
  * browser attached the session cookie — set `httpOnly, secure,
  * sameSite:"strict", path:"/"` in lib/auth.ts — to `/yahoo/…`, and Next
  * forwarded the request upstream headers and all. Every chart view on a hosted
- * deployment sent a live merrymen session to Yahoo. They were also open
+ * deployment sent a live oathwall session to Yahoo. They were also open
  * proxies: `:path*` at three hosts, unauthenticated, outside the middleware,
  * which guards only `/api/`.
  *

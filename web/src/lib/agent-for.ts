@@ -36,8 +36,8 @@
  * — mixing two accounts' books is the bug the epoch filter exists to prevent.
  */
 import { readFile } from "node:fs/promises";
-import { homePaths } from "@merrymen/home";
-import { getGrantStore } from "@merrymen/grant-store";
+import { homePaths } from "@oathwall/home";
+import { getGrantStore } from "@oathwall/grant-store";
 import { tenantOf } from "@/lib/auth";
 
 /**

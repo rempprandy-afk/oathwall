@@ -14,7 +14,7 @@
  * rather than a promise. It did not exist for the three weeks this paragraph
  * described it in the present tense — the failure mode the rest of this module
  * exists to prevent, committed in a comment about it.
- * The worker cannot import from web/src (imports.test.ts forbids @merrymen/*
+ * The worker cannot import from web/src (imports.test.ts forbids @oathwall/*
  * under worker/src, and web/src is not aliased inward at all), so the choice
  * was to move the module or keep a second copy. A second copy of a PUBLICATION
  * POLICY is the worst option available: the two readers drift into different

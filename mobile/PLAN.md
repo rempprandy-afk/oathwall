@@ -1,4 +1,4 @@
-# merrymen mobile — native build plan
+# oathwall mobile — native build plan
 
 **Expo SDK 57 · React Native 0.86.2 · React 19.2.3** · genuinely native, no webview.
 
@@ -218,7 +218,7 @@ config.resolver.resolveRequest = (ctx, moduleName, platform) => {
   // which drags in merkletreejs -> require('buffer') and crypto-js -> require('crypto')
   // and web3-utils. We only ever sign SINGLE-CHAIN grants, so stub it.
   // NOTE: this makes serializeMultiChainPermissionAccounts throw at runtime.
-  // If merrymen ever adds multi-chain grants, DELETE THIS and add buffer + crypto shims.
+  // If oathwall ever adds multi-chain grants, DELETE THIS and add buffer + crypto shims.
   if (moduleName === 'merkletreejs') return { type: 'empty' };
   return (base ?? ctx.resolveRequest)(ctx, moduleName, platform);
 };

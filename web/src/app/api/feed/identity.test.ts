@@ -10,11 +10,11 @@ import { describe, it } from "node:test";
  *
  * Hosted, a tenant's settings are written to the per-tenant sealed store
  * (`getSettingsStore().put(tenant, …)` in api/settings). The web container's own
- * `~/.merrymen/settings.json` is written by nothing, and could not hold a
+ * `~/.oathwall/settings.json` is written by nothing, and could not hold a
  * particular tenant's settings even if it existed — it is one file per
  * container, shared by every tenant. /api/feed read exactly that file, so the
  * read always threw and every hosted tenant got the fallback: the name went
- * null and the console fell back to the ledger's "Robin", while strategy and
+ * null and the console fell back to the ledger's "Warden", while strategy and
  * basket showed house defaults regardless of what had been configured.
  *
  * It passed local testing because self-hosted the file IS the store, so the two
@@ -27,7 +27,7 @@ const WORKER = readFileSync(new URL("../../../../../worker/src/index.ts", import
 
 describe("the feed reads identity from the tenant's own store", () => {
   it("hosted goes to the settings store, never to a file", () => {
-    assert.match(FEED, /import \{ getSettingsStore \} from "@merrymen\/settings-store"/);
+    assert.match(FEED, /import \{ getSettingsStore \} from "@oathwall\/settings-store"/);
     assert.match(FEED, /if \(isHostedMode\(\)\)[\s\S]{0,300}?getSettingsStore\(\)\.get\(tenant\)/);
   });
 
@@ -54,7 +54,7 @@ describe("the feed reads identity from the tenant's own store", () => {
     assert.match(FEED, /const DEFAULT_BASKET = \[\.\.\.SETTINGS_DEFAULTS\.basketSymbols\]/);
     // Anchored to the IMPORT, not any mention — the comment above the constant
     // explains what it replaced, and matching prose would fail forever.
-    assert.ok(!/^import[\s\S]*?TRADEABLE_SYMBOLS[\s\S]*?from "@merrymen\/core"/m.test(FEED));
+    assert.ok(!/^import[\s\S]*?TRADEABLE_SYMBOLS[\s\S]*?from "@oathwall\/core"/m.test(FEED));
   });
 });
 
@@ -76,7 +76,7 @@ describe("the worker reconciles a rename while it is already armed", () => {
     // A name is in neither connectionKey nor strategyKey, so renaming forces no
     // re-arm; for an already-armed agent `unchanged` is true on every tick
     // forever, and the reconcile below it never ran again. The owner could save
-    // a name, have it accepted and stored, and the soul would stay "Robin" for
+    // a name, have it accepted and stored, and the soul would stay "Warden" for
     // the life of the process.
     const reconcile = WORKER.indexOf("RECONCILE THE NAME BEFORE THE SHORT-CIRCUIT");
     const shortCircuit = WORKER.indexOf("if (unchanged) return true;");

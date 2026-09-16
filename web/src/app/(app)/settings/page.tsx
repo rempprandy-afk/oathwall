@@ -1,2 +1,2 @@
-export const metadata = {title:"Settings — merrymen"};
+export const metadata = {title:"Settings — oathwall"};
 export default function SettingsRoute() { return null; }

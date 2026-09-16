@@ -60,14 +60,14 @@ test("null / non-object / empty are clean, never a throw", () => {
 });
 
 test("assertNoOwnerKeysAtRest is inert when hosted mode is off", () => {
-  delete process.env.MERRYMEN_HOSTED;
+  delete process.env.OATHWALL_HOSTED;
   // Even a dirty grant does not throw when self-hosted — the owner key on disk
   // is the user's own, on their own machine.
   assert.doesNotThrow(() => assertNoOwnerKeysAtRest([{ ...sessionOnlyGrant, demoOwnerPrivateKey: KEY }]));
 });
 
 test("assertNoOwnerKeysAtRest REFUSES to boot in hosted mode on a dirty grant", () => {
-  process.env.MERRYMEN_HOSTED = "1";
+  process.env.OATHWALL_HOSTED = "1";
   try {
     assert.doesNotThrow(() => assertNoOwnerKeysAtRest([sessionOnlyGrant, sessionOnlyGrant]), "clean grants boot");
     assert.throws(
@@ -76,6 +76,6 @@ test("assertNoOwnerKeysAtRest REFUSES to boot in hosted mode on a dirty grant", 
       "one dirty grant halts the whole boot",
     );
   } finally {
-    delete process.env.MERRYMEN_HOSTED;
+    delete process.env.OATHWALL_HOSTED;
   }
 });

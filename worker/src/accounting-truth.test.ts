@@ -788,7 +788,7 @@ describe("P8 — the bootstrap contract is versioned and its reserved field stay
 
     // The child validates against `agentId`, which IS its smart account.
     const child = strip(readFileSync(new URL("./index.ts", import.meta.url), "utf8"));
-    assert.match(child, /readAnchor\(merrymenHome\(\), \{ tenantId: agentId \}\)/);
+    assert.match(child, /readAnchor\(oathwallHome\(\), \{ tenantId: agentId \}\)/);
     assert.match(child, /getAgentFinancials/, "agentId is the smart_account key the store reads on");
   });
 });

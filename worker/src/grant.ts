@@ -3,9 +3,9 @@ import path from "node:path";
 import type { StoredGrant } from "../../packages/core/src/index";
 import { homePaths } from "./home";
 
-/** Reads the grant handoff written by web's /api/grants (~/.merrymen/grant.json). */
+/** Reads the grant handoff written by web's /api/grants (~/.oathwall/grant.json). */
 export function loadGrantFile(): StoredGrant | null {
-  const file = process.env.MERRYMEN_GRANT_FILE ?? homePaths.grant();
+  const file = process.env.OATHWALL_GRANT_FILE ?? homePaths.grant();
   try {
     const grant = JSON.parse(readFileSync(file, "utf8")) as StoredGrant;
     if (!grant.serialized || !grant.smartAccount) return null;
@@ -19,7 +19,7 @@ export function loadGrantFile(): StoredGrant | null {
  * Copy the live grant into the archive before anything destroys it.
  *
  * `grant.json` is a SINGLE SLOT, and for a grant that has never been replaced
- * it is the only on-disk copy of the owner key — the key `merrymen recover`
+ * it is the only on-disk copy of the owner key — the key `oathwall recover`
  * needs to sweep funds out of the smart account. Deleting it without a copy
  * strands the funds permanently.
  *
@@ -32,7 +32,7 @@ export function loadGrantFile(): StoredGrant | null {
  * to keep. Never throws: a kill switch must fire even if the disk is full.
  */
 export function archiveCurrentGrant(): string | null {
-  const file = process.env.MERRYMEN_GRANT_FILE ?? homePaths.grant();
+  const file = process.env.OATHWALL_GRANT_FILE ?? homePaths.grant();
   try {
     const raw = readFileSync(file, "utf8");
     const grant = JSON.parse(raw.replace(/^﻿/, "")) as StoredGrant;

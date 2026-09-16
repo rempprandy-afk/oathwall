@@ -63,7 +63,7 @@ const seedChild = () => {
     `INSERT INTO agents (smart_account, name, owner_address, session_key_address, chain_id, caps,
                          granted_at, expires_at, status, created_at, mode, beat_at, sponsor_gas,
                          live_blocker, x_handle, epoch, hwm_usdg, accrued_fee_usdg)
-     VALUES ('0xagent','Robin','0xowner','0xsk',4663,'{}',1,2,'armed',3,'live',99,1,'no-gas','much_miller',2,150.5,7.25)`,
+     VALUES ('0xagent','Warden','0xowner','0xsk',4663,'{}',1,2,'armed',3,'live',99,1,'no-gas','much_miller',2,150.5,7.25)`,
   );
   for (let i = 1; i <= 5; i++) {
     raw.exec(
@@ -182,12 +182,12 @@ describe("the ledger mirror", () => {
     const child = seedChild();
     const shared = mem(DEST);
     await mirrorTenant({ tenant: "0xten", child, shared });
-    await child.prepare("UPDATE agents SET name = ? WHERE smart_account = ?").run("Little John", "0xagent");
+    await child.prepare("UPDATE agents SET name = ? WHERE smart_account = ?").run("Atlas", "0xagent");
     await mirrorTenant({ tenant: "0xten", child, shared });
     const row = (await shared
       .prepare("SELECT name FROM agents WHERE smart_account = ?")
       .get("0xagent")) as { name: string };
-    assert.equal(row.name, "Little John");
+    assert.equal(row.name, "Atlas");
   });
 
   it("survives a table that is missing at the source", async () => {

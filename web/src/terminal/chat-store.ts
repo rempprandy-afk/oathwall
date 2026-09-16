@@ -29,7 +29,7 @@ import type { ChatTurn } from "./account";
 /** Storage may be absent (SSR) or throw on access; both are handled. */
 type Store = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
-const PREFIX = "merrymen.chat.";
+const PREFIX = "oathwall.chat.";
 
 /**
  * How many turns are kept.

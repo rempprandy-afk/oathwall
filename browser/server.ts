@@ -26,7 +26,7 @@ import { chromium } from "playwright";
 import { safeFetchUrl } from "../packages/core/src/safe-url";
 
 const PORT = Number(process.env.PORT ?? 8080);
-const TOKEN = process.env.MERRYMEN_BROWSER_TOKEN ?? "";
+const TOKEN = process.env.OATHWALL_BROWSER_TOKEN ?? "";
 
 /** One page at a time. A browser is the most expensive thing in the fleet. */
 const NAV_TIMEOUT_MS = 15_000;

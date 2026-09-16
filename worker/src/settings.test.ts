@@ -19,9 +19,9 @@ describe("mergeSettings — file > env > default", () => {
 
   it("env fills what the file leaves empty", () => {
     const c = mergeSettings({}, {
-      MERRYMEN_BUNDLER_URL: "https://bundler.example",
+      OATHWALL_BUNDLER_URL: "https://bundler.example",
       ANTHROPIC_API_KEY: "sk-env",
-      MERRYMEN_STRATEGY: "even-keel",
+      OATHWALL_STRATEGY: "even-keel",
     });
     assert.equal(c.bundlerUrl, "https://bundler.example");
     assert.equal(c.anthropicApiKey, "sk-env");
@@ -31,7 +31,7 @@ describe("mergeSettings — file > env > default", () => {
   it("the settings file (web UI) beats env", () => {
     const c = mergeSettings(
       { bundlerUrl: "https://from-ui.example", anthropicApiKey: "sk-ui", strategy: "llm-strategist" },
-      { MERRYMEN_BUNDLER_URL: "https://from-env.example", ANTHROPIC_API_KEY: "sk-env", MERRYMEN_STRATEGY: "even-keel" },
+      { OATHWALL_BUNDLER_URL: "https://from-env.example", ANTHROPIC_API_KEY: "sk-env", OATHWALL_STRATEGY: "even-keel" },
     );
     assert.equal(c.bundlerUrl, "https://from-ui.example");
     assert.equal(c.anthropicApiKey, "sk-ui");
@@ -39,7 +39,7 @@ describe("mergeSettings — file > env > default", () => {
   });
 
   it("empty strings in the file do NOT shadow env — blank means unset", () => {
-    const c = mergeSettings({ bundlerUrl: "  " }, { MERRYMEN_BUNDLER_URL: "https://env.example" });
+    const c = mergeSettings({ bundlerUrl: "  " }, { OATHWALL_BUNDLER_URL: "https://env.example" });
     assert.equal(c.bundlerUrl, "https://env.example");
   });
 
@@ -78,9 +78,9 @@ describe("mergeSettings — file > env > default", () => {
     // value must vanish rather than reach a wall or a warning path, and the
     // file must beat the environment so what the owner sees in /settings is
     // what the worker actually resolved.
-    const file = mergeSettings({ v4AdapterAddress: "0x" + "cd".repeat(20) }, { MERRYMEN_V4_ADAPTER_ADDRESS: "0x" + "ef".repeat(20) });
+    const file = mergeSettings({ v4AdapterAddress: "0x" + "cd".repeat(20) }, { OATHWALL_V4_ADAPTER_ADDRESS: "0x" + "ef".repeat(20) });
     assert.equal(file.v4AdapterAddress, "0x" + "cd".repeat(20), "file wins over env");
-    const env = mergeSettings({}, { MERRYMEN_V4_ADAPTER_ADDRESS: "0x" + "ef".repeat(20) });
+    const env = mergeSettings({}, { OATHWALL_V4_ADAPTER_ADDRESS: "0x" + "ef".repeat(20) });
     assert.equal(env.v4AdapterAddress, "0x" + "ef".repeat(20), "env fills in when the file is silent");
     const junk = mergeSettings({ v4AdapterAddress: "not-an-address" }, {});
     assert.equal(junk.v4AdapterAddress, undefined, "junk is UNDEFINED, never a call target");
@@ -121,9 +121,9 @@ describe("mergeSettings — file > env > default", () => {
     const c = mergeSettings(
       {},
       {
-        MERRYMEN_TELEGRAM_BOT_TOKEN: "999:xyz",
-        MERRYMEN_TELEGRAM_ENABLED: "true",
-        MERRYMEN_TELEGRAM_ALLOWLIST: "5, 6 ,7",
+        OATHWALL_TELEGRAM_BOT_TOKEN: "999:xyz",
+        OATHWALL_TELEGRAM_ENABLED: "true",
+        OATHWALL_TELEGRAM_ALLOWLIST: "5, 6 ,7",
       },
     );
     assert.equal(c.telegramBotToken, "999:xyz");
@@ -150,7 +150,7 @@ describe("mergeSettings — file > env > default", () => {
     // Out-of-range digest hour falls back to the default.
     assert.equal(mergeSettings({ telegramDigestHour: 99 }, {}).telegramDigestHour, 18);
     // Env fallbacks work.
-    const env = mergeSettings({}, { MERRYMEN_TELEGRAM_TRANSFER: "1", MERRYMEN_TELEGRAM_DIGEST_HOUR: "7" });
+    const env = mergeSettings({}, { OATHWALL_TELEGRAM_TRANSFER: "1", OATHWALL_TELEGRAM_DIGEST_HOUR: "7" });
     assert.equal(env.telegramTransferEnabled, true);
     assert.equal(env.telegramDigestHour, 7);
   });

@@ -9,7 +9,7 @@
 import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import { homePaths, merrymenHome } from "@merrymen/home";
+import { homePaths, oathwallHome } from "@oathwall/home";
 import { createPublicClient, http, parseAbi } from "viem";
 import {
   CASH,
@@ -20,15 +20,15 @@ import {
   isHostedMode,
   type Derivation,
   type StoredGrant,
-} from "@merrymen/core";
+} from "@oathwall/core";
 import { requestOrigin, tenantOf, verifyGrantBinding } from "@/lib/auth";
 import { privyTokenOf, verifyPrivyToken } from "@/lib/privy";
 import { withReadDb } from "@/lib/ledger";
-import { getGrantStore } from "@merrymen/grant-store";
-import { getIdentityStore } from "@merrymen/identity-store";
+import { getGrantStore } from "@oathwall/grant-store";
+import { getIdentityStore } from "@oathwall/identity-store";
 import { deriveKernelAccountAddress } from "@/lib/derive-account";
 
-const DATA_DIR = merrymenHome();
+const DATA_DIR = oathwallHome();
 const GRANT_FILE = homePaths.grant();
 const HEARTBEAT_FILE = homePaths.heartbeat();
 const ARCHIVE_DIR = homePaths.grantsArchive();
@@ -375,7 +375,7 @@ export async function GET(req: Request) {
   }
 
   // HOSTED READS THE LEDGER, because the file above is in this service's own
-  // MERRYMEN_HOME and the worker writes into its tenant's — different
+  // OATHWALL_HOME and the worker writes into its tenant's — different
   // directories, different containers. Every hosted tenant reported IDLE
   // regardless of what their agent was doing, which made the LIVE/PAPER chip
   // decorative exactly where it matters most.

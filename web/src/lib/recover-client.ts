@@ -10,7 +10,7 @@
  *
  * NO NEW ENGINE. `planRecovery` and `recoverFunds` from the worker are the same
  * functions the CLI runs; they import only viem, @zerodev/* and packages/core,
- * with no node builtins, and the `@merrymen/recover` alias already existed. The
+ * with no node builtins, and the `@oathwall/recover` alias already existed. The
  * phone app has run this same module unmodified for months, so its portability
  * is demonstrated rather than hoped for.
  *
@@ -33,8 +33,8 @@
  */
 
 import { privateKeyToAccount } from "viem/accounts";
-import { bnbChain, bnbTestnet } from "@merrymen/core";
-import { planRecovery, recoverFunds, type RecoverPlan } from "@merrymen/recover";
+import { bnbChain, bnbTestnet } from "@oathwall/core";
+import { planRecovery, recoverFunds, type RecoverPlan } from "@oathwall/recover";
 
 export interface BrowserWallet {
   smartAccount: `0x${string}`;

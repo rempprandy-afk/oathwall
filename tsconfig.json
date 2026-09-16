@@ -15,9 +15,9 @@
       // Type-only `@/` imports were fine, which is why nothing noticed until a
       // terminal module needed a value from web/src/lib.
       "@/*": ["web/src/*"],
-      "@merrymen/core": ["packages/core/src/index.ts"],
-      "@merrymen/thesis": ["worker/src/thesis-policy.ts"],
-      "@merrymen/identity-store": ["worker/src/identity-store.ts"]
+      "@oathwall/core": ["packages/core/src/index.ts"],
+      "@oathwall/thesis": ["worker/src/thesis-policy.ts"],
+      "@oathwall/identity-store": ["worker/src/identity-store.ts"]
     }
   },
   "include": ["worker/src", "packages/core/src"]

@@ -12,7 +12,7 @@ import { shadowBrainEnabledFor } from "./brain-enabled";
 
 const A = "0x3E34E58e39DC6614e047dFD3BAD5B7DEA45DCd62";
 const B = "0x1102b20c835ff07DCA4eDC15F0B4C7d805bbB22F";
-const env = (v?: string) => ({ MERRYMEN_BRAIN_SHADOW: v }) as NodeJS.ProcessEnv;
+const env = (v?: string) => ({ OATHWALL_BRAIN_SHADOW: v }) as NodeJS.ProcessEnv;
 
 describe("who may think", () => {
   it("nobody, when the variable is absent or blank", () => {

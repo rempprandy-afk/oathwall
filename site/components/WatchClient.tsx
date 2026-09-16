@@ -130,7 +130,7 @@ export function WatchClient() {
           className="watch-input"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          placeholder="0x… your merryman's smart-account address"
+          placeholder="0x… your agent's smart-account address"
           spellCheck={false}
           aria-label="Smart account address to watch"
         />
@@ -160,7 +160,7 @@ export function WatchClient() {
 
       {watching && status === "live" && trades.length === 0 && (
         <p className="watch-empty">
-          No token movements on this account yet. A merryman running in{" "}
+          No token movements on this account yet. A agent running in{" "}
           <strong>paper mode</strong> simulates its fills and never touches the chain, so it shows an
           empty tape by design — as does one that&apos;s funded but hasn&apos;t opened a position.
           That&apos;s the honest answer, not a failure.

@@ -235,7 +235,7 @@ describe("read-only by construction", () => {
     .replace(/\/\/[^\n]*/g, "");
 
   it("has no write SQL anywhere in it", () => {
-    // The claim under review is "MERRYMEN_REPAIR=dry-run is genuinely read-only".
+    // The claim under review is "OATHWALL_REPAIR=dry-run is genuinely read-only".
     // A gated mutation path would need a reviewer to trust the gate. An absent
     // one needs nothing, and this is what makes the absence checkable.
     for (const verb of [/\bINSERT\s+INTO\b/i, /\bUPDATE\s+\w+\s+SET\b/i, /\bDELETE\s+FROM\b/i, /\bDROP\s+/i, /\bALTER\s+TABLE\b/i]) {
@@ -267,12 +267,12 @@ describe("the report has to fit in the window you can read it in", () => {
     // the combined burst pushed itself out of the window and neither could be
     // read. This is what lets the caller print one report instead of two.
     assert.equal(previewRequested({}), false);
-    assert.equal(previewRequested({ MERRYMEN_REPAIR: "" }), false);
-    assert.equal(previewRequested({ MERRYMEN_REPAIR: "   " }), false);
-    assert.equal(previewRequested({ MERRYMEN_REPAIR: "dry-run" }), true);
+    assert.equal(previewRequested({ OATHWALL_REPAIR: "" }), false);
+    assert.equal(previewRequested({ OATHWALL_REPAIR: "   " }), false);
+    assert.equal(previewRequested({ OATHWALL_REPAIR: "dry-run" }), true);
     // A REFUSED request still counts as asked, so the refusal is not buried
     // under three hundred lines of something nobody wanted.
-    assert.equal(previewRequested({ MERRYMEN_REPAIR: "commit" }), true);
+    assert.equal(previewRequested({ OATHWALL_REPAIR: "commit" }), true);
   });
 
   it("bounds the fleet report to one line per tenant plus one block", () => {

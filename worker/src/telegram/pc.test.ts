@@ -75,7 +75,7 @@ describe("appAllowed / isUrl", () => {
   it("recognizes http(s) URLs", () => {
     assert.equal(isUrl("https://github.com"), true);
     assert.equal(isUrl("http://localhost:3100"), true);
-    assert.equal(isUrl("https://x.com/MerrymenAI?ref=1"), true);
+    assert.equal(isUrl("https://x.com/OathwallAI?ref=1"), true);
     assert.equal(isUrl("spotify"), false);
     assert.equal(isUrl("file:///etc/passwd"), false);
   });

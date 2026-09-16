@@ -7,8 +7,8 @@ import { isMock } from "@/net/api";
 // A VALUE import, not just a type. The tradeable set is read from the shared core
 // package so the wall lists what the key may actually touch — and because a
 // type-only import would be erased at compile time, leaving the Metro alias for
-// @merrymen/core configured but never exercised, which is the same as untested.
-import { TRADEABLE_SYMBOLS, type GrantCaps } from "@merrymen/core";
+// @oathwall/core configured but never exercised, which is the same as untested.
+import { TRADEABLE_SYMBOLS, type GrantCaps } from "@oathwall/core";
 import { accountFromMnemonic } from "@/crypto/mnemonic";
 import { readOwner } from "@/crypto/keystore";
 import { fundWithPhantom } from "@/net/wallets";
@@ -37,15 +37,15 @@ const PRESETS: { id: string; label: string; blurb: string; caps: GrantCaps }[] =
     caps: { perTradeUsdg: 10, dailyUsdg: 50, expiryDays: 7, maxDrawdownPct: 5, maxOpsPerDay: 24 },
   },
   {
-    id: "outlaw",
-    label: "balanced · the outlaw",
+    id: "steady",
+    label: "balanced · steady",
     blurb: "the sensible default",
     caps: { perTradeUsdg: 50, dailyUsdg: 500, expiryDays: 14, maxDrawdownPct: 10, maxOpsPerDay: 48 },
   },
   {
-    id: "warlord",
-    label: "bold · the warlord",
-    blurb: "bigger arrows, wider walls",
+    id: "aggressive",
+    label: "bold · aggressive",
+    blurb: "bigger trades, wider limits",
     caps: { perTradeUsdg: 200, dailyUsdg: 2000, expiryDays: 30, maxDrawdownPct: 15, maxOpsPerDay: 96 },
   },
 ];

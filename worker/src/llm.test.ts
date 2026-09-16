@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { llmAgentTurn, llmText, resolveLlm, type AgentMsg } from "./llm";
-import { MERRYMEN_GATEWAY_ORIGIN } from "../../packages/core/src/index";
+import { OATHWALL_GATEWAY_ORIGIN } from "../../packages/core/src/index";
 import { mergeSettings } from "./settings";
 
 /** Build a ResolvedConfig from a settings patch, ignoring env. */
@@ -26,13 +26,13 @@ test("no keys, no selection → null (deterministic degrade)", () => {
   assert.equal(resolveLlm(cfg({})), null);
 });
 
-test("Merrymen AI (holder provider) resolves to the gateway with the pasted token", () => {
-  const creds = resolveLlm(cfg({ llmProvider: "merrymen", llmApiKey: "mmk_holdertoken" }));
-  assert.equal(creds?.provider, "merrymen");
+test("Oathwall AI (holder provider) resolves to the gateway with the pasted token", () => {
+  const creds = resolveLlm(cfg({ llmProvider: "oathwall", llmApiKey: "mmk_holdertoken" }));
+  assert.equal(creds?.provider, "oathwall");
   assert.equal(creds?.transport, "openai");
-  assert.equal(creds?.baseUrl, `${MERRYMEN_GATEWAY_ORIGIN}/v1`);
+  assert.equal(creds?.baseUrl, `${OATHWALL_GATEWAY_ORIGIN}/v1`);
   assert.equal(creds?.apiKey, "mmk_holdertoken");
-  assert.equal(creds?.model, "merrymen-fast"); // gateway overrides server-side
+  assert.equal(creds?.model, "oathwall-fast"); // gateway overrides server-side
 });
 
 test("explicit openai selection uses llmApiKey + catalog defaults", () => {

@@ -1,8 +1,8 @@
 {
-  "name": "merrymen-site",
+  "name": "oathwall-site",
   "version": "0.1.0",
   "private": true,
-  "description": "Marketing + docs site for merrymen — deployed to Vercel (root directory: site).",
+  "description": "Marketing + docs site for oathwall — deployed to Vercel (root directory: site).",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -43,7 +43,7 @@ const code = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\
 
 const t = (over: Partial<Thesis> = {}): Thesis =>
   ({
-    name: "Little John",
+    name: "Atlas",
     slug: "abc",
     handle: "@lj",
     action: "buy",
@@ -58,7 +58,7 @@ const t = (over: Partial<Thesis> = {}): Thesis =>
 const agent = (over: Partial<LiveAgent> = {}): LiveAgent =>
   ({
     slug: "abc",
-    name: "Little John",
+    name: "Atlas",
     handle: "@lj",
     owner: null,
     pnlBps: null,

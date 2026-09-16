@@ -40,11 +40,11 @@
 import { NextResponse } from "next/server";
 import {
   CIRCLE_TIERS,
-  MERRYMEN_TOKEN,
+  OATHWALL_TOKEN,
   isHostedMode,
   bnbChain,
   tierForBalance,
-} from "@merrymen/core";
+} from "@oathwall/core";
 import { createPublicClient, erc20Abi, http } from "viem";
 
 import { tenantOf } from "@/lib/auth";
@@ -75,7 +75,7 @@ async function balanceOf(address: `0x${string}`): Promise<bigint> {
   if (hit && Date.now() - hit.at < BALANCE_TTL_MS) return hit.raw;
   const client = createPublicClient({ chain: bnbChain, transport: http() });
   const raw = (await client.readContract({
-    address: MERRYMEN_TOKEN.address,
+    address: OATHWALL_TOKEN.address,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: [address],
@@ -123,7 +123,7 @@ function locked(
         emoji: ENTRY_TIER.emoji,
         perks: ENTRY_TIER.perks,
       },
-      token: { symbol: MERRYMEN_TOKEN.symbol, address: MERRYMEN_TOKEN.address },
+      token: { symbol: OATHWALL_TOKEN.symbol, address: OATHWALL_TOKEN.address },
     },
     { headers: { "Cache-Control": "private, no-store" } },
   );

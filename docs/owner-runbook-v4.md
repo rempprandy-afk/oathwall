@@ -22,7 +22,7 @@ pairs."
 
 ## Step 1 — Bitquery API key
 
-Discovery is how merrymen SEES new pairs (they launch through hooks on v4;
+Discovery is how oathwall SEES new pairs (they launch through hooks on v4;
 the hook address can only be learned from the Initialize event, and Bitquery
 indexes those). Without a key, discovery stays silently off.
 
@@ -38,7 +38,7 @@ read from the environment and never logged; the script prints only addresses.
 In PowerShell, from `contracts/`:
 
 ```powershell
-$env:MERRYMEN_DEPLOYER_PRIVATE_KEY = "0x…"   # a funded EOA; close this shell after
+$env:OATHWALL_DEPLOYER_PRIVATE_KEY = "0x…"   # a funded EOA; close this shell after
 npx hardhat run scripts/deploy-v4selfswap.ts --network robinhoodTestnet
 npx hardhat run scripts/deploy-v4selfswap.ts --network robinhood
 ```
@@ -70,7 +70,7 @@ sell-approve permission is sealed into the signature (the no-exit rule).
   must show `0xbC78E8…75D7`. A different address means the wrong key.
 - Set "most it can spend on one trade" to at least 60 (your tick is 50; zero
   headroom invites `per-trade-cap` edge rejections).
-- Sign. Then verify `~/.merrymen/grant.json` contains:
+- Sign. Then verify `~/.oathwall/grant.json` contains:
   - `"chainId": 4663`
   - `"grantTokens": [...]` listing your memecoin addresses
   - `"v4-adapter"` in `grantFeatures`, and `"v4AdapterAddress"` = the mainnet
@@ -96,12 +96,12 @@ owner key):
 ## Step 6 — Prove it
 
 ```bash
-merrymen preflight
+oathwall preflight
 ```
 Expect **0 blockers**. Then:
 
 ```bash
-merrymen selftest
+oathwall selftest
 ```
 It must print **PASSED** — it now exits non-zero for anything less, and green
 means the grant, the wall, the bundler and the ledger all work.

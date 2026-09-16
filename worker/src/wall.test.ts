@@ -283,7 +283,7 @@ test("the session key may EXECUTE but may not SIGN (the ERC-1271 hole)", () => {
   // anyone, from their own EOA — drains tokens with no UserOp, no rate limit,
   // and no trace in the ledger.
   //
-  // This costs merrymen nothing: the whole trading path is UserOps, and v4
+  // This costs oathwall nothing: the whole trading path is UserOps, and v4
   // authorises Permit2 with a CALL (venues/uniswap-v4.ts), not a signed permit.
   assert.equal(WALL_POLICY_FLAG, PolicyFlags.NOT_FOR_VALIDATE_SIG);
   assert.notEqual(

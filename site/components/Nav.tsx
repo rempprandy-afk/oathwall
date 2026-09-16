@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Logo } from "./Logo";
 import { Icon } from "./Icon";
 
-const GITHUB = "https://github.com/millw14/merrymen";
-const HOSTED_APP = "https://app.merrymen.dev";
-const X_URL = "https://x.com/MerrymenAI";
+const GITHUB = "https://github.com/rempprandy-afk/oathwall";
+const HOSTED_APP = "https://app.oathwall.dev";
+const X_URL = "https://x.com/OathwallAI";
 
 function XMark({ size = 15 }: { size?: number }) {
   return (
@@ -20,20 +20,19 @@ export function Nav() {
       <div className="wrap nav-inner">
         <Link href="/" className="brand">
           <Logo size={22} />
-          <span>merrymen</span>
+          <span>oathwall</span>
         </Link>
         <nav className="nav-links">
           <Link href="/#features" data-text="Features"><span>Features</span></Link>
           <Link href="/memescope" data-text="Memescope"><span>Memescope</span></Link>
           <Link href="/dashboard" data-text="Dashboard"><span>Dashboard</span></Link>
           <Link href="/watch" data-text="Watch"><span>Watch</span></Link>
-          <Link href="/app" data-text="App"><span>App</span></Link>
           <Link href="/#telegram" data-text="Telegram"><span>Telegram</span></Link>
           <Link href="/token" data-text="Token"><span>Token</span></Link>
           <Link href="/docs" data-text="Docs"><span>Docs</span></Link>
         </nav>
         <div className="nav-right">
-          <a href={X_URL} target="_blank" rel="noreferrer" className="nav-ghost nav-social" aria-label="merrymen on X">
+          <a href={X_URL} target="_blank" rel="noreferrer" className="nav-ghost nav-social" aria-label="oathwall on X">
             <XMark />
           </a>
           <a href={GITHUB} target="_blank" rel="noreferrer" className="nav-ghost">

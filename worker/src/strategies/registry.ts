@@ -29,13 +29,13 @@ import type { Strategy } from "./types";
  * port of it would sit forever in the state that waits for a market to shut.
  */
 const FREE_STRATEGIES = ["steady-basket", "llm-strategist", "trencher"] as const;
-/** Merry Circle strategies — buildable and selectable, but only RUN for holders
- * (Merry Man tier and up). The worker gates them at tick time by holder tier. */
+/** Oathwall Circle strategies — buildable and selectable, but only RUN for holders
+ * (Delegate tier and up). The worker gates them at tick time by holder tier. */
 export const CIRCLE_STRATEGIES = ["even-keel", "dip-hunter"] as const;
 export const BUILTIN_STRATEGIES = [...FREE_STRATEGIES, ...CIRCLE_STRATEGIES] as const;
 export type BuiltinStrategyName = (typeof BUILTIN_STRATEGIES)[number];
 
-/** Is this a holder-only (Merry Circle) strategy? */
+/** Is this a holder-only (Oathwall Circle) strategy? */
 export function isCircleStrategy(name: string): boolean {
   return (CIRCLE_STRATEGIES as readonly string[]).includes(name);
 }
@@ -176,7 +176,7 @@ export function buildStrategy(name: string, opts: StrategyBuildOpts): Strategy {
       // code — never throw, which would crash the child at boot. The settings
       // route rejects the name at write time too; this is the loader half of the
       // gate, the boundary that actually executes.
-      opts.onNote?.("warn", `custom strategy "${name}" is disabled on hosted merrymen — running steady-basket instead`);
+      opts.onNote?.("warn", `custom strategy "${name}" is disabled on hosted oathwall — running steady-basket instead`);
     } else {
       return makeCustomStrategy(name, { onNote: opts.onNote });
     }

@@ -17,7 +17,7 @@
 const RPC = "https://rpc.mainnet.chain.robinhood.com";
 const EP = "0x0000000071727De22E5E9d8BAf0edAc6f37da032";
 const LIVE_WITH_PERM = "0xa48cE91e2F3237E69660C1543042c007B8D33e75";
-const MERRYMEN = "0x032Da6A0Ccf866474e45854E7fDEF9afd1509036";
+const OATHWALL = "0x032Da6A0Ccf866474e45854E7fDEF9afd1509036";
 const INSTALLED_PID = "3ca1cec8";
 const NEVER_PID = "deadbeef";
 /** An address with no code, so the codeless branch is exercised on a real read. */
@@ -79,10 +79,10 @@ console.log(`  and a permission id that has NEVER been used on that account, as 
   const n = await nonceFor(LIVE_WITH_PERM, keyFor("01", "02", NEVER_PID));
   console.log(`    ENABLE key for 0x${NEVER_PID} -> sequence ${n.seq === null ? "UNREAD" : n.seq}`);
 }
-console.log(`  merrymen's own account, which has executed exactly one op ever (a sudo deploy):`);
+console.log(`  oathwall's own account, which has executed exactly one op ever (a sudo deploy):`);
 {
-  const sudo = await nonceFor(MERRYMEN, "0000845adb2c711129d4f3966735ed98a9f09fc4ce570000");
-  const enable = await nonceFor(MERRYMEN, keyFor("01", "02", "12345678"));
+  const sudo = await nonceFor(OATHWALL, "0000845adb2c711129d4f3966735ed98a9f09fc4ce570000");
+  const enable = await nonceFor(OATHWALL, keyFor("01", "02", "12345678"));
   console.log(`    SUDO/DEFAULT key -> sequence ${sudo.seq === null ? "UNREAD" : sudo.seq}   (1 = the deploy landed)`);
   console.log(`    a never-used ENABLE key -> sequence ${enable.seq === null ? "UNREAD" : enable.seq}`);
 }
@@ -97,7 +97,7 @@ console.log("══ CLAIM 2 — permissionConfig is per-(account, permissionId),
 for (const [acct, pid, note] of [
   [LIVE_WITH_PERM, INSTALLED_PID, "the id this account really installed"],
   [LIVE_WITH_PERM, NEVER_PID, "control: an id it never installed"],
-  [MERRYMEN, INSTALLED_PID, "control: the SAME id, on a different live account"],
+  [OATHWALL, INSTALLED_PID, "control: the SAME id, on a different live account"],
   [CODELESS, INSTALLED_PID, "control: an address with no code"],
 ]) {
   const code = await getCode(acct);

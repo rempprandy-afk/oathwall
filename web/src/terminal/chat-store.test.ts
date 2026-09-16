@@ -55,7 +55,7 @@ describe("whose conversation this is", () => {
   });
 
   it("self-hosted gets one, because there is one operator and no second owner", () => {
-    assert.equal(chatKeyFor({ hosted: false, address: null }), "merrymen.chat.self");
+    assert.equal(chatKeyFor({ hosted: false, address: null }), "oathwall.chat.self");
   });
 
   it("and nothing is written when there is no key", () => {
@@ -86,7 +86,7 @@ describe("round trip", () => {
 
   it("an emptied conversation removes the row rather than storing []", () => {
     const s = memStore();
-    const key = "merrymen.chat.self";
+    const key = "oathwall.chat.self";
     saveTurns(key, [turn(1)], s);
     saveTurns(key, [], s);
     assert.equal(s.map.has(key), false);
@@ -94,7 +94,7 @@ describe("round trip", () => {
 
   it("keeps the NEWEST turns when there are too many", () => {
     const s = memStore();
-    const key = "merrymen.chat.self";
+    const key = "oathwall.chat.self";
     const many = Array.from({ length: MAX_TURNS + 10 }, (_, i) => turn(i));
     saveTurns(key, many, s);
     const back = loadTurns(key, s);
@@ -108,7 +108,7 @@ describe("what it refuses to trust or to crash on", () => {
     // This came out of a store any script on this origin could have written,
     // and it is rendered as the agent's own words.
     const s = memStore();
-    const key = "merrymen.chat.self";
+    const key = "oathwall.chat.self";
     s.map.set(key, JSON.stringify([turn(1), { question: 1, answer: null }, "nope", null, { question: "q" }]));
     assert.deepEqual(loadTurns(key, s), [turn(1)]);
   });

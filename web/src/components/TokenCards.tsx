@@ -88,7 +88,7 @@ function CoinArt({ logo, symbol }: { logo: string; symbol: string }) {
  *
  * There are TWO different noes here and they used to render as one. A coin
  * missing from a grant says "not added", and the fix is real: add it, re-sign,
- * done. A coin still on its bonding curve has NO POOL, and merrymen trades one
+ * done. A coin still on its bonding curve has NO POOL, and oathwall trades one
  * venue. Showing "not added" on a curve coin promised a fix that does not work
  * — the owner adds the token, pays for a re-sign, and still cannot touch it.
  * That is the exact shape of failure this codebase keeps refusing: a screen

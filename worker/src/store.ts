@@ -1,6 +1,6 @@
 /**
  * Trade/event/equity persistence — SQLite (node:sqlite, built into Node 22+).
- * One durable file at .data/merrymen.db shared by worker (writer) and web
+ * One durable file at .data/oathwall.db shared by worker (writer) and web
  * (reader via /api/feed). No external service, no keys. Migration path to
  * Postgres is a schema port when the platform goes multi-user.
  */
@@ -34,7 +34,7 @@ const SQLITE_SCHEMA = `
        can never key into an on-chain agent's basis, HWM, or fee ledger. */
     CREATE TABLE IF NOT EXISTS agents (
       smart_account TEXT PRIMARY KEY,
-      name TEXT NOT NULL DEFAULT 'Robin',
+      name TEXT NOT NULL DEFAULT 'Warden',
       owner_address TEXT NOT NULL,
       session_key_address TEXT NOT NULL,
       chain_id INTEGER NOT NULL,
@@ -194,7 +194,7 @@ const SQLITE_SCHEMA = `
     -- it: its leading column is agent_id, so filtering on time alone has to scan.
     -- The public thesis page is the first reader that is not scoped to one agent.
     CREATE INDEX IF NOT EXISTS decisions_time ON decisions (at DESC);
-    -- Conversation turns, so the merryman doesn't lose the thread on restart.
+    -- Conversation turns, so the agent doesn't lose the thread on restart.
     -- Lives in sqlite rather than a json file because the db is already open and
     -- single-writer; a file would need its own read-modify-write and would race
     -- the notifier. Content is already truncated and HTML-stripped by the caller.
@@ -332,7 +332,7 @@ const SQLITE_ALTERS: string[] = [
     "ALTER TABLE agents ADD COLUMN epoch INTEGER NOT NULL DEFAULT 1",
     // WHAT THE WORKER IS ACTUALLY DOING, on a channel the dashboard can read.
     //
-    // The heartbeat is a JSON file in the worker's own MERRYMEN_HOME, and the
+    // The heartbeat is a JSON file in the worker's own OATHWALL_HOME, and the
     // web service reads homePaths.heartbeat() — its OWN home. Self-hosted those
     // are the same directory and it works. Hosted they are different
     // directories in different containers, so the dashboard never saw a
@@ -633,7 +633,7 @@ function initSqlite(): Db {
       // column already exists
     }
   }
-  // stderr, not stdout: `merrymen export` writes the audit journal to stdout,
+  // stderr, not stdout: `oathwall export` writes the audit journal to stdout,
   // and a diagnostic line landing in the middle of it corrupts the file. A log
   // is not data.
   console.error(`[store] sqlite at ${DB_FILE}`);
@@ -695,7 +695,7 @@ function getDb(): Db {
   return driver;
 }
 
-/** Test seam: drop the cached driver so a test can point MERRYMEN_HOME elsewhere. */
+/** Test seam: drop the cached driver so a test can point OATHWALL_HOME elsewhere. */
 export function resetStoreForTest(): void {
   driver = null;
 }
@@ -1038,7 +1038,7 @@ export async function journaled(
   });
 }
 
-/** Every entry for one epoch, oldest first — what `merrymen export` emits. */
+/** Every entry for one epoch, oldest first — what `oathwall export` emits. */
 export async function readJournal(agentId: string, epoch: number): Promise<JournalEntry[]> {
   try {
     return await getDb()
@@ -2251,7 +2251,7 @@ export async function getOpsToday(agentId: string, rail: BudgetRail = "live"): P
   return row?.n ?? 0;
 }
 
-/** Rename the agent — the user-given merryman name (shown on the dashboard). */
+/** Rename the agent — the user-given agent name (shown on the dashboard). */
 /**
  * The owner's X handle on the agent's roster row, so a public page can credit
  * them without decrypting a tenant's sealed settings.
@@ -2448,7 +2448,7 @@ export async function recentChatTurns(chatId: number, limit = CHAT_TURNS_KEPT): 
 }
 
 /** Unix seconds of the last turn in a chat, or null if there is none. Lets the
- * merryman know it's been three days rather than opening cold every time. */
+ * agent know it's been three days rather than opening cold every time. */
 export async function lastChatTurnAt(chatId: number): Promise<number | null> {
   try {
     const row = await getDb()

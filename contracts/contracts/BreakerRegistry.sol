@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 /**
  * @title BreakerRegistry
  * @notice The drawdown circuit breaker that lives OUTSIDE the agent. Promise #2
- * of merrymen ("it cannot lose more than you allow") requires a halt mechanism
+ * of oathwall ("it cannot lose more than you allow") requires a halt mechanism
  * the agent cannot argue with, reason around, or forget: once an account's
  * drawdown from its high-water mark reaches the owner's threshold, the breaker
  * trips and the paired KernelBreakerPolicy fails every subsequent UserOp at

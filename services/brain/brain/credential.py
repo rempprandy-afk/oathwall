@@ -29,7 +29,7 @@ from pathlib import Path
 
 #: Variables the FLEET reads. Brain reading any of these would put its spend on
 #: the agents' allowance, so the name itself is refused.
-FLEET_KEY_VARS = ("GROQ_API_KEY", "MERRYMEN_LLM_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY")
+FLEET_KEY_VARS = ("GROQ_API_KEY", "OATHWALL_LLM_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY")
 
 #: The only variable Brain will take a key from.
 BRAIN_KEY_VAR = "BRAIN_LLM_API_KEY"

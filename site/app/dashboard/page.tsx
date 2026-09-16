@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AgentDashboard } from "@/components/AgentDashboard";
 
 export const metadata: Metadata = {
-  title: "Your merryman, live — holdings and value from the chain",
+  title: "Your agent, live — holdings and value from the chain",
   description:
     "Paste your agent's smart-account address and see what it holds right now, priced, read straight from Robinhood Chain in your browser. No account, no login, no server in between.",
 };
@@ -18,7 +18,7 @@ export default function Dashboard() {
           </div>
           <h1 data-reveal="mask">See it working.</h1>
           <p className="watch-lede" data-reveal="up">
-            Everything a merryman owns sits in a smart account on Robinhood Chain, and a chain is
+            Everything an agent owns sits in a smart account on Robinhood Chain, and a chain is
             public by construction. So you can watch yours from anywhere — no login, no account with
             us, and no server of ours between you and the answer. Paste the address and the numbers
             below are read live, in this tab.

@@ -1,5 +1,5 @@
 /**
- * Paper trading — the full merrymen loop with zero funds.
+ * Paper trading — the full oathwall loop with zero funds.
  *
  * When the account can't sign (no bundler key), approved intents are FILLED
  * here instead of stubbed: at the live on-chain oracle price (the same

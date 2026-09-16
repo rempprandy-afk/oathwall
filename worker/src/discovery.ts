@@ -1,7 +1,7 @@
 /**
  * Discovery — telling the owner a pair exists, and nothing more than that.
  *
- * merrymen reads Uniswap v3 pools directly and can compute a v4 PoolKey when the
+ * oathwall reads Uniswap v3 pools directly and can compute a v4 PoolKey when the
  * pool is vanilla. Neither of those finds a HOOKED pool: Pons/Doppler launches
  * attach a hook whose address can't be guessed, so the pool is unreachable by
  * any amount of scanning. Bitquery decodes this chain's Initialize events from

@@ -7,7 +7,7 @@ export const CLAIM_HTML = `<!doctype html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Merrymen AI — claim your key</title>
+<title>Oathwall AI — claim your key</title>
 <style>
   :root { color-scheme: dark; }
   body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b0b0d; color: #e8e6e1;
@@ -26,12 +26,12 @@ export const CLAIM_HTML = `<!doctype html>
 </head>
 <body>
   <div class="card">
-    <span class="tag">🏹 Merry Circle</span>
-    <h1>Claim your Merrymen AI key</h1>
-    <p>Hold $MERRYMEN? Prove it by signing a message (free, no transaction, read-only) and get a key that powers your agent's brain — no third-party signup.</p>
+    <span class="tag">🛡 Oathwall Circle</span>
+    <h1>Claim your Oathwall AI key</h1>
+    <p>Hold $OATHWALL? Prove it by signing a message (free, no transaction, read-only) and get a key that powers your agent's brain — no third-party signup.</p>
     <button id="go">Connect wallet &amp; claim</button>
     <div id="out"></div>
-    <p style="font-size:13px;margin-top:16px">Paste the key into merrymen → Settings → AI provider → <b>Merrymen AI</b>.</p>
+    <p style="font-size:13px;margin-top:16px">Paste the key into oathwall → Settings → AI provider → <b>Oathwall AI</b>.</p>
   </div>
 <script>
   const out = document.getElementById("out");

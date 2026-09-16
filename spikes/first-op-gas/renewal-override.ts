@@ -46,7 +46,7 @@ async function rpc(url: string, method: string, params: unknown[]) {
 }
 
 async function main() {
-  const apiKey = process.env.MERRYMEN_BUNDLER_API_KEY;
+  const apiKey = process.env.OATHWALL_BUNDLER_API_KEY;
   if (!apiKey) { console.error("run under: railway run --service orchestrator --"); process.exit(1); }
   const bundler = pimlicoBundlerUrl(CHAIN_ID, apiKey);
   const chain = chainForId(CHAIN_ID);

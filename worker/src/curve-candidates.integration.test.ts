@@ -8,7 +8,7 @@
  * other captured — the failure mode that produces no error, no log, and a
  * candidate that quietly stops qualifying.
  *
- * MERRYMEN_HOME is set before any store import runs getDb(); node's --test runs
+ * OATHWALL_HOME is set before any store import runs getDb(); node's --test runs
  * each file in its own process, so the override never leaks.
  */
 import assert from "node:assert/strict";
@@ -17,8 +17,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-curves-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-curves-"));
+process.env.OATHWALL_HOME = HOME;
 
 const { initStore, markPoolSeen, recentCandidates, recordCandidate, seenCurves, seenPools, setTrenchEntry, getTrenchEntry, upgradeTrenchEntry } = await import("./store");
 

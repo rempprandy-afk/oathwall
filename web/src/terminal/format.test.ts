@@ -28,7 +28,7 @@ import { validAmount } from "./amount";
 import { barInterval, withGaps } from "./bars";
 import { dailyChange, spentToday } from "./account";
 import { elapsed, countdown } from "./clock";
-import { TRADABLE_TOKENS } from "@merrymen/core";
+import { TRADABLE_TOKENS } from "@oathwall/core";
 import {
   ageOf,
   coinPrice,

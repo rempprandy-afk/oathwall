@@ -28,7 +28,7 @@
  * never produces one.
  *
  * Run: railway run --service orchestrator -- npx tsx spikes/first-op-gas/probe.ts
- * (railway supplies MERRYMEN_BUNDLER_API_KEY; the Pimlico host is public.)
+ * (railway supplies OATHWALL_BUNDLER_API_KEY; the Pimlico host is public.)
  */
 import { createPublicClient, encodeFunctionData, erc20Abi, http, parseEther, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
@@ -80,9 +80,9 @@ function errText(e: unknown): string {
 }
 
 async function main() {
-  const apiKey = process.env.MERRYMEN_BUNDLER_API_KEY;
+  const apiKey = process.env.OATHWALL_BUNDLER_API_KEY;
   if (!apiKey) {
-    console.error("no MERRYMEN_BUNDLER_API_KEY — run this under `railway run --service orchestrator --`");
+    console.error("no OATHWALL_BUNDLER_API_KEY — run this under `railway run --service orchestrator --`");
     process.exit(1);
   }
   const bundler = pimlicoBundlerUrl(CHAIN_ID, apiKey);

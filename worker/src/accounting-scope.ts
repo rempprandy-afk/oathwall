@@ -1,7 +1,7 @@
 /**
  * WHICH FRAME EACH MONEY FIGURE LIVES IN.
  *
- * merrymen has accounting EPOCHS. An epoch is opened when the rows before it
+ * oathwall has accounting EPOCHS. An epoch is opened when the rows before it
  * cannot be audited — pre-flow-tracking balances, fills booked off a slippage
  * floor — and everything before the boundary is kept for forensics but excluded
  * from performance. `openNextEpoch` bridges the two by writing the closing

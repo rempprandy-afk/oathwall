@@ -1,7 +1,7 @@
 /**
  * Auto-start — surviving a logout, a sleep, and a reboot.
  *
- * merrymen is self-hosted and non-custodial, which means it runs on the owner's
+ * oathwall is self-hosted and non-custodial, which means it runs on the owner's
  * machine and stops when that machine stops. Nothing here changes that. What it
  * changes is the far more common failure: an agent that was running fine until
  * the owner closed a terminal, logged out, or rebooted, and then silently wasn't.
@@ -35,10 +35,10 @@ import { fileURLToPath } from "node:url";
 const CLI = path.join(path.dirname(fileURLToPath(import.meta.url)), "bin.mjs");
 
 /** One stable identifier, so install/status/uninstall always agree. */
-export const SERVICE_ID = "merrymen";
-const WIN_TASK = "merrymen";
-const MAC_LABEL = "dev.merrymen.agent";
-const LINUX_UNIT = "merrymen.service";
+export const SERVICE_ID = "oathwall";
+const WIN_TASK = "oathwall";
+const MAC_LABEL = "dev.oathwall.agent";
+const LINUX_UNIT = "oathwall.service";
 
 /**
  * Run a command, capture output, never throw.
@@ -69,7 +69,7 @@ const linuxUnit = () =>
  * when the agent "just didn't run".
  */
 export function logPath() {
-  const home = process.env.MERRYMEN_HOME ?? path.join(os.homedir(), ".merrymen");
+  const home = process.env.OATHWALL_HOME ?? path.join(os.homedir(), ".oathwall");
   return path.join(home, "service.log");
 }
 
@@ -77,14 +77,14 @@ export function logPath() {
 
 /** Where the Windows launcher lives. Named so it's obvious what wrote it. */
 function winLauncher() {
-  const home = process.env.MERRYMEN_HOME ?? path.join(os.homedir(), ".merrymen");
-  return path.join(home, "merrymen-service.cmd");
+  const home = process.env.OATHWALL_HOME ?? path.join(os.homedir(), ".oathwall");
+  return path.join(home, "oathwall-service.cmd");
 }
 
 /** The per-user Startup folder — runs at logon with no privileges at all. */
 function winStartupEntry() {
   const appData = process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming");
-  return path.join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "merrymen.cmd");
+  return path.join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "oathwall.cmd");
 }
 
 function installWindows() {
@@ -100,7 +100,7 @@ function installWindows() {
   writeFileSync(
     launcher,
     `@echo off\r\n` +
-      `rem Written by "merrymen service install". Safe to delete once uninstalled.\r\n` +
+      `rem Written by "oathwall service install". Safe to delete once uninstalled.\r\n` +
       `start "" /b "${process.execPath}" "${CLI}" start >> "${log}" 2>&1\r\n`,
     "utf8",
   );
@@ -170,7 +170,7 @@ function installLinux() {
   writeFileSync(
     unit,
     `[Unit]
-Description=merrymen — autonomous trading agent
+Description=oathwall — autonomous trading agent
 After=network-online.target
 
 [Service]

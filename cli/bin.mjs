@@ -1,23 +1,23 @@
 #!/usr/bin/env node
 /**
- * merrymen CLI — the terminal front door.
+ * oathwall CLI — the terminal front door.
  *
- * Install (no clone):   npm install -g merrymen        (or github:millw14/merrymen)
- * Then:                 merrymen onboard && merrymen start
+ * Install (no clone):   npm install -g oathwall        (or github:rempprandy-afk/oathwall)
+ * Then:                 oathwall onboard && oathwall start
  *
- *   merrymen onboard        interactive setup wizard (keys, strategy, basket)
- *   merrymen start          run web + worker together
- *   merrymen doctor         diagnose the whole stack
- *   merrymen status         what the band is doing right now
- *   merrymen strategy new   scaffold a custom strategy in ~/.merrymen/strategies
- *   merrymen strategy list  builtins + your strategies
- *   merrymen selftest       one policy-legal no-op through the full pipeline
- *   merrymen kill           terminal kill switch (deletes the grant)
- *   merrymen wallets        every wallet on this machine (live + archived) + balances
- *   merrymen recover        sweep the smart account's funds to a wallet you control
+ *   oathwall onboard        interactive setup wizard (keys, strategy, basket)
+ *   oathwall start          run web + worker together
+ *   oathwall doctor         diagnose the whole stack
+ *   oathwall status         what the agent is doing right now
+ *   oathwall strategy new   scaffold a custom strategy in ~/.oathwall/strategies
+ *   oathwall strategy list  builtins + your strategies
+ *   oathwall selftest       one policy-legal no-op through the full pipeline
+ *   oathwall kill           terminal kill switch (deletes the grant)
+ *   oathwall wallets        every wallet on this machine (live + archived) + balances
+ *   oathwall recover        sweep the smart account's funds to a wallet you control
  *
- * Zero dependencies. All user data lives in ~/.merrymen (override with
- * MERRYMEN_HOME) — the install location stays disposable.
+ * Zero dependencies. All user data lives in ~/.oathwall (override with
+ * OATHWALL_HOME) — the install location stays disposable.
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -34,11 +34,11 @@ import { installService, serviceLogTail, serviceStatus, uninstallService } from 
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Where the USER's data lives — settings, grant, ledger, strategies.
-const HOME = process.env.MERRYMEN_HOME ?? path.join(os.homedir(), ".merrymen");
+const HOME = process.env.OATHWALL_HOME ?? path.join(os.homedir(), ".oathwall");
 const SETTINGS = path.join(HOME, "settings.json");
 const GRANT = path.join(HOME, "grant.json");
 const HEARTBEAT = path.join(HOME, "heartbeat.json");
-const DB = path.join(HOME, "merrymen.db");
+const DB = path.join(HOME, "oathwall.db");
 const STRATEGIES = path.join(HOME, "strategies");
 // Every wallet this machine has armed — one file per smart account. grant.json is
 // a single slot, so replacing or killing a wallet archives the old one here first
@@ -58,10 +58,10 @@ const RPC_TESTNET = "https://bsc-testnet-dataseed.bnbchain.org";
 // `weekend-gap` was here until Phase 4 deleted it — it entered on Chainlink
 // staleness at equity market close, and crypto never closes.
 const BUILTINS = ["steady-basket", "llm-strategist"];
-// Merry Circle strategies — selectable, but only RUN for $MERRYMEN holders (the
+// Oathwall Circle strategies — selectable, but only RUN for $OATHWALL holders (the
 // worker gates them by tier). Listed apart so the lock is obvious.
 const CIRCLE_STRATEGIES = ["even-keel", "dip-hunter"];
-// tsx worker entry that rebuilds the Kernel account and sweeps it (merrymen recover).
+// tsx worker entry that rebuilds the Kernel account and sweeps it (oathwall recover).
 const RECOVER_CLI = path.join(ROOT, "worker", "src", "recover-cli.ts");
 const EXPLORER = {
   56: "https://bscscan.com",
@@ -85,12 +85,12 @@ function readJson(file) {
   }
 }
 
-/** Create ~/.merrymen, migrate any legacy <checkout>/.data, seed the example. */
+/** Create ~/.oathwall, migrate any legacy <checkout>/.data, seed the example. */
 function ensureHome() {
   mkdirSync(STRATEGIES, { recursive: true });
   const legacy = path.join(ROOT, ".data");
   if (existsSync(legacy)) {
-    for (const name of ["settings.json", "grant.json", "merrymen.db", "heartbeat.json"]) {
+    for (const name of ["settings.json", "grant.json", "oathwall.db", "heartbeat.json"]) {
       const from = path.join(legacy, name);
       const to = path.join(HOME, name);
       if (existsSync(from) && !existsSync(to)) {
@@ -273,7 +273,7 @@ async function ethBalance(rpc, addr) {
 }
 
 /**
- * `merrymen wallets` — every wallet this machine knows about, live + archived,
+ * `oathwall wallets` — every wallet this machine knows about, live + archived,
  * with what each one actually holds. The answer to "where did my other wallet go?"
  */
 async function wallets() {
@@ -312,7 +312,7 @@ async function wallets() {
     );
   }
   console.log(
-    `\n  ${c.gold(c.arrow)} ${dim("sweep funds out:")} ${bold("merrymen recover")}\n` +
+    `\n  ${c.gold(c.arrow)} ${dim("sweep funds out:")} ${bold("oathwall recover")}\n` +
       `  ${c.gold(c.arrow)} ${dim("put one back to work:")} ${bold("http://localhost:3100/grant")} ${dim("→ restore a funded wallet")}\n`,
   );
 }
@@ -321,19 +321,19 @@ async function wallets() {
 
 /** Animated welcome — the delightful first thing after install. */
 async function welcome() {
-  await banner("stand and deliver — you just joined the band");
+  await banner("welcome — your agent is ready to set up");
   console.log(
-    `  ${bold("the band is mustered.")} raise your first agent:\n\n` +
-      `     ${bold(c.lime("merrymen onboard"))}   ${dim("gather the band — bundler, keys, strategy, basket")}\n` +
-      `     ${bold(c.lime("merrymen start"))}     ${dim("open the tavern (localhost:3100) + loose the worker")}\n\n` +
+    `  ${bold("ready when you are.")} raise your first agent:\n\n` +
+      `     ${bold(c.lime("oathwall onboard"))}   ${dim("set up your agent — bundler, keys, strategy, basket")}\n` +
+      `     ${bold(c.lime("oathwall start"))}     ${dim("open the dashboard (localhost:3100) + start the worker")}\n\n` +
       `  ${c.gold(c.arrow)} ${dim("your keys, your caps · bounded worst case · every trade simulated first")}\n` +
-      `  ${c.gold(c.arrow)} ${dim("learn more:")} ${bold("https://merrymen.dev")}\n`,
+      `  ${c.gold(c.arrow)} ${dim("learn more:")} ${bold("https://oathwall.dev")}\n`,
   );
 }
 
 /**
  * Show the welcome once, the first time any command runs after install.
- * Marker lives in ~/.merrymen so a reinstall (fresh home) re-greets.
+ * Marker lives in ~/.oathwall so a reinstall (fresh home) re-greets.
  */
 async function maybeFirstRun(cmd) {
   if (existsSync(WELCOMED)) return;
@@ -354,23 +354,23 @@ async function maybeFirstRun(cmd) {
 // ─────────────────────────────────────────────────────────────── onboard ──
 
 async function onboard() {
-  await banner("gather your band · rob the spread · give yourself the yield");
+  await banner("set up your agent · start trading for free");
   console.log(
     `  ${dim("your keys, your caps · bounded worst case · every trade simulated first")}\n` +
-      `  ${bold("Every step here is optional.")} Press Enter through them all and your band\n` +
-      `  rides in ${green("paper mode")} — real live prices, simulated fills, zero funds. Add a\n` +
+      `  ${bold("Every step here is optional.")} Press Enter through them all and your agent\n` +
+      `  starts in ${green("paper mode")} — real live prices, simulated fills, zero funds. Add a\n` +
       `  Pimlico key later (here or in the dashboard) whenever you want to trade for real.\n\n` +
       `  Everything you tell me is stashed in ${dim(HOME)} — yours, outside the install.\n` +
-      `  Blank answers keep what's saved. Ctrl+C to slip back into the forest anytime.\n`,
+      `  Blank answers keep what's saved. Ctrl+C to back out anytime.\n`,
   );
 
   const major = Number(process.versions.node.split(".")[0]);
   if (major < 22) {
-    bad(`Node ${process.versions.node} — merrymen needs Node 22+ (node:sqlite). Install from nodejs.org and rerun.`);
+    bad(`Node ${process.versions.node} — oathwall needs Node 22+ (node:sqlite). Install from nodejs.org and rerun.`);
     process.exit(1);
   }
   if (!existsSync(path.join(ROOT, "node_modules"))) {
-    bad("install incomplete — node_modules missing next to the package. Reinstall: npm install -g merrymen");
+    bad("install incomplete — node_modules missing next to the package. Reinstall: npm install -g oathwall");
     process.exit(1);
   }
 
@@ -380,7 +380,7 @@ async function onboard() {
   const keep = (has) => dim(has ? ` [saved — blank keeps it]` : ` [blank skips]`);
 
   console.log(bold(`\n  ${c.arrow} 1/4 · go live`) + dim("  (optional — skip to stay in practice mode)"));
-  console.log(dim("  To place real trades, merrymen needs one key: a free ") + "Pimlico" + dim(" key that relays"));
+  console.log(dim("  To place real trades, oathwall needs one key: a free ") + "Pimlico" + dim(" key that relays"));
   console.log(dim("  your agent's transactions on-chain. Grab it at ") + bold("dashboard.pimlico.io") + dim(" → API Keys."));
   console.log(dim("  Paste just the key — we build the right URL for your chain automatically."));
   const bundlerKey = (await p.askSecret(`  Pimlico API key${keep(current.bundlerApiKey || current.bundlerUrl)}: `)).trim();
@@ -388,7 +388,7 @@ async function onboard() {
 
   async function fetchModels(provId, apiKey, customUrl) {
     const MODELS_BASE = {
-      merrymen: "", groq: "https://api.groq.com/openai/v1", openai: "https://api.openai.com/v1",
+      oathwall: "", groq: "https://api.groq.com/openai/v1", openai: "https://api.openai.com/v1",
       anthropic: "https://api.anthropic.com", google: "https://generativelanguage.googleapis.com/v1beta/openai",
       xai: "https://api.x.ai/v1", deepseek: "https://api.deepseek.com", mistral: "https://api.mistral.ai/v1",
       openrouter: "https://openrouter.ai/api/v1", together: "https://api.together.xyz/v1",
@@ -432,7 +432,7 @@ async function onboard() {
   // plain ESM and can't import the TS core. keyField routes the key to the field
   // the worker reads: groq/anthropic keep their classic fields, the rest use llmApiKey.
   const LLM_PROVIDERS = [
-    { id: "merrymen", label: "Merrymen AI", keyField: "llmApiKey", modelField: "llmProviderModel", def: "merrymen-fast", key: "merrymen-gateway-production.up.railway.app/claim", holder: true, needsKey: true },
+    { id: "oathwall", label: "Oathwall AI", keyField: "llmApiKey", modelField: "llmProviderModel", def: "oathwall-fast", key: "oathwall-gateway-production.up.railway.app/claim", holder: true, needsKey: true },
     { id: "groq", label: "Groq", keyField: "groqApiKey", modelField: "groqModel", def: "llama-3.3-70b-versatile", key: "console.groq.com/keys", free: true, needsKey: true },
     { id: "openai", label: "OpenAI", keyField: "llmApiKey", modelField: "llmProviderModel", def: "gpt-4o-mini", key: "platform.openai.com/api-keys", needsKey: true },
     { id: "anthropic", label: "Anthropic (Claude)", keyField: "anthropicApiKey", modelField: "llmModel", def: "claude-opus-4-8", key: "console.anthropic.com/settings/keys", needsKey: true },
@@ -451,7 +451,7 @@ async function onboard() {
   console.log(dim("  Pick who powers plain-English chat + the AI strategist. Free: Groq, Google, Cerebras. Local (no key): Ollama."));
   LLM_PROVIDERS.forEach((prov, i) =>
     console.log(
-      `  ${i + 1}. ${prov.label}${prov.holder ? green(" 🏹 holders") : ""}${prov.free ? green(" free") : ""}${prov.needsKey === false ? dim(" · local") : ""}${prov.id === (current.llmProvider ?? "groq") ? green(" ← current") : ""}`,
+      `  ${i + 1}. ${prov.label}${prov.holder ? green(" 🛡 holders") : ""}${prov.free ? green(" free") : ""}${prov.needsKey === false ? dim(" · local") : ""}${prov.id === (current.llmProvider ?? "groq") ? green(" ← current") : ""}`,
     ),
   );
   const brainPick = (await p.ask(`  pick 1-${LLM_PROVIDERS.length} [blank keeps current]: `)).trim();
@@ -474,7 +474,7 @@ async function onboard() {
   }
   // ── auto-detect available models ──────────────────────────────
   let brainModels = [];
-  if (chosen.id !== "merrymen") {
+  if (chosen.id !== "oathwall") {
     const ak = current[chosen.keyField]?.trim();
     const cu = chosen.custom ? current.llmBaseUrl?.trim() : undefined;
     process.stdout.write(dim("  fetching available models…"));
@@ -498,15 +498,15 @@ async function onboard() {
     if (brainModel) current[chosen.modelField] = brainModel;
   }
 
-  console.log(bold(`\n  ${c.arrow} 3/4 · pick your outlaw`) + dim("  (strategy)"));
+  console.log(bold(`\n  ${c.arrow} 3/4 · pick a strategy`) + dim("  (strategy)"));
   const custom = await listCustom();
   const all = [...BUILTINS, ...CIRCLE_STRATEGIES, ...custom];
   all.forEach((s, i) =>
     console.log(
-      `  ${i + 1}. ${s}${custom.includes(s) ? dim(" (yours)") : ""}${CIRCLE_STRATEGIES.includes(s) ? dim(" 🏹 merry circle — hold $MERRYMEN") : ""}${s === (current.strategy ?? "steady-basket") ? green(" ← current") : ""}`,
+      `  ${i + 1}. ${s}${custom.includes(s) ? dim(" (yours)") : ""}${CIRCLE_STRATEGIES.includes(s) ? dim(" 🛡 oathwall circle — hold $OATHWALL") : ""}${s === (current.strategy ?? "steady-basket") ? green(" ← current") : ""}`,
     ),
   );
-  console.log(dim(`  forge your own outlaw: merrymen strategy new <name>  (template lands in ${STRATEGIES})`));
+  console.log(dim(`  write your own: oathwall strategy new <name>  (template lands in ${STRATEGIES})`));
   const pick = (await p.ask(`  pick 1-${all.length} [blank keeps current]: `)).trim();
   const idx = Number(pick) - 1;
   if (pick && Number.isInteger(idx) && all[idx]) current.strategy = all[idx];
@@ -524,7 +524,7 @@ async function onboard() {
     if (valid.length) current.basketSymbols = valid;
   }
 
-  console.log(bold(`\n  ${c.arrow} a raven to Telegram`) + dim("  (chat with your merryman — optional)"));
+  console.log(bold(`\n  ${c.arrow} a raven to Telegram`) + dim("  (chat with your agent — optional)"));
   console.log(dim("  Create a bot: message @BotFather in Telegram, send /newbot, copy the token."));
   console.log(dim("  Then finish linking from the dashboard settings, or leave blank to skip."));
   const tgToken = (await p.askSecret(`  Telegram bot token${keep(current.telegramBotToken)}: `)).trim();
@@ -535,24 +535,24 @@ async function onboard() {
   }
 
   p.close();
-  const s = spinner("stashing your plans in the hollow oak");
+  const s = spinner("saving your settings");
   writeSettings(current);
   await new Promise((r) => setTimeout(r, 400));
-  s.succeed(`stashed ${dim(SETTINGS)}`);
+  s.succeed(`saved ${dim(SETTINGS)}`);
 
   console.log(`
-${bold(`  ${c.arrow} ride out`)}
-  1. ${bold("merrymen start")} — opens the tavern (dashboard) at http://localhost:3100 + looses the worker
+${bold(`  ${c.arrow} get started`)}
+  1. ${bold("oathwall start")} — opens the dashboard at http://localhost:3100 + starts the worker
   2. at ${bold("/grant")}, create your agent wallet — pick testnet 46630 (practice) or mainnet 4663 (real funds)
-  3. testnet ${bold("gas")} from the sheriff's vault: ${dim("https://faucet.testnet.chain.robinhood.com")}
+  3. testnet ${bold("gas")} from the faucet: ${dim("https://faucet.testnet.chain.robinhood.com")}
      ${dim("gas only — USDG sent to a testnet account is never shown and never traded.")}
      ${dim("mainnet: send ETH (gas) + USDG (capital) from your own wallet.")}
-  4. prove the shot lands: ${bold("merrymen selftest")}
-  5. muster check anytime: ${bold("merrymen doctor")} · tune the band: ${dim("http://localhost:3100/settings")}
+  4. prove it works: ${bold("oathwall selftest")}
+  5. status check anytime: ${bold("oathwall doctor")} · tune your agent: ${dim("http://localhost:3100/settings")}
 
-  ${dim("guide & docs:")} ${bold("https://merrymen.dev")} ${dim("·")} ${dim("https://merrymen.dev/docs")}
+  ${dim("guide & docs:")} ${bold("https://oathwall.dev")} ${dim("·")} ${dim("https://oathwall.dev/docs")}
 
-  ${c.gold("nock, draw, loose. 🏹")}
+  ${c.gold("ready when you are. 🛡")}
 `);
 }
 
@@ -579,23 +579,23 @@ async function start() {
   const noOpen = process.argv.includes("--no-open");
   // Bind localhost-only by default: the dashboard has no login and holds your
   // trading controls, so it must not be reachable from the LAN. Opt into
-  // network access explicitly with MERRYMEN_HOST=0.0.0.0 (e.g. phone on your
+  // network access explicitly with OATHWALL_HOST=0.0.0.0 (e.g. phone on your
   // home WiFi) — only on a network you trust.
-  const host = process.env.MERRYMEN_HOST || "127.0.0.1";
+  const host = process.env.OATHWALL_HOST || "127.0.0.1";
   const url = "http://localhost:3100";
-  await banner("the band rides out");
+  await banner("starting up");
   const web = path.join(ROOT, "web");
   // Serve the prebuilt production app (next start), not dev-mode — the robust
   // distribution model. If the build is missing (a source install where the
   // prepare hook didn't run), build it once under a spinner.
   if (!existsSync(path.join(web, ".next", "BUILD_ID"))) {
     try {
-      await withSpinner("raising the tavern (first-run build, ~15s)", async () => {
+      await withSpinner("building the dashboard (first-run build, ~15s)", async () => {
         const b = toolSpawn(localBin("next"), ["build"], { cwd: web }, true);
         if (b.status !== 0) throw new Error("build failed");
       });
     } catch {
-      bad("the tavern won't stand (dashboard build failed) — the worker still runs via `merrymen selftest`.");
+      bad("the dashboard won't build — the worker still runs via `oathwall selftest`.");
       process.exit(1);
     }
   }
@@ -604,21 +604,21 @@ async function start() {
   const openOnce = () => {
     if (opened || noOpen) return;
     opened = true;
-    console.log(`\n  ${c.green(c.arrow)} tavern's open — ${c.bold(url)} ${dim("(opening your browser…)")}\n`);
+    console.log(`\n  ${c.green(c.arrow)} dashboard is open — ${c.bold(url)} ${dim("(opening your browser…)")}\n`);
     openBrowser(url);
   };
 
   // Next serves from the app dir as cwd; the worker runs from ROOT.
   // The WORKER is supervised: a crash (a bad tick, an RPC blip) auto-restarts
-  // with backoff instead of leaving a silently-dead band. The dashboard is not
+  // with backoff instead of leaving a silently-dead agent. The dashboard is not
   // — a broken build should fail visibly, not crash-loop.
   let shuttingDown = false;
   const children = new Set();
-  let bandRestarts = 0;
+  let restartCount = 0;
 
   const specs = [
-    { name: "tavern", bin: localBin("next"), args: ["start", "-p", "3100", "-H", host], cwd: web, supervise: false },
-    { name: "band  ", bin: localBin("tsx"), args: [path.join(ROOT, "worker", "src", "index.ts")], cwd: ROOT, supervise: true },
+    { name: "web   ", bin: localBin("next"), args: ["start", "-p", "3100", "-H", host], cwd: web, supervise: false },
+    { name: "worker", bin: localBin("tsx"), args: [path.join(ROOT, "worker", "src", "index.ts")], cwd: ROOT, supervise: true },
   ];
 
   function launch(spec) {
@@ -628,7 +628,7 @@ async function start() {
     const pipe = (stream, sink) =>
       stream.on("data", (chunk) => {
         const text = String(chunk);
-        if (spec.name === "tavern" && /Ready|started server|Local:/i.test(text)) openOnce();
+        if (spec.name === "web   " && /Ready|started server|Local:/i.test(text)) openOnce();
         text
           .split(/\r?\n/)
           .filter((l) => l.trim())
@@ -638,17 +638,17 @@ async function start() {
     pipe(child.stderr, process.stderr);
     child.on("exit", (code) => {
       children.delete(child);
-      console.log(`${dim(`[${spec.name}]`)} rode off (${code})`);
+      console.log(`${dim(`[${spec.name}]`)} stopped (${code})`);
       if (shuttingDown || !spec.supervise) return;
       // A long-lived run that then dies is a fresh incident, not a crash loop.
-      if (Date.now() - startedAt > 60_000) bandRestarts = 0;
-      bandRestarts += 1;
-      if (bandRestarts > 8) {
-        bad("the band keeps falling right after starting — fix the error above, then `merrymen start`.");
+      if (Date.now() - startedAt > 60_000) restartCount = 0;
+      restartCount += 1;
+      if (restartCount > 8) {
+        bad("the agent keeps falling right after starting — fix the error above, then `oathwall start`.");
         return;
       }
-      const delay = Math.min(30_000, 1_000 * 2 ** Math.min(bandRestarts, 5));
-      warn(`band stopped — rallying again in ${Math.round(delay / 1000)}s (restart #${bandRestarts})`);
+      const delay = Math.min(30_000, 1_000 * 2 ** Math.min(restartCount, 5));
+      warn(`agent stopped — restarting in ${Math.round(delay / 1000)}s (restart #${restartCount})`);
       setTimeout(() => {
         if (!shuttingDown) launch(spec);
       }, delay);
@@ -659,10 +659,10 @@ async function start() {
   // Fallback: open even if we never matched a ready line.
   setTimeout(openOnce, 12_000);
 
-  console.log(dim("  Ctrl+C calls the whole band home.\n"));
+  console.log(dim("  Ctrl+C stops everything.\n"));
   const stop = () => {
     shuttingDown = true;
-    console.log(`\n  ${c.gold(c.arrow)} calling the band home…`);
+    console.log(`\n  ${c.gold(c.arrow)} shutting down…`);
     children.forEach((ch) => ch.kill("SIGINT"));
     setTimeout(() => process.exit(0), 500);
   };
@@ -674,33 +674,33 @@ async function start() {
 function version() {
   try {
     const pkg = readJson(path.join(ROOT, "package.json"));
-    console.log(`merrymen v${pkg?.version ?? "unknown"}`);
+    console.log(`oathwall v${pkg?.version ?? "unknown"}`);
   } catch {
-    console.log("merrymen (version unknown)");
+    console.log("oathwall (version unknown)");
   }
 }
 
 // ──────────────────────────────────────────────────────────────── doctor ──
 
 async function doctor() {
-  console.log(`\n${bold(`  ${c.arrow} muster check`)}  ${dim("is the band ready to ride?")}\n`);
+  console.log(`\n${bold(`  ${c.arrow} status check`)}  ${dim("is the agent ready to run?")}\n`);
   ensureHome();
   const s = readJson(SETTINGS) ?? {};
 
   nodeVersionOk()
     ? ok(`node ${process.versions.node}`)
-    : bad(`node ${process.versions.node} — need ${NODE_MIN.join(".")}+ for node:sqlite (run: merrymen setup)`);
+    : bad(`node ${process.versions.node} — need ${NODE_MIN.join(".")}+ for node:sqlite (run: oathwall setup)`);
   const npmV = sh("npm", ["--version"]);
-  npmV ? ok(`npm ${npmV}`) : warn("npm not found on PATH — reinstall Node (run: merrymen setup)");
+  npmV ? ok(`npm ${npmV}`) : warn("npm not found on PATH — reinstall Node (run: oathwall setup)");
   const binDir = npmGlobalBinDir();
-  if (binDir && !onPath(binDir)) warn(`npm global bin not on PATH — "command not found" trap (run: merrymen setup)`);
+  if (binDir && !onPath(binDir)) warn(`npm global bin not on PATH — "command not found" trap (run: oathwall setup)`);
   existsSync(path.join(ROOT, "node_modules")) ? ok("package install complete") : bad("node_modules missing — reinstall");
   console.log(`  ${dim(`package: ${ROOT}`)}`);
   console.log(`  ${dim(`home:    ${HOME}`)}`);
 
-  existsSync(SETTINGS) ? ok("settings present") : warn("no settings yet — run: merrymen onboard");
+  existsSync(SETTINGS) ? ok("settings present") : warn("no settings yet — run: oathwall onboard");
   const paperOn = s.paperTradingEnabled !== false;
-  const hasSigner = !!(s.bundlerApiKey || s.bundlerUrl || process.env.MERRYMEN_BUNDLER_API_KEY || process.env.MERRYMEN_BUNDLER_URL);
+  const hasSigner = !!(s.bundlerApiKey || s.bundlerUrl || process.env.OATHWALL_BUNDLER_API_KEY || process.env.OATHWALL_BUNDLER_URL);
   hasSigner
     ? ok("bundler key configured — can sign live trades")
     : paperOn
@@ -718,7 +718,7 @@ async function doctor() {
     s.llmProvider === "ollama" ||
     process.env.GROQ_API_KEY ||
     process.env.ANTHROPIC_API_KEY ||
-    process.env.MERRYMEN_LLM_API_KEY
+    process.env.OATHWALL_LLM_API_KEY
   );
   const brainName = s.llmProvider
     ? s.llmProvider
@@ -728,7 +728,7 @@ async function doctor() {
   hasLlm
     ? ok(`AI brain set (${brainName})`)
     : warn("no AI provider key — plain-English chat + llm-strategist idle. Pick one in /settings (free: Groq, Google, Cerebras; local: Ollama).");
-  if (s.telegramBotToken || process.env.MERRYMEN_TELEGRAM_BOT_TOKEN) {
+  if (s.telegramBotToken || process.env.OATHWALL_TELEGRAM_BOT_TOKEN) {
     s.telegramEnabled === false
       ? warn("Telegram token set but DISABLED — enable it in /settings so the bot answers")
       : Array.isArray(s.telegramAllowlist) && s.telegramAllowlist.length
@@ -740,7 +740,7 @@ async function doctor() {
   if (process.platform === "win32") {
     const pol = sh("powershell", ["-NoProfile", "-Command", "Get-ExecutionPolicy"]);
     pol && /Restricted|AllSigned/i.test(pol)
-      ? bad(`PowerShell policy is ${pol.trim()} — 'merrymen' scripts are blocked. Fix: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`)
+      ? bad(`PowerShell policy is ${pol.trim()} — 'oathwall' scripts are blocked. Fix: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`)
       : ok(`PowerShell script policy ok (${(pol || "unknown").trim()})`);
   }
 
@@ -776,16 +776,16 @@ async function doctor() {
   const hb = readJson(HEARTBEAT);
   if (hb && Math.floor(Date.now() / 1000) - hb.at < 90)
     ok(`worker alive (heartbeat ${Math.floor(Date.now() / 1000) - hb.at}s ago, block ${hb.block}${hb.mode ? `, mode ${hb.mode}` : ""})`);
-  else warn("worker not running (no heartbeat in 90s) — merrymen start");
+  else warn("worker not running (no heartbeat in 90s) — oathwall start");
 
-  existsSync(DB) ? ok("ledger present (~/.merrymen/merrymen.db)") : warn("no ledger yet — appears after the worker's first tick");
+  existsSync(DB) ? ok("ledger present (~/.oathwall/oathwall.db)") : warn("no ledger yet — appears after the worker's first tick");
 
   const custom = await listCustom();
   const strategy = s.strategy ?? "steady-basket";
   if (BUILTINS.includes(strategy)) ok(`strategy: ${strategy} (builtin)`);
   else if (CIRCLE_STRATEGIES.includes(strategy))
-    ok(`strategy: ${strategy} (🏹 merry circle — runs when you hold $MERRYMEN at your holder wallet)`);
-  else if (custom.includes(strategy)) ok(`strategy: ${strategy} (yours, ~/.merrymen/strategies/${strategy}.*)`);
+    ok(`strategy: ${strategy} (🛡 oathwall circle — runs when you hold $OATHWALL at your holder wallet)`);
+  else if (custom.includes(strategy)) ok(`strategy: ${strategy} (yours, ~/.oathwall/strategies/${strategy}.*)`);
   else bad(`strategy "${strategy}" is neither builtin nor in ${STRATEGIES} — the worker will idle with a warning`);
   if (custom.length) console.log(`  ${dim(`your strategies: ${custom.join(", ")}`)}`);
 
@@ -804,7 +804,7 @@ async function doctor() {
   // didn't. Purely informational — doctor never changes anything.
   const svc = serviceStatus();
   if (!svc.installed) {
-    console.log(`  ${dim("auto-start: not installed — `merrymen service install` to start on login")}`);
+    console.log(`  ${dim("auto-start: not installed — `oathwall service install` to start on login")}`);
   } else if (svc.running) {
     ok(`auto-start: installed and running (${svc.where})`);
   } else {
@@ -831,7 +831,7 @@ async function rpcTelegramGetMe(token) {
 // ──────────────────────────────────────────────────────────────── status ──
 
 async function status() {
-  console.log(`\n${bold(`  ${c.arrow} the band, right now`)}\n`);
+  console.log(`\n${bold(`  ${c.arrow} the agent, right now`)}\n`);
   const hb = readJson(HEARTBEAT);
   const now = Math.floor(Date.now() / 1000);
   if (hb && now - hb.at < 90) ok(`worker alive — heartbeat ${now - hb.at}s ago at block ${hb.block}`);
@@ -968,16 +968,16 @@ async function strategyCmd(sub, name) {
   if (sub === "list") {
     console.log(bold("builtin"));
     BUILTINS.forEach((s) => console.log(`  ${s}`));
-    console.log(bold("merry circle") + dim(" (hold $MERRYMEN — Merry Man tier — to run)"));
-    CIRCLE_STRATEGIES.forEach((s) => console.log(`  ${s} ${dim("🏹")}`));
+    console.log(bold("oathwall circle") + dim(" (hold $OATHWALL — Delegate tier — to run)"));
+    CIRCLE_STRATEGIES.forEach((s) => console.log(`  ${s} ${dim("🛡")}`));
     const custom = await listCustom();
     console.log(bold("yours") + dim(` (${STRATEGIES})`));
-    custom.length ? custom.forEach((s) => console.log(`  ${s}`)) : console.log(dim("  none yet — merrymen strategy new <name>"));
+    custom.length ? custom.forEach((s) => console.log(`  ${s}`)) : console.log(dim("  none yet — oathwall strategy new <name>"));
     return;
   }
   if (sub === "new") {
     if (!name || !/^[A-Za-z0-9_-]{1,64}$/.test(name)) {
-      bad("usage: merrymen strategy new <name>   (letters, digits, - and _ only)");
+      bad("usage: oathwall strategy new <name>   (letters, digits, - and _ only)");
       process.exit(1);
     }
     if (BUILTINS.includes(name)) {
@@ -991,7 +991,7 @@ async function strategyCmd(sub, name) {
     }
     writeFileSync(file, TEMPLATE(name), "utf8");
     ok(`created ${file}`);
-    console.log(`  edit it, then select "${name}" in /settings or: merrymen onboard`);
+    console.log(`  edit it, then select "${name}" in /settings or: oathwall onboard`);
     return;
   }
   if (sub === "backtest") {
@@ -1002,7 +1002,7 @@ async function strategyCmd(sub, name) {
     // The child is spawned with cwd: ROOT (it must be, to find tsx and the
     // worker sources), so a relative path handed straight through would be
     // opened relative to the installed package instead of the user's folder —
-    // `--file bars.json` looked for it inside node_modules/merrymen.
+    // `--file bars.json` looked for it inside node_modules/oathwall.
     const fi = extraArgs.indexOf("--file");
     if (fi >= 0 && extraArgs[fi + 1] && !extraArgs[fi + 1].startsWith("--")) {
       extraArgs[fi + 1] = path.resolve(process.cwd(), extraArgs[fi + 1]);
@@ -1016,12 +1016,12 @@ async function strategyCmd(sub, name) {
     child.on("exit", (code) => process.exit(code ?? 1));
     return;
   }
-  bad("usage: merrymen strategy <list|new|backtest> [name]");
+  bad("usage: oathwall strategy <list|new|backtest> [name]");
   process.exit(1);
 }
 
 /**
- * `merrymen preflight` — can this install actually make a REAL trade?
+ * `oathwall preflight` — can this install actually make a REAL trade?
  *
  * Distinct from `doctor`, which asks whether the software is installed and
  * configured. This asks whether the account can trade: balances, the grant's
@@ -1040,9 +1040,9 @@ function preflightCmd() {
 // ──────────────────────────────────────────────────────────────── audit ──
 
 /**
- * `merrymen export` writes the hash-chained journal to stdout; `merrymen verify`
+ * `oathwall export` writes the hash-chained journal to stdout; `oathwall verify`
  * checks a file someone handed you. Verify reads ONLY that file — not
- * ~/.merrymen, not settings — because a verifier that consults the operator's
+ * ~/.oathwall, not settings — because a verifier that consults the operator's
  * own machine is only checking the ledger against itself.
  */
 function auditCmd(which, extraArgs) {
@@ -1072,7 +1072,7 @@ function selftest() {
 
 async function kill() {
   if (!existsSync(GRANT)) {
-    warn("no grant to call in — the band's already home");
+    warn("no grant to call in — the agent's already stopped");
     return;
   }
   const p = makePrompter();
@@ -1083,10 +1083,10 @@ async function kill() {
     // key must never mean losing access to funds still sitting in the account.
     const archived = archiveCurrentGrant();
     rmSync(GRANT, { force: true });
-    ok("grant destroyed — the band stands down on the next tick (on-chain expiry is the backstop)");
+    ok("grant destroyed — the agent stands down on the next tick (on-chain expiry is the backstop)");
     if (archived) {
       console.log(
-        `  ${dim("wallet archived — funds stay reachable:")} ${bold("merrymen wallets")} ${dim("·")} ${bold("merrymen recover")}`,
+        `  ${dim("wallet archived — funds stay reachable:")} ${bold("oathwall wallets")} ${dim("·")} ${bold("oathwall recover")}`,
       );
     }
   } else {
@@ -1106,8 +1106,8 @@ function runRecoverChild(mode, { ownerKey, to, chainId, expect }) {
   return new Promise((resolve) => {
     const env = {
       ...process.env,
-      MERRYMEN_RECOVER_OWNER_KEY: ownerKey,
-      MERRYMEN_RECOVER_EXPECT: expect || "",
+      OATHWALL_RECOVER_OWNER_KEY: ownerKey,
+      OATHWALL_RECOVER_EXPECT: expect || "",
     };
     const child = toolSpawn(localBin("tsx"), [RECOVER_CLI, mode, to, String(chainId)], { cwd: ROOT, env });
     let out = "";
@@ -1129,7 +1129,7 @@ function runRecoverChild(mode, { ownerKey, to, chainId, expect }) {
 }
 
 /**
- * `merrymen recover` — sweep a smart account back to a wallet you control.
+ * `oathwall recover` — sweep a smart account back to a wallet you control.
  *
  * The funded address is an ERC-4337 smart account, not a plain wallet: its owner
  * key derives a DIFFERENT address (what MetaMask shows — empty), so funds can't
@@ -1204,15 +1204,15 @@ async function recover() {
   const hasBundler = !!(
     s.bundlerApiKey ||
     s.bundlerUrl ||
-    process.env.MERRYMEN_BUNDLER_API_KEY ||
-    process.env.MERRYMEN_BUNDLER_URL
+    process.env.OATHWALL_BUNDLER_API_KEY ||
+    process.env.OATHWALL_BUNDLER_URL
   );
   if (!hasBundler) {
     p.close();
     bad("recovery needs a bundler key — a smart account can only move funds by sending a UserOp.");
     console.log(
-      `  Add a free Pimlico key at ${bold("dashboard.pimlico.io")}, paste it into ${bold("merrymen onboard")}\n` +
-        `  (or the dashboard ${dim("/settings")}), then rerun ${bold("merrymen recover")}.`,
+      `  Add a free Pimlico key at ${bold("dashboard.pimlico.io")}, paste it into ${bold("oathwall onboard")}\n` +
+        `  (or the dashboard ${dim("/settings")}), then rerun ${bold("oathwall recover")}.`,
     );
     return;
   }
@@ -1268,7 +1268,7 @@ async function recover() {
   } else {
     bad(
       `recovery didn't complete${done.result?.error ? ` — ${done.result.error}` : ""}. ` +
-        "Your funds are still safe in the account; fix the cause above and rerun merrymen recover.",
+        "Your funds are still safe in the account; fix the cause above and rerun oathwall recover.",
     );
   }
 }
@@ -1293,7 +1293,7 @@ function sh(cmd, args) {
   return null;
 }
 
-/** The dir npm drops global CLIs into — what must be on PATH for `merrymen`. */
+/** The dir npm drops global CLIs into — what must be on PATH for `oathwall`. */
 function npmGlobalBinDir() {
   const prefix = sh("npm", ["prefix", "-g"]);
   if (!prefix) return null;
@@ -1328,9 +1328,9 @@ function nodeInstallHint() {
 }
 
 /**
- * `merrymen setup` — a rig check that runs even when things are broken:
+ * `oathwall setup` — a rig check that runs even when things are broken:
  * Node version, npm, and the global-bin PATH trap that yields
- * "merrymen: command not found". Prints exact, copy-paste fixes.
+ * "oathwall: command not found". Prints exact, copy-paste fixes.
  */
 async function setup() {
   await banner("kit up — check your rig");
@@ -1340,7 +1340,7 @@ async function setup() {
   if (nodeVersionOk(v)) {
     ok(`node ${v} ${dim(`(need ${NODE_MIN.join(".")}+)`)}`);
   } else {
-    bad(`node ${v} is too old — merrymen needs ${NODE_MIN.join(".")}+ (node:sqlite)`);
+    bad(`node ${v} is too old — oathwall needs ${NODE_MIN.join(".")}+ (node:sqlite)`);
     console.log(`      ${bold("install a newer Node:")} ${dim(nodeInstallHint())}`);
   }
 
@@ -1355,67 +1355,67 @@ async function setup() {
   } else if (onPath(binDir)) {
     ok(`global CLIs on PATH ${dim(binDir)}`);
   } else {
-    bad('npm\'s global bin isn\'t on PATH — the "merrymen: command not found" trap');
+    bad('npm\'s global bin isn\'t on PATH — the "oathwall: command not found" trap');
     console.log(`      ${dim(binDir)}`);
     console.log(`      ${bold("fix once")} ${dim("(then open a NEW terminal):")}`);
     console.log(`      ${dim(pathFix(binDir))}`);
-    console.log(`      ${dim("…or just prefix commands: ")}${bold("npx merrymen start")}`);
+    console.log(`      ${dim("…or just prefix commands: ")}${bold("npx oathwall start")}`);
   }
 
   const resolved =
-    process.platform === "win32" ? sh("where", ["merrymen"]) : sh("which", ["merrymen"]);
+    process.platform === "win32" ? sh("where", ["oathwall"]) : sh("which", ["oathwall"]);
   resolved
-    ? ok(`merrymen resolves ${dim(resolved.split(/\r?\n/)[0])}`)
-    : warn("merrymen not yet resolvable by name — use the PATH fix above, or `npx merrymen`");
+    ? ok(`oathwall resolves ${dim(resolved.split(/\r?\n/)[0])}`)
+    : warn("oathwall not yet resolvable by name — use the PATH fix above, or `npx oathwall`");
 
-  console.log(`\n  ${c.gold(c.arrow)} ${dim("rig ready? → ")}${bold("merrymen onboard")}\n`);
+  console.log(`\n  ${c.gold(c.arrow)} ${dim("rig ready? → ")}${bold("oathwall onboard")}\n`);
 }
 
 /** Soft guard for commands that need a modern Node; warns, points to setup. */
 function warnIfOldNode() {
   if (!nodeVersionOk()) {
     warn(
-      `node ${process.versions.node} is below ${NODE_MIN.join(".")} — the worker needs node:sqlite. Run ${bold("merrymen setup")} for the fix.`,
+      `node ${process.versions.node} is below ${NODE_MIN.join(".")} — the worker needs node:sqlite. Run ${bold("oathwall setup")} for the fix.`,
     );
   }
 }
 
 /**
  * Self-update. A running dashboard/worker holds file locks inside the global
- * install, so a bare `npm i -g merrymen@latest` dies with EBUSY on Windows.
- * This stops the band's child processes (NOT this CLI — the pattern matches
+ * install, so a bare `npm i -g oathwall@latest` dies with EBUSY on Windows.
+ * This stops the agent's child processes (NOT this CLI — the pattern matches
  * the nested node_modules the children run from), then upgrades from a cwd
  * OUTSIDE the install folder so nothing we hold can block npm's rename.
  */
 async function update() {
-  await banner("fresh arrows from the fletcher");
+  await banner("updating");
   if (process.platform === "win32") {
     // -Command text is unaffected by the .ps1 execution policy.
     const ps =
       "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | " +
-      "Where-Object { $_.CommandLine -like '*merrymen\\node_modules\\*' -and $_.ProcessId -ne " + process.pid + " } | " +
+      "Where-Object { $_.CommandLine -like '*oathwall\\node_modules\\*' -and $_.ProcessId -ne " + process.pid + " } | " +
       "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }";
     spawnSync("powershell", ["-NoProfile", "-Command", ps], { stdio: "ignore" });
   } else {
-    spawnSync("sh", ["-c", "pkill -f 'merrymen/node_modules' 2>/dev/null || true"], { stdio: "ignore" });
+    spawnSync("sh", ["-c", "pkill -f 'oathwall/node_modules' 2>/dev/null || true"], { stdio: "ignore" });
   }
-  ok("band called home — any running dashboard/worker stopped");
+  ok("stopped — any running dashboard/worker halted");
 
-  console.log(dim("  fetching the latest from the fletcher…\n"));
+  console.log(dim("  fetching the latest version…\n"));
   const r =
     process.platform === "win32"
-      ? spawnSync("cmd.exe", ["/c", "npm install -g merrymen@latest"], { stdio: "inherit", cwd: os.tmpdir() })
-      : spawnSync("sh", ["-c", "npm install -g merrymen@latest"], { stdio: "inherit", cwd: os.tmpdir() });
+      ? spawnSync("cmd.exe", ["/c", "npm install -g oathwall@latest"], { stdio: "inherit", cwd: os.tmpdir() })
+      : spawnSync("sh", ["-c", "npm install -g oathwall@latest"], { stdio: "inherit", cwd: os.tmpdir() });
 
   if (r.status === 0) {
-    console.log(`\n  ${green("✓")} ${bold("upgraded.")} ride out again: ${bold(c.lime("merrymen start"))}\n`);
+    console.log(`\n  ${green("✓")} ${bold("upgraded.")} ride out again: ${bold(c.lime("oathwall start"))}\n`);
   } else {
-    bad("upgrade failed — if it said EBUSY, close any terminal cd'd into the install folder and rerun merrymen update");
+    bad("upgrade failed — if it said EBUSY, close any terminal cd'd into the install folder and rerun oathwall update");
   }
 }
 
 /**
- * merrymen service install|uninstall|status — survive a logout and a reboot.
+ * oathwall service install|uninstall|status — survive a logout and a reboot.
  *
  * The honest framing is repeated in the output rather than buried in docs: this
  * keeps the agent alive across logout, sleep and reboot. It cannot make it run
@@ -1423,7 +1423,7 @@ async function update() {
  * stays on — the owner's own always-on box, not us holding their keys.
  */
 async function serviceCmd(sub) {
-  await banner("service — keep the band riding");
+  await banner("service — keep the agent running");
   if (sub === "install") {
     const r = installService();
     if (!r.ok) {
@@ -1433,13 +1433,13 @@ async function serviceCmd(sub) {
     }
     console.log(`  ${c.green("+")} installed — ${r.detail}`);
     console.log(`
-  Your merryman now starts when you log in, and comes back after a reboot.
+  Your agent now starts when you log in, and comes back after a reboot.
 
   ${bold("What this does NOT do:")} it can't run while the computer is off.
   Nothing survives that except a machine that stays on — your own always-on
   box if you want one. We're not going to hold your keys to do it for you.
 
-  ${dim("undo any time:")} merrymen service uninstall`);
+  ${dim("undo any time:")} oathwall service uninstall`);
     return;
   }
   if (sub === "uninstall") {
@@ -1451,7 +1451,7 @@ async function serviceCmd(sub) {
   const st = serviceStatus();
   if (!st.installed) {
     console.log(`  ${c.gold("-")} auto-start is not installed`);
-    console.log(dim("    merrymen service install   — start on login, survive reboots"));
+    console.log(dim("    oathwall service install   — start on login, survive reboots"));
     return;
   }
   console.log(`  ${c.green("+")} installed — ${st.where}`);
@@ -1525,27 +1525,27 @@ switch (cmd) {
     version();
     break;
   default:
-    await banner("stand and deliver — autonomous agents for Robinhood Chain");
-    console.log(`${dim("  install: npm install -g merrymen · your loot: ~/.merrymen")}
+    await banner("autonomous trading agents for Robinhood Chain");
+    console.log(`${dim("  install: npm install -g oathwall · your data: ~/.oathwall")}
 
-  ${bold("merrymen setup")}          check your rig — node, npm, PATH (with fixes)
-  ${bold("merrymen onboard")}        gather the band (keys, strategy, basket)
-  ${bold("merrymen start")}          open the tavern (localhost:3100) + loose the worker
-  ${bold("merrymen doctor")}         muster check — node/keys/RPC/bundler/grant/db
-  ${bold("merrymen status")}         what the band's up to — heartbeat, grant, trades, equity
-  ${bold("merrymen strategy new")}   forge your own outlaw in ~/.merrymen/strategies
-  ${bold("merrymen strategy list")}  the roster — builtins + your strategies
-  ${bold("merrymen selftest")}       fire one arrow through the whole pipeline
-  ${bold("merrymen preflight")}      can it actually trade? balances, chain, caps, sizing
-  ${bold("merrymen export")}         write the hash-chained audit journal (stdout)
-  ${bold("merrymen verify")}         check an export — reads only the file you hand it
-  ${bold("merrymen service")}        start on login, survive reboots (install/uninstall/status)
-  ${bold("merrymen kill")}           call the band home (kill switch)
-  ${bold("merrymen wallets")}        every wallet on this machine + what it holds
-  ${bold("merrymen recover")}        sweep your account's funds to a wallet you control
-  ${bold("merrymen update")}         stop the band, upgrade to latest, no EBUSY
-  ${bold("merrymen version")}        which build is this (-v)
-  ${bold("merrymen welcome")}        replay the intro 🏹
+  ${bold("oathwall setup")}          check your rig — node, npm, PATH (with fixes)
+  ${bold("oathwall onboard")}        set up your agent (keys, strategy, basket)
+  ${bold("oathwall start")}          open the dashboard (localhost:3100) + start the worker
+  ${bold("oathwall doctor")}         status check — node/keys/RPC/bundler/grant/db
+  ${bold("oathwall status")}         what the agent's up to — heartbeat, grant, trades, equity
+  ${bold("oathwall strategy new")}   write your own strategy in ~/.oathwall/strategies
+  ${bold("oathwall strategy list")}  the roster — builtins + your strategies
+  ${bold("oathwall selftest")}       one policy-legal no-op through the whole pipeline
+  ${bold("oathwall preflight")}      can it actually trade? balances, chain, caps, sizing
+  ${bold("oathwall export")}         write the hash-chained audit journal (stdout)
+  ${bold("oathwall verify")}         check an export — reads only the file you hand it
+  ${bold("oathwall service")}        start on login, survive reboots (install/uninstall/status)
+  ${bold("oathwall kill")}           terminal kill switch (deletes the grant)
+  ${bold("oathwall wallets")}        every wallet on this machine + what it holds
+  ${bold("oathwall recover")}        sweep your account's funds to a wallet you control
+  ${bold("oathwall update")}         stop the agent, upgrade to latest, no EBUSY
+  ${bold("oathwall version")}        which build is this (-v)
+  ${bold("oathwall welcome")}        replay the intro 🛡
 
   ${c.gold(c.arrow)} ${dim("your keys, your caps · bounded worst case · every trade simulated first")}
 `);

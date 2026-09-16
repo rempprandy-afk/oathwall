@@ -31,11 +31,11 @@
  * grant, or widens anything. It returns a list and the reasoning behind it.
  */
 import { NextResponse } from "next/server";
-import { isHostedMode } from "@merrymen/core";
-import { getGrantStore } from "@merrymen/grant-store";
-import { getSettingsStore } from "@merrymen/settings-store";
+import { isHostedMode } from "@oathwall/core";
+import { getGrantStore } from "@oathwall/grant-store";
+import { getSettingsStore } from "@oathwall/settings-store";
 import { createPublicClient, erc20Abi, http } from "viem";
-import { bnbChain } from "@merrymen/core";
+import { bnbChain } from "@oathwall/core";
 
 import { tenantOf } from "@/lib/auth";
 import { sharedRead } from "@/lib/read-discoveries";

@@ -10,7 +10,7 @@ import { statusLine, type AgentSnapshot } from "./status-line";
  */
 
 const base: AgentSnapshot = {
-  name: "Robin",
+  name: "Warden",
   mode: "live",
   testnet: false,
   hasGas: true,
@@ -26,7 +26,7 @@ const base: AgentSnapshot = {
 
 test("HIS EXACT SITUATION gets an answer, not a balance sheet", () => {
   const l = statusLine(base);
-  assert.match(l.headline, /Robin is live and watching/);
+  assert.match(l.headline, /Warden is live and watching/);
   assert.match(l.next, /hasn't found a trade worth making/);
   // And it says the quiet state is normal, because the honest answer to "will
   // it trade" is often "not yet, and that is fine" — which reads as broken
@@ -42,7 +42,7 @@ test("MONEY IN, NO GAS: it does not tell him his money is missing", () => {
   // funded the account read it as a denial that he had.
   const l = statusLine({ ...base, hasGas: false, cashUsdg: 15 });
   assert.match(l.headline, /\$15/, "names the money he actually sent");
-  assert.match(l.headline, /no ETH to pay the fees/);
+  assert.match(l.headline, /no BNB to pay the fees/);
   assert.match(l.next, /Your money is there/, "answers the objection before he makes it");
   // The load-bearing explanation: two assets, not one.
   assert.match(l.next, /separate thing from the dollars you trade with/);
@@ -52,7 +52,7 @@ test("MONEY IN, NO GAS: it does not tell him his money is missing", () => {
 test("NO MONEY AND NO GAS still gets the plain sentence", () => {
   // The empty-account case must not claim a balance that is not there.
   const l = statusLine({ ...base, hasGas: false, cashUsdg: 0 });
-  assert.match(l.headline, /no ETH for fees/);
+  assert.match(l.headline, /no BNB for fees/);
   assert.doesNotMatch(l.next, /Your money is there/);
   assert.equal(l.tone, "waiting");
 });
@@ -71,14 +71,15 @@ test("EVERY REQUEST FOR MONEY NAMES THE NETWORK", () => {
     const l = statusLine(s);
     assert.match(
       l.next,
-      /Robinhood Chain/,
+      /BNB Smart Chain \(BEP-20\)/,
       `asked for money without naming the network: ${l.next}`,
     );
+    assert.doesNotMatch(l.next, /Robinhood|USDG|\bETH\b/, `still asks for the old chain's assets: ${l.next}`);
   }
 });
 
 test("the wrong-chain warning is on the gas asks, where the mistake happens", () => {
-  // The observed failure was ETH on Ethereum, so the ETH asks say so outright.
+  // The observed failure was gas sent on Ethereum, so the gas asks say so outright.
   for (const s of [
     { ...base, hasGas: false, cashUsdg: 15 },
     { ...base, hasGas: false, cashUsdg: 0 },
@@ -87,11 +88,11 @@ test("the wrong-chain warning is on the gas asks, where the mistake happens", ()
   }
 });
 
-test("on the practice chain it does not say Robinhood Chain", () => {
+test("on the practice chain it does not name mainnet", () => {
   // Rule 2: do not send somebody to mainnet from a testnet screen.
   const l = statusLine({ ...base, testnet: true, hasGas: false, cashUsdg: 0 });
   assert.match(l.next, /practice chain/);
-  assert.doesNotMatch(l.next, /Robinhood Chain/);
+  assert.doesNotMatch(l.next, /BNB Smart Chain/);
 });
 
 test("A STUCK AGENT SAYS SO, above everything else", () => {
@@ -145,17 +146,17 @@ test("no gas is distinguished from no capital — different problems, different 
   // FUNDED but ungassed — the case the group chat hit. Names the money first,
   // because the person reading it has already sent some.
   const noGas = statusLine({ ...base, hasGas: false });
-  assert.match(noGas.headline, /no ETH to pay the fees/);
+  assert.match(noGas.headline, /no BNB to pay the fees/);
   assert.match(noGas.next, /separate thing from the dollars you trade with/);
 
   // EMPTY and ungassed — the plain sentence, claiming no balance it cannot see.
   const bare = statusLine({ ...base, hasGas: false, cashUsdg: 0 });
-  assert.match(bare.headline, /no ETH for fees/);
-  assert.match(bare.next, /Send a little ETH/);
+  assert.match(bare.headline, /no BNB for fees/);
+  assert.match(bare.next, /Send a little BNB/);
 
   const noCash = statusLine({ ...base, cashUsdg: 0 });
   assert.match(noCash.headline, /nothing to trade with/);
-  assert.match(noCash.next, /Send USDG/);
+  assert.match(noCash.next, /Send USDT/);
 });
 
 test("refusals are reported as the product working, not as failures", () => {
@@ -184,19 +185,19 @@ test("money reads the way people write it", () => {
 test("NO JARGON anywhere in any branch", () => {
   // The words the old screen used, which is what made it unreadable.
   //
-  // USDG SURVIVES THIS LIST, deliberately. It is the name of the thing the user
-  // has to send, and "send money" would be ambiguous with ETH — a different
+  // USDT SURVIVES THIS LIST, deliberately. It is the name of the thing the user
+  // has to send, and "send money" would be ambiguous with BNB — a different
   // problem with a different fix, distinguished two tests above precisely
-  // because confusing them wastes somebody an afternoon. What IS banned is USDG as
-  // a trailing unit on a number: "318.00 USDG" is what made a balance look like
-  // telemetry.
+  // because confusing them wastes somebody an afternoon. What IS banned is the
+  // cash token as a trailing unit on a number: "318.00 USDT" is what made a
+  // balance look like telemetry.
   const banned = /\bequity\b|\bsession key\b|steady-basket|\bbps\b|\bwall\b|\bgrant\b|\bpositions\b/i;
   // ESCAPES COLLAPSED HERE ONCE ALREADY. This read /[d.,]s*USDG/ -- a literal
   // 'd', '.' or ',' followed by literal 's' characters -- so it matched none of
   // the strings it exists to ban. "318.00 USDG", the exact example the comment
   // above names, sailed through it. A guard that cannot fire is worse than no
   // guard, because the suite reports it as passing.
-  const unitSuffix = /[\d.,]\s*USDG/;
+  const unitSuffix = /[\d.,]\s*(?:USDG|USDT)/;
   const cases: AgentSnapshot[] = [
     base,
     { ...base, mode: "paper" },
@@ -213,7 +214,7 @@ test("NO JARGON anywhere in any branch", () => {
     const l = statusLine(c);
     assert.equal(banned.test(l.headline), false, `jargon in headline: ${l.headline}`);
     assert.equal(banned.test(l.next), false, `jargon in next: ${l.next}`);
-    assert.equal(unitSuffix.test(l.headline + l.next), false, `USDG as a unit: ${l.headline}`);
+    assert.equal(unitSuffix.test(l.headline + l.next), false, `cash token as a unit: ${l.headline}`);
   }
 });
 
@@ -256,17 +257,25 @@ const GASLESS_REFUSAL =
   "no ETH in the account — every operation fails before it reaches the chain. " +
   "Send ETH to 0xabc on chain 4663; USDG alone cannot pay gas.";
 
+/** The same refusal as the worker writes it on BNB. */
+const GASLESS_REFUSAL_BNB =
+  "no BNB in the account — every operation fails before it reaches the chain. " +
+  "Send BNB to 0xabc on BNB Smart Chain; USDT alone cannot pay gas.";
+
 test("a sponsored agent is not held hostage by the refusal sponsorship resolved", () => {
-  const l = statusLine({
-    ...base,
-    hasGas: false,
-    gasSponsored: true,
-    cashUsdg: 318,
-    lastError: GASLESS_REFUSAL,
-  });
-  assert.doesNotMatch(l.headline, /has stopped/, "the message is about a condition that no longer exists");
-  assert.match(l.headline, /fees are covered/);
-  assert.equal(l.tone, "good");
+  // Both wordings: the pre-BNB rows can still be the newest in an old feed.
+  for (const lastError of [GASLESS_REFUSAL, GASLESS_REFUSAL_BNB]) {
+    const l = statusLine({
+      ...base,
+      hasGas: false,
+      gasSponsored: true,
+      cashUsdg: 318,
+      lastError,
+    });
+    assert.doesNotMatch(l.headline, /has stopped/, "the message is about a condition that no longer exists");
+    assert.match(l.headline, /fees are covered/);
+    assert.equal(l.tone, "good");
+  }
 });
 
 test("suppression is NARROW — any other error still outranks everything", () => {

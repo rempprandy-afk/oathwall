@@ -20,16 +20,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { bindingMessage } from "@merrymen/core";
+import { bindingMessage } from "@oathwall/core";
 
 // Set BEFORE the auth functions are called — they read the secret at call time,
 // not at import — so a static import is safe and the CJS test target is happy.
 // Same arrangement as auth.test.ts.
-process.env.MERRYMEN_SESSION_SECRET = "test-secret-at-least-thirty-two-characters-long";
+process.env.OATHWALL_SESSION_SECRET = "test-secret-at-least-thirty-two-characters-long";
 
 import { challengeMessage, issueChallengeNonce, verifyGrantBinding } from "./auth";
 
-const ORIGIN = "https://app.merrymen.dev";
+const ORIGIN = "https://app.oathwall.dev";
 const SMART = "0x00000000000000000000000000000000000000a1" as `0x${string}`;
 const CHAIN = 4663;
 
@@ -182,7 +182,7 @@ test("the binding text is not confusable with the login challenge", async () => 
 });
 
 test("a claim on one chain does not bind on the other", async () => {
-  // merrymen runs testnet 46630 and mainnet 4663 from one origin.
+  // oathwall runs testnet 46630 and mainnet 4663 from one origin.
   const { wallet, owner } = actors();
   const nonce = issueChallengeNonce(ORIGIN);
   const onTestnet = bindingMessage({ origin: ORIGIN, nonce, owner: owner.address, smartAccount: SMART, chainId: 46630 });

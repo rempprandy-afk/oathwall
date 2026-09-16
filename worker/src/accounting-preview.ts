@@ -3,7 +3,7 @@
  *
  * READ-ONLY BY CONSTRUCTION, not by a flag. This module is never handed a `Db`,
  * imports no database type, and contains no INSERT, UPDATE or DELETE — so
- * "MERRYMEN_REPAIR=dry-run is genuinely read-only" is a property a reviewer can
+ * "OATHWALL_REPAIR=dry-run is genuinely read-only" is a property a reviewer can
  * check by reading one file, rather than a promise about how a branch is
  * exercised. A gated mutation path would need the reader to trust the gate; an
  * absent one needs nothing.
@@ -56,7 +56,7 @@ export type RosterOutcome =
  * wanted.
  */
 export function previewRequested(env: Record<string, string | undefined>): boolean {
-  return (env.MERRYMEN_REPAIR ?? "").trim() !== "";
+  return (env.OATHWALL_REPAIR ?? "").trim() !== "";
 }
 
 /** Which of the three outcomes this account falls into. Total over every plan. */

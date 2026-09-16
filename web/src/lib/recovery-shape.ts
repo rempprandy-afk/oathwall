@@ -4,7 +4,7 @@
  * Validating the method, the entryPoint, the paymaster fields and the sender does
  * not make a relay "a recovery submit path" — none of those look at what the
  * operation DOES. Without this check, anyone holding a ticket can push arbitrary
- * UserOperations for their own account through app.merrymen.dev: swaps,
+ * UserOperations for their own account through app.oathwall.dev: swaps,
  * approvals, any contract call on the chain, as a free transaction-submission
  * service running on the house's bundler account. Refusing that structurally is
  * cheaper than defending it with quotas.

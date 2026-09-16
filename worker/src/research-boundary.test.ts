@@ -93,10 +93,10 @@ describe("the news token cannot reach a child", () => {
     assert.ok(i > 0, "the strip list must exist for this to mean anything");
     const block = src.slice(i, src.indexOf("] as const;", i));
     for (const key of [
-      "MERRYMEN_STORE_DEK",
-      "MERRYMEN_SESSION_SECRET",
+      "OATHWALL_STORE_DEK",
+      "OATHWALL_SESSION_SECRET",
       "DATABASE_URL",
-      "MERRYMEN_MARKETAUX_API_KEY",
+      "OATHWALL_MARKETAUX_API_KEY",
     ]) {
       assert.ok(block.includes(key), key + " is not stripped from a child's environment");
     }
@@ -105,7 +105,7 @@ describe("the news token cannot reach a child", () => {
   it("and only the orchestrator ever reads it", () => {
     const files = walk(path.join(REPO, "worker", "src"), (f) => f.endsWith(".ts"));
     const readers = files
-      .filter((f) => readFileSync(f, "utf8").includes("MERRYMEN_MARKETAUX_API_KEY"))
+      .filter((f) => readFileSync(f, "utf8").includes("OATHWALL_MARKETAUX_API_KEY"))
       .map((f) => path.basename(f))
       .sort();
     assert.deepEqual(readers, ["orchestrator.ts", "research-boundary.test.ts"]);

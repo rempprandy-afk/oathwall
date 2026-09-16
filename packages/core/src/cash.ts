@@ -1,7 +1,7 @@
 /**
  * THE CASH UNIT. One place, so the next change to it is one line.
  *
- * Everything merrymen owes anybody — caps, fills, equity, fees, the drawdown
+ * Everything oathwall owes anybody — caps, fills, equity, fees, the drawdown
  * breaker's input — is denominated in a single stablecoin, and every one of
  * those numbers has to cross between a human's decimal dollars and the token's
  * integer base units. Before this file, the exponent for that crossing was a

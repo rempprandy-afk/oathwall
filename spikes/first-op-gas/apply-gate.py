@@ -1,6 +1,6 @@
 import io, shutil, sys
 
-ROOT = "C:/Users/1/Documents/milla projects/merrymen"
+ROOT = "C:/Users/1/Documents/milla projects/oathwall"
 SRC = ROOT + "/worker/src/executor.ts"
 DST = ROOT + "/spikes/first-op-gas/executor.patched.ts"
 shutil.copyfile(SRC, DST)

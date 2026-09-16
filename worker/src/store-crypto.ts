@@ -16,7 +16,7 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 /**
- * The data-encryption key, 32 bytes, from MERRYMEN_STORE_DEK (base64), or null.
+ * The data-encryption key, 32 bytes, from OATHWALL_STORE_DEK (base64), or null.
  *
  * Null when unset — the file backend in a single-tenant/self-hosted context has
  * no DEK and stores plaintext on the user's own disk, exactly as today. Hosted
@@ -24,7 +24,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
  * session keys in the clear, so that path refuses rather than degrade.
  */
 export function storeDek(): Buffer | null {
-  const raw = process.env.MERRYMEN_STORE_DEK;
+  const raw = process.env.OATHWALL_STORE_DEK;
   if (!raw) return null;
   let key: Buffer;
   try {
@@ -38,7 +38,7 @@ export function storeDek(): Buffer | null {
 export function requireDek(): Buffer {
   const dek = storeDek();
   if (!dek) {
-    throw new Error("MERRYMEN_STORE_DEK is not a 32-byte base64 key — hosted mode cannot store secrets in the clear");
+    throw new Error("OATHWALL_STORE_DEK is not a 32-byte base64 key — hosted mode cannot store secrets in the clear");
   }
   return dek;
 }

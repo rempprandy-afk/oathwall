@@ -10,7 +10,7 @@ import { bnbChain, bnbTestnet } from "../../packages/core/src/index";
  *
  * /grant defaulted to the TESTNET id, and preflight classifies exactly that as a
  * hard BLOCKER — not as a policy choice but as a fact: every token and router
- * address merrymen knows is a mainnet deployment, so on testnet a balance reads
+ * address oathwall knows is a mainnet deployment, so on testnet a balance reads
  * as zero and every route is refused. The most likely outcome of accepting every
  * default was an agent that could never trade, and a user asking why.
  */
@@ -62,6 +62,21 @@ test("the shipped chain default is one preflight calls tradeable", () => {
   );
 });
 
+test("every screen that mints or sweeps takes its chain from the registry, not a literal", () => {
+  // /create minted on `chainId:4663` — Robinhood Chain — after the move to BNB,
+  // because the test above only read the /grant page. preflight
+  // blocks such a grant, so the owner who followed the newer flow got an agent
+  // that could never trade. The withdraw panel offered 4663 and 46630 the same way.
+  const create = readFileSync("web/src/terminal/screens/CreateAgent.tsx", "utf8");
+  assert.match(create, /chainId:bnbChain\.id/, "/create must mint on the registry's mainnet");
+  const recover = readFileSync("web/src/components/RecoverPanel.tsx", "utf8");
+  assert.match(recover, /const MAINNET = bnbChain\.id;/);
+  assert.match(recover, /const TESTNET = bnbTestnet\.id;/);
+  for (const [name, src] of [["CreateAgent", create], ["RecoverPanel", recover]] as const) {
+    assert.equal(/\b(?:4663|46630)\b/.test(src), false, `${name} still names a Robinhood Chain id`);
+  }
+});
+
 test("a fresh mainnet install has NO blockers", () => {
   const v = verdict(preflight(freshInstall()));
   assert.equal(v.ready, true, `blockers: ${ids(freshInstall(), "blocker").join(", ")}`);
@@ -74,8 +89,8 @@ test("the same install on the OLD default is blocked — which is the point", ()
 
 test("the caps default is the scout, sized for an account with nothing in it yet", () => {
   // Caps are sealed BEFORE funding, so the default cannot be sized to capital
-  // nobody has deposited. The outlaw's 50 x 48 is a four-figure ceiling to hand
-  // someone who has not seen the thing trade once.
+  // nobody has deposited. The steady preset's 50 x 48 is a four-figure ceiling
+  // to hand someone who has not seen the thing trade once.
   const src = readFileSync("web/src/terminal/screens/Wallet.tsx", "utf8");
   assert.match(src, /useState<GrantCaps>\(PRESETS\[0\]!\.caps\)/);
   assert.equal(/useState<GrantCaps>\(DEFAULTS\)/.test(src), false);

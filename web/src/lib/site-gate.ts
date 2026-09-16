@@ -1,7 +1,7 @@
 /**
  * THE "NOT YET" DOOR.
  *
- * app.merrymen.dev is being worked on in the open, and the owner wants a
+ * app.oathwall.dev is being worked on in the open, and the owner wants a
  * passer-by to be told that rather than shown a half-finished terminal. This is
  * that notice, with a shared password behind it.
  *
@@ -27,7 +27,7 @@ export const GATE_API = "/api/gate";
 
 /** The configured password, or null when the gate is off. */
 export function gatePassword(): string | null {
-  const raw = (process.env.MERRYMEN_SITE_PASSWORD ?? "").trim();
+  const raw = (process.env.OATHWALL_SITE_PASSWORD ?? "").trim();
   return raw.length > 0 ? raw : null;
 }
 

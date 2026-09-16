@@ -1,5 +1,5 @@
 /**
- * THE SHADOW PATH: a Merryman thinks, and nothing happens.
+ * THE SHADOW PATH: an Agent thinks, and nothing happens.
  *
  * worker state → buildPortfolioSnapshot() → trigger → Brain → persist.
  *

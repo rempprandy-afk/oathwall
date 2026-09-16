@@ -9,7 +9,7 @@
  * returns Alice's rows and NEVER Bob's, and — in hosted mode — a read with no
  * agent refuses rather than falling back to the global guess.
  *
- * MERRYMEN_HOSTED is set so the no-fallback branch is exercised; MERRYMEN_HOME
+ * OATHWALL_HOSTED is set so the no-fallback branch is exercised; OATHWALL_HOME
  * is a throwaway temp db. node's --test runs each file in its own process, so
  * neither override leaks into another suite.
  */
@@ -19,9 +19,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-iso-"));
-process.env.MERRYMEN_HOME = HOME;
-process.env.MERRYMEN_HOSTED = "1";
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-iso-"));
+process.env.OATHWALL_HOME = HOME;
+process.env.OATHWALL_HOSTED = "1";
 
 const { initStore, addTrade, addEvent, addEquity, setPositions, addDecision, newDecisionId } =
   await import("../store");

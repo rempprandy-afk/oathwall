@@ -41,12 +41,22 @@ describe("the screen can talk about every blocker there is", () => {
     assert.deepEqual(extra, [], `advice for rules that cannot occur: ${extra.join(", ")}`);
   });
 
-  it("NO-GAS IS THE ONE THIS WAS BUILT FOR, and it says to send ETH", () => {
+  it("NO-GAS IS THE ONE THIS WAS BUILT FOR, and it says to send BNB", () => {
     const a = blockerAdvice("no-gas");
     assert.ok(a);
     assert.equal(a.funding, true, "money is the fix, so the funding panel must say so");
-    assert.match(a.say, /ETH/, "and it must name the asset that is missing");
-    assert.ok(!/USDG/.test(a.say), "naming USDG here is what sent owners round the loop again");
+    assert.match(a.say, /BNB/, "and it must name the asset that is missing");
+    assert.ok(!/USDT/.test(a.say), "naming the cash token here is what sent owners round the loop again");
+  });
+
+  it("names the network and the cash token this chain actually has", () => {
+    // The old copy asked for USDG on Robinhood Chain after the product had moved
+    // to BNB — an instruction that, followed exactly, funds nothing.
+    for (const rule of ["no-gas", "no-cash", "wrong-chain"]) {
+      const say = blockerAdvice(rule)!.say;
+      assert.doesNotMatch(say, /Robinhood|USDG|\bETH\b/, `${rule} still names the old chain: ${say}`);
+    }
+    assert.match(blockerAdvice("no-cash")!.say, /USDT/);
   });
 
   it("and the three that money CANNOT fix say so", () => {

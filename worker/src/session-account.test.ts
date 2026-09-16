@@ -169,7 +169,7 @@ test("WALL_POLICY_FLAG is the flag the worker passes, not merely a constant", as
  *
  * The lesson is narrow and worth stating exactly: removing a policy from the
  * wall means ADDING it here, in the same change. This file must understand
- * every kind merrymen has ever sealed, not every kind it seals today.
+ * every kind oathwall has ever sealed, not every kind it seals today.
  */
 test("REGRESSION: a legacy rate-limit policy still rebuilds", async () => {
   const key = generatePrivateKey();

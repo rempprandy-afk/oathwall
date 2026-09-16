@@ -5,7 +5,7 @@
  * WEIGHTED-AVERAGE cost, not FIFO lots. One row per (agent, symbol): the raw
  * quantity held and the total USDG it cost. A sell removes cost pro-rata and
  * books the difference as realized P&L. Average cost is the right call here —
- * merrymen isn't a tax reporter, and one row per symbol has no lot-matching
+ * oathwall isn't a tax reporter, and one row per symbol has no lot-matching
  * complexity to get subtly wrong.
  *
  * UNITS (the part that must never drift):

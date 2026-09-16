@@ -1,5 +1,5 @@
 /**
- * Provider layer for every LLM call in merrymen — one shape, any backend.
+ * Provider layer for every LLM call in oathwall — one shape, any backend.
  *
  * Bring any key. The dashboard lists a catalog of providers (LLM_PROVIDERS):
  * Groq (free default), OpenAI, Anthropic, Google Gemini, xAI, DeepSeek, Mistral,

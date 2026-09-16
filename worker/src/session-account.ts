@@ -32,7 +32,7 @@
  *
  * It also makes `wall.ts`'s claim — "The flag travels ON-CHAIN in the
  * validator's enable data, so the account itself enforces it — this is not a
- * client-side promise" — wrong about merrymen's own path. It is true of the
+ * client-side promise" — wrong about oathwall's own path. It is true of the
  * signing side and false of the submitting side, which is the half that counts.
  *
  * WHY REBUILD FROM THE SERIALIZED PARAMS rather than from the grant's caps.
@@ -106,7 +106,7 @@ function decodeParams(serialized: string): SerializedParams {
  * One serialized policy → a live Policy. A trimmed `createPolicyFromParams`
  * (deserializePermissionAccount.ts:100-117), which is not exported.
  *
- * EVERY KIND MERRYMEN HAS EVER SEALED, not every kind it seals today. That
+ * EVERY KIND OATHWALL HAS EVER SEALED, not every kind it seals today. That
  * distinction took the fleet down.
  *
  * The wall stopped installing `rate-limit` when its contract turned out to have
@@ -141,7 +141,7 @@ async function policyFromParams(policy: { policyParams: { type: string } }) {
       return toRateLimitPolicy(policy.policyParams as never);
     default:
       throw new Error(
-        `this grant carries a '${policy.policyParams.type}' policy that merrymen cannot rebuild — refusing to arm rather than dropping it`,
+        `this grant carries a '${policy.policyParams.type}' policy that oathwall cannot rebuild — refusing to arm rather than dropping it`,
       );
   }
 }
@@ -342,7 +342,7 @@ export async function deserializeFlaggedPermissionAccount(
     // at the time; the agents were not broken, the endpoint was busy.
     //
     // So an unverifiable derivation now REPORTS instead of refusing. That is
-    // not a hole opened here: it is exactly the behaviour merrymen had before
+    // not a hole opened here: it is exactly the behaviour oathwall had before
     // this check existed, and Kernel's own enable-signature check still
     // refuses a genuinely mismatched grant on chain (measured on 4663: AA23
     // reverted 0xc48cf8ee). What is lost is one round of early warning; what

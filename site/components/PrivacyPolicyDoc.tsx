@@ -13,8 +13,8 @@ export function PrivacyPolicyDoc() {
         <p className="doc-lead">Last updated: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
 
         <div className="callout">
-          <strong>The short version:</strong> merrymen is self-hosted. The software runs entirely on
-          your own machine, your keys and data live in <code className="inline">~/.merrymen</code> and never leave
+          <strong>The short version:</strong> oathwall is self-hosted. The software runs entirely on
+          your own machine, your keys and data live in <code className="inline">~/.oathwall</code> and never leave
           it, and we operate no backend that receives them. The one exception is the iOS beta list:
           if you type your email into that form, we keep the address. Nothing else, and only until
           the beta ships or you ask us to delete it.
@@ -22,9 +22,9 @@ export function PrivacyPolicyDoc() {
 
         <h2>1 · The software</h2>
         <p>
-          merrymen runs locally on your computer. It stores its settings, keys, ledger, strategies,
+          oathwall runs locally on your computer. It stores its settings, keys, ledger, strategies,
           and your agent&apos;s “soul” files in a directory on your machine
-          (<code className="inline">~/.merrymen</code> by default). This data:
+          (<code className="inline">~/.oathwall</code> by default). This data:
         </p>
         <ul>
           <li>Stays on your machine. We have no server that receives or stores any of it.</li>
@@ -32,7 +32,7 @@ export function PrivacyPolicyDoc() {
           <li>Is under your control — you can read, edit, or delete it at any time.</li>
         </ul>
         <p>
-          When you configure third-party services, merrymen sends requests <em>directly from your
+          When you configure third-party services, oathwall sends requests <em>directly from your
           machine</em> to those providers using the keys you supply:
         </p>
         <ul>
@@ -48,7 +48,7 @@ export function PrivacyPolicyDoc() {
 
         <h2>2 · This website</h2>
         <p>
-          merrymen.dev is a static informational site. It does not ask you to sign in, does not use
+          oathwall.dev is a static informational site. It does not ask you to sign in, does not use
           advertising or cross-site tracking cookies, and asks for nothing about you except on the iOS
           beta form described in section 3. Like most sites, our host (Vercel) may process basic, non-identifying request
           logs (such as IP address and user agent) for security and reliability; that processing is
@@ -60,7 +60,7 @@ export function PrivacyPolicyDoc() {
         <p>
           If you enter your email address into the iOS beta form on this site, we store that address
           so we can tell you when there is a build to install. That is the only personal information
-          merrymen collects anywhere, and it is collected only because you typed it in.
+          oathwall collects anywhere, and it is collected only because you typed it in.
         </p>
         <ul>
           <li>
@@ -94,7 +94,7 @@ export function PrivacyPolicyDoc() {
         </p>
 
         <h2>5 · Children</h2>
-        <p>merrymen is not directed to children under 13 (or the minimum age in your jurisdiction), and we do not knowingly collect their data.</p>
+        <p>oathwall is not directed to children under 13 (or the minimum age in your jurisdiction), and we do not knowingly collect their data.</p>
 
         <h2>6 · Changes</h2>
         <p>We may update this policy; the “last updated” date above reflects the latest version.</p>
@@ -102,8 +102,8 @@ export function PrivacyPolicyDoc() {
         <h2>7 · Contact</h2>
         <p>
           Questions? Email{" "}
-          <a className="link" href="mailto:support@merrymen.dev">support@merrymen.dev</a> or open an issue on{" "}
-          <a className="link" href="https://github.com/millw14/merrymen" target="_blank" rel="noreferrer">
+          <a className="link" href="mailto:support@oathwall.dev">support@oathwall.dev</a> or open an issue on{" "}
+          <a className="link" href="https://github.com/rempprandy-afk/oathwall" target="_blank" rel="noreferrer">
             GitHub
           </a>
           .

@@ -1,7 +1,7 @@
 /**
  * Is this install actually able to make a real trade?
  *
- * `merrymen doctor` answers "is the software installed and configured" — node,
+ * `oathwall doctor` answers "is the software installed and configured" — node,
  * npm, PATH, keys present, RPCs reachable, the grant not expired. It is good at
  * that and says nothing about the thing an owner is about to bet money on:
  * whether the account can trade at all.
@@ -22,11 +22,14 @@
  */
 
 import {
+  CASH_SYMBOL,
   DEFAULT_BASKET_SYMBOLS,
   LEGACY_TRADEABLE_SYMBOLS,
   TRADABLE_TOKENS,
   TRADEABLE_SYMBOLS,
   bnbChain,
+  chainForId,
+  gasSymbol,
   grantHasMultihop,
   sellableAssets,
   type StoredGrant,
@@ -165,7 +168,7 @@ export function preflight(input: PreflightInput): Check[] {
       level: "blocker",
       title: `grant is on chain ${g.chainId} — it cannot trade`,
       detail:
-        "Testnet is practice only. Every token and router address merrymen knows is a MAINNET " +
+        "Testnet is practice only. Every token and router address oathwall knows is a MAINNET " +
         `deployment, so a funded testnet balance reads as 0 and swaps only simulate. Re-sign at ` +
         `/grant and pick mainnet ${TRADEABLE_CHAIN_ID} (it asks you to confirm, deliberately).`,
     });
@@ -206,7 +209,7 @@ export function preflight(input: PreflightInput): Check[] {
       title: `the wall depends on contracts with no code on chain ${g.chainId}`,
       detail:
         `${input.missingPolicyContracts.join(", ")} — every UserOp this grant signs is validated ` +
-        "against them, so nothing can land until this is resolved. This is a merrymen bug, not " +
+        "against them, so nothing can land until this is resolved. This is a oathwall bug, not " +
         "something you configured: report it rather than working around it.",
     });
   } else {
@@ -315,20 +318,22 @@ export function preflight(input: PreflightInput): Check[] {
       level: "warn",
       title: "single-hop routes only",
       detail:
-        "This key can't execute a multi-hop swap, so tokens with no direct USDG pool are " +
-        "unreachable — that is most memecoins on this chain. The stock basket is unaffected.",
+        `This key can't execute a multi-hop swap, so tokens with no direct ${CASH_SYMBOL} pool are ` +
+        "unreachable — that is most memecoins on this chain. The majors basket is unaffected.",
     });
   }
 
   // ── funding ───────────────────────────────────────────────────────────
-  // ETH first: it is the one that guarantees failure, and the one people forget
-  // because USDG is the thing they think of as "the money".
+  // Gas first: it is the one that guarantees failure, and the one people forget
+  // because the cash token is the thing they think of as "the money".
+  const gas = gasSymbol(g.chainId);
+  const network = chainForId(g.chainId).name;
   if (input.ethWei === null) {
     out.push({
       id: "gas",
       level: "warn",
-      title: "couldn't read the account's ETH",
-      detail: "Check the RPC. Without ETH the account cannot pay for a single operation.",
+      title: `couldn't read the account's ${gas}`,
+      detail: `Check the RPC. Without ${gas} the account cannot pay for a single operation.`,
     });
   } else if (input.ethWei === 0n && input.sponsored) {
     // SPONSORED: zero ETH no longer stops a trade, so calling it a blocker would
@@ -342,25 +347,25 @@ export function preflight(input: PreflightInput): Check[] {
     out.push({
       id: "gas",
       level: "warn",
-      title: "no ETH — trading is sponsored, but moving money OUT is not",
+      title: `no ${gas} — trading is sponsored, but moving money OUT is not`,
       detail:
-        `A sponsor pays the network fee on this agent's trades, so an empty ETH balance does not ` +
+        `A sponsor pays the network fee on this agent's trades, so an empty ${gas} balance does not ` +
         "stop it trading. Sweeping funds back to your own wallet is a different path and pays " +
-        `its own way, so send a dollar or two of ETH to ${g.smartAccount} before you need to ` +
+        `its own way, so send a dollar or two of ${gas} to ${g.smartAccount} before you need to ` +
         "withdraw.",
     });
   } else if (input.ethWei === 0n) {
     out.push({
       id: "gas",
       level: "blocker",
-      title: "no ETH — every operation fails before it reaches the chain",
+      title: `no ${gas} — every operation fails before it reaches the chain`,
       detail:
-        `Send ETH to ${g.smartAccount}. The account pays its own gas (there is no paymaster), ` +
-        "and USDG is capital — it cannot pay for anything. The FIRST operation also pays to " +
+        `Send ${gas} to ${g.smartAccount} on ${network}. The account pays its own gas (there is no paymaster), ` +
+        `and ${CASH_SYMBOL} is capital — it cannot pay for anything. The FIRST operation also pays to ` +
         "deploy the account, so it costs more than the ones after it.",
     });
   } else {
-    out.push(ok("gas", `${(Number(input.ethWei) / 1e18).toFixed(6)} ETH for gas`));
+    out.push(ok("gas", `${(Number(input.ethWei) / 1e18).toFixed(6)} ${gas} for gas`));
   }
 
   const perTick = s.buyPerTickUsdg ?? 25;
@@ -368,25 +373,25 @@ export function preflight(input: PreflightInput): Check[] {
     out.push({
       id: "cash",
       level: "warn",
-      title: "couldn't read the account's USDG",
+      title: `couldn't read the account's ${CASH_SYMBOL}`,
       detail: "Check the RPC, or the chain — a testnet account always reads 0.",
     });
   } else if (input.usdg <= 0) {
     out.push({
       id: "cash",
       level: "blocker",
-      title: "no USDG — nothing to trade with",
-      detail: `Send USDG to ${g.smartAccount} on chain ${g.chainId}.`,
+      title: `no ${CASH_SYMBOL} — nothing to trade with`,
+      detail: `Send ${CASH_SYMBOL} (BEP-20) to ${g.smartAccount} on ${network}.`,
     });
   } else if (input.usdg < perTick) {
     out.push({
       id: "cash",
       level: "warn",
-      title: `${input.usdg.toFixed(2)} USDG is below one tick's buy (${perTick})`,
+      title: `${input.usdg.toFixed(2)} ${CASH_SYMBOL} is below one tick's buy (${perTick})`,
       detail: "The strategy will hold rather than trade until there is enough for a full round.",
     });
   } else {
-    out.push(ok("cash", `${input.usdg.toFixed(2)} USDG`));
+    out.push(ok("cash", `${input.usdg.toFixed(2)} ${CASH_SYMBOL}`));
   }
 
   // ── sizing ────────────────────────────────────────────────────────────
@@ -396,31 +401,20 @@ export function preflight(input: PreflightInput): Check[] {
     out.push({
       id: "leg-size",
       level: "warn",
-      title: `${legSize.toFixed(2)} USDG per leg — gas will dominate`,
+      title: `${legSize.toFixed(2)} ${CASH_SYMBOL} per leg — gas will dominate`,
       detail:
-        `${perTick} USDG per tick split ${legs} way(s). Below about ${GAS_FLOOR_USDG} USDG a trade ` +
+        `${perTick} ${CASH_SYMBOL} per tick split ${legs} way(s). Below about ${GAS_FLOOR_USDG} ${CASH_SYMBOL} a trade ` +
         "pays more in gas than in venue fees, so the result measures your gas bill rather than the " +
         "strategy. Raise buyPerTickUsdg or trade fewer symbols.",
     });
   } else {
-    out.push(ok("leg-size", `${legSize.toFixed(2)} USDG per leg`));
+    out.push(ok("leg-size", `${legSize.toFixed(2)} ${CASH_SYMBOL} per leg`));
   }
 
-  // The vault sweep is a real day-one surprise: it fires on the first tick and
-  // a vault deposit counts against the DAILY spend cap, so it can consume most
-  // of the day's allowance before the agent has traded anything.
-  const idleFloor = s.idleFloorUsdg ?? 50;
-  if (input.usdg !== null && input.usdg > idleFloor + perTick) {
-    out.push({
-      id: "idle-sweep",
-      level: "warn",
-      title: `idle cash above ${idleFloor} USDG is swept to the vault on the first tick`,
-      detail:
-        `About ${(input.usdg - idleFloor - perTick).toFixed(2)} USDG would move to Morpho immediately, ` +
-        "and that deposit counts against the daily spend cap — so it can eat most of the day's " +
-        "allowance before any trading happens. Raise idleFloorUsdg above your deposit to stop it.",
-    });
-  }
+  // No idle-cash sweep warning: there is no yield venue on this chain (`YIELD`
+  // is null in protocols.ts), so steady-basket refuses the sweep rather than
+  // moving anything. Warning that a deposit "moves to the vault" would tell an
+  // owner to work around something that cannot happen.
 
   return out;
 }

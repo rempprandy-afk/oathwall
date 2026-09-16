@@ -9,7 +9,7 @@ import {
   ArrowDownWideNarrow,
   ChevronDown,
 } from "lucide-react";
-import type { TokenKind } from "@merrymen/core";
+import { bnbChain, type TokenKind } from "@oathwall/core";
 import { Coin, Face, LogoMark, TabIcon } from "./ui";
 import {
   money,
@@ -72,7 +72,7 @@ export function DesktopHeader({
       <button
         className="desktop-brand"
         onClick={() => onTab("home")}
-        aria-label="Merrymen home"
+        aria-label="Oathwall home"
       >
         {/*
           THE BRAND IS NOT A TAB. It borrowed the tab bar's icon for `agent`,
@@ -81,7 +81,7 @@ export function DesktopHeader({
           nothing failing to compile and no test noticing.
         */}
         <LogoMark size={15} />
-        <span>merrymen</span>
+        <span>oathwall</span>
       </button>
       <button
         className="desktop-search"
@@ -198,7 +198,7 @@ export function DesktopSidebar({
         hidden={section !== "markets"}
       >
         <div className="desktop-market-heading">
-          <h2>Robinhood Chain</h2>
+          <h2>{bnbChain.name}</h2>
           <span>{list.length} {list.length === 1 ? "token" : "tokens"}</span>
         </div>
         <div className="desktop-market-tabs">

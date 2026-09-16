@@ -1,5 +1,5 @@
 /**
- * Hosted mode — the single switch that turns merrymen from a self-hosted
+ * Hosted mode — the single switch that turns oathwall from a self-hosted
  * single-tenant tool into a multi-tenant service on a public URL.
  *
  * ONE FLAG, read from ONE place, because the two modes have OPPOSITE threat
@@ -10,11 +10,11 @@
  * is wallet-native auth on every mutating route.
  *
  * Defaults to SELF-HOSTED (false) — the safe default, and what every existing
- * install already is. Hosted mode is opt-in via MERRYMEN_HOSTED, so no
+ * install already is. Hosted mode is opt-in via OATHWALL_HOSTED, so no
  * self-hosted user can accidentally trip into the multi-tenant code paths.
  */
 export function isHostedMode(): boolean {
-  const v = (process.env.MERRYMEN_HOSTED ?? "").trim().toLowerCase();
+  const v = (process.env.OATHWALL_HOSTED ?? "").trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
 }
 
@@ -26,7 +26,7 @@ export function isHostedMode(): boolean {
  * a predictable signing key is a forgeable session for every tenant.
  */
 export function sessionSecret(): string | null {
-  const s = process.env.MERRYMEN_SESSION_SECRET;
+  const s = process.env.OATHWALL_SESSION_SECRET;
   if (typeof s === "string" && s.length >= 32) return s;
   return null;
 }

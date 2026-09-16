@@ -164,7 +164,7 @@ describe("a stale weekend is reported, not just endured", () => {
      * hold anything (`vaultUsdg` is a constant zero in snapshot.ts), and the
      * wall no longer carries a withdraw permission, so the intent would have
      * been built and refused at the chain. Cash parked on Robinhood Chain comes
-     * home from Robinhood Chain, with `merrymen recover` on the tree that knew
+     * home from Robinhood Chain, with `oathwall recover` on the tree that knew
      * about it.
      */
   });

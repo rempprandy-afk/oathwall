@@ -33,7 +33,7 @@ import { fetchSharedBySender } from "./reconcile-modes";
 /**
  * Which tenants are shadowing.
  *
- * MERRYMEN_RECONCILE_SHADOW is either "all" or a comma-separated list of
+ * OATHWALL_RECONCILE_SHADOW is either "all" or a comma-separated list of
  * address PREFIXES, matched case-insensitively against the smart account and
  * the tenant alike — the log lines carry the smart account, the operator thinks
  * in tenants, and being able to paste either is worth more than being strict.
@@ -42,7 +42,7 @@ import { fetchSharedBySender } from "./reconcile-modes";
  * extra scan on every arm in the fleet to answer a question nobody asked.
  */
 export function shadowEnabledFor(id: string, env: NodeJS.ProcessEnv = process.env): boolean {
-  const raw = (env.MERRYMEN_RECONCILE_SHADOW ?? "").trim();
+  const raw = (env.OATHWALL_RECONCILE_SHADOW ?? "").trim();
   if (!raw) return false;
   const want = id.trim().toLowerCase();
   if (!want) return false;

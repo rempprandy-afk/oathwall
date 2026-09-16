@@ -1,5 +1,5 @@
 /**
- * Generate the dashboard's PWA icon set from web/public/merrymenlogo.png.
+ * Generate the dashboard's PWA icon set from web/public/oathwalllogo.png.
  *
  * Run: node scripts/pwa-icons.mjs
  *
@@ -20,7 +20,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SRC = path.join(ROOT, "web", "public", "merrymenlogo.png");
+const SRC = path.join(ROOT, "web", "public", "oathwalllogo.png");
 const OUT = path.join(ROOT, "web", "public");
 
 // Sampled from the source's own corner so the maskable padding is invisible

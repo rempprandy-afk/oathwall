@@ -135,10 +135,10 @@ function isPermissionConfigCall(r: Req, to?: Address): boolean {
 /**
  * REAL, ALREADY-DEPLOYED accounts on 4663. Provenance: EntryPoint 0.7
  * AccountDeployed logs, ERC-1967 impl slot read (spikes/first-op-gas/impl-sweep.mjs).
- * The first is merrymen's own account.
+ * The first is oathwall's own account.
  */
 const DEPLOYED: { addr: Address; note: string }[] = [
-  { addr: "0x032da6a0ccf866474e45854e7fdef9afd1509036", note: "merrymen's own account, kernel v3.3, deployed block 51207025" },
+  { addr: "0x032da6a0ccf866474e45854e7fdef9afd1509036", note: "oathwall's own account, kernel v3.3, deployed block 51207025" },
   { addr: "0x26e1b523189ec668654680178ad7ab07ff2c71ae", note: "kernel v3.3, deployed block 52240294" },
   { addr: "0x4460f7926eb4979b27f171464691cf8374f02240", note: "kernel v3.3, deployed block 52456590" },
   { addr: "0xfd58500678406d33293ecad9976c6c5ee653eca1", note: "kernel v3.3, deployed block 51367467" },
@@ -450,15 +450,15 @@ async function main() {
   }
 
   // ═══ SECTION 3d ═══════════════════════════════════════════════════════════
-  // DOES MERRYMEN ITSELF HAVE A DEPLOYED ACCOUNT WITH A LIVE WALL?
-  console.log("\n── 3d. DOES MERRYMEN HAVE A DEPLOYED ACCOUNT WITH A LIVE WALL? ──────────────\n");
+  // DOES OATHWALL ITSELF HAVE A DEPLOYED ACCOUNT WITH A LIVE WALL?
+  console.log("\n── 3d. DOES OATHWALL HAVE A DEPLOYED ACCOUNT WITH A LIVE WALL? ──────────────\n");
   console.log("   NO — and the section-2 subjects are therefore other people's accounts, not ours.");
-  console.log("   merrymen's own account 0x032da6a0…9036 has executed exactly ONE UserOperation in");
+  console.log("   oathwall's own account 0x032da6a0…9036 has executed exactly ONE UserOperation in");
   console.log("   its life: mode 0x00 / vType 0x00 (SUDO, DEFAULT), seq 0, block 51207025, success.");
   console.log("   Source: per-sender UserOperationEvent scan over all 2,208 ZeroDev-factory accounts");
   console.log("   on 4663 (spikes/first-op-gas/perm-ops.json, 0 accounts unreadable) — that account");
   console.log("   appears exactly once and never with vType 0x02.");
-  console.log("   So no merrymen wall has ever been installed on chain, and the steady-state DEFAULT");
+  console.log("   So no oathwall wall has ever been installed on chain, and the steady-state DEFAULT");
   console.log("   branch is demonstrated on the closest available subjects: real Kernel v3.3 accounts");
   console.log("   on the same chain whose permission validators DID land. That is a property of the");
   console.log("   Kernel/SDK mechanism, not of who owns the account.\n");

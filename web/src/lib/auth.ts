@@ -25,7 +25,7 @@ import {
   isBindingVersion,
   sessionSecret,
   type BindingVersion,
-} from "@merrymen/core";
+} from "@oathwall/core";
 
 /**
  * IS THE LEGACY TWO-PROOF PREMISE ENFORCED? YES — AFTER IT WAS MEASURED.
@@ -64,7 +64,7 @@ function secretOrThrow(): string {
   if (!s) {
     // Boot-time refusal, surfaced as a 500 rather than a silent default — a
     // predictable signing key is a forged session for every tenant.
-    throw new Error("MERRYMEN_SESSION_SECRET is not set (hosted mode requires a 32+ char secret)");
+    throw new Error("OATHWALL_SESSION_SECRET is not set (hosted mode requires a 32+ char secret)");
   }
   return s;
 }
@@ -94,7 +94,7 @@ export function issueChallengeNonce(origin: string, now = Date.now()): string {
   const exp = now + CHALLENGE_TTL_MS;
   const rand = randomBytes(16).toString("base64url");
   // The origin is base64url-encoded before it enters the dot-delimited nonce —
-  // a real origin ("https://app.merrymen.dev") is full of dots and would
+  // a real origin ("https://app.oathwall.dev") is full of dots and would
   // otherwise split into extra fields and read as malformed.
   const org = Buffer.from(origin).toString("base64url");
   const body = `${rand}.${exp}.${org}`;
@@ -112,7 +112,7 @@ const usedNonces = new Set<string>();
  */
 export function challengeMessage(origin: string, nonce: string): string {
   return [
-    `${origin} wants you to sign in with your merrymen wallet.`,
+    `${origin} wants you to sign in with your oathwall wallet.`,
     "",
     "This proves you control the owner key. It moves no funds and grants no permissions.",
     "",
@@ -215,7 +215,7 @@ export async function verifySignedChallenge(args: {
  * this differently every claim would fail with nothing obviously wrong.
  */
 export function requestOrigin(req: Request): string {
-  const configured = process.env.MERRYMEN_PUBLIC_ORIGIN;
+  const configured = process.env.OATHWALL_PUBLIC_ORIGIN;
   if (configured) return configured.replace(/\/$/, "");
   return new URL(req.url).origin;
 }

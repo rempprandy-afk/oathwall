@@ -1,5 +1,5 @@
 /**
- * Proactive notifier — the merryman speaks first.
+ * Proactive notifier — the agent speaks first.
  *
  * An independent, self-scheduling loop (setTimeout + .finally, same discipline
  * as the poll service — NEVER inside the trading tick) that pushes to the
@@ -9,7 +9,7 @@
  *     deduped per episode so one bad hour doesn't spam
  *   - user price alerts (one-shot, crossing-edge triggered; prices are pushed
  *     in from the tick via publishPrices — the notifier never reads the chain)
- *   - the daily campfire report at the configured hour
+ *   - the daily report at the configured hour
  *
  * Strictly read-only + outbound: it reads the ledger read-only, mutates only
  * telegram.json bookkeeping through the shared StateRef, and can neither trade
@@ -105,7 +105,7 @@ export function tradeLine(t: TradeRowLite, explorer: string | null): string {
         ? `\n🔗 <a href="${explorer}/tx/${esc(t.tx_hash)}">proof — view on the explorer ↗</a>`
         : `\n<code>${esc(t.tx_hash)}</code>`
       : "";
-    return `🏹 loosed an arrow — ${esc(t.kind)} ${t.amount_usdg.toFixed(2)} USDG landed${proof}`;
+    return `🛡 loosed an arrow — ${esc(t.kind)} ${t.amount_usdg.toFixed(2)} USDG landed${proof}`;
   }
   if (t.status === "paper") {
     return `📜 paper arrow — ${esc(t.kind)} ${t.amount_usdg.toFixed(2)} USDG filled at the live price (simulated, nothing signed)`;
@@ -148,7 +148,7 @@ export function tradeDigestLine(rows: TradeAgg[], periodMin: number): string {
   const by: Record<string, TradeAgg> = {};
   for (const r of rows) by[r.status] = r;
   const parts: string[] = [];
-  if (by.landed) parts.push(`🏹 ${by.landed.c}× landed (${by.landed.s.toFixed(2)} USDG)`);
+  if (by.landed) parts.push(`🛡 ${by.landed.c}× landed (${by.landed.s.toFixed(2)} USDG)`);
   if (by.paper) parts.push(`📜 ${by.paper.c}× paper (${by.paper.s.toFixed(2)} USDG)`);
   if (by.rejected) parts.push(`🛡 ${by.rejected.c}× turned back`);
   if (by.reverted) parts.push(`⚠️ ${by.reverted.c}× didn't go through`);
@@ -241,7 +241,7 @@ export function startNotifier(deps: NotifierDeps): NotifierHandle {
         // Key includes the expiry so a re-signed grant alerts afresh.
         await fire(
           `grant-expiry:${inputs.grantExpiresAt}`,
-          `⏳ your permission grant dies in ${Math.max(1, Math.floor(left / 3600))}h — re-sign at the dashboard /grant to keep the band riding.`,
+          `⏳ your permission grant dies in ${Math.max(1, Math.floor(left / 3600))}h — re-sign at the dashboard /grant to keep the agent running.`,
         );
       }
     }
@@ -249,7 +249,7 @@ export function startNotifier(deps: NotifierDeps): NotifierHandle {
       if (inputs.drawdownBps >= inputs.breakerBps / 2) {
         await fire(
           "drawdown",
-          `📉 drawdown warning: ${(inputs.drawdownBps / 100).toFixed(1)}% off the high-water mark (breaker trips at ${(inputs.breakerBps / 100).toFixed(1)}%). /pause if you want the band to hold.`,
+          `📉 drawdown warning: ${(inputs.drawdownBps / 100).toFixed(1)}% off the high-water mark (breaker trips at ${(inputs.breakerBps / 100).toFixed(1)}%). /pause if you want the agent to hold.`,
         );
       }
     }
@@ -305,7 +305,7 @@ export function startNotifier(deps: NotifierDeps): NotifierHandle {
     const MILESTONES: Record<number, string> = {
       7: `🌱 a week on the road together. I'm ${esc(getName())}, and I'm starting to learn your ways — here's to the rides ahead.`,
       30: `🌳 a month riding together! Whatever the market did, we did it side by side. I know you better now — ask /soul and see.`,
-      100: `🏹 a hundred days. Most bands don't last a fortnight. You and me — we're the real merrymen now.`,
+      100: `🛡 a hundred days. Most partnerships don't last a fortnight. You and me — the oath's still good.`,
       365: `👑 one year. Through every gap, drawdown and rally — still riding with you. Sworn brother-in-arms, always.`,
     };
     for (const [days, message] of Object.entries(MILESTONES)) {
@@ -402,7 +402,7 @@ export function startNotifier(deps: NotifierDeps): NotifierHandle {
       }
     }
 
-    // ── daily campfire report + tonight's journal entry ────────────────────
+    // ── daily report + tonight's journal entry ──────────────────────────────
     const d = new Date(now() * 1000);
     const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const st2 = deps.stateRef.get();

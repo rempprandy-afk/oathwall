@@ -1,5 +1,5 @@
 /**
- * RCE hard-off on hosted merrymen — both boundaries.
+ * RCE hard-off on hosted oathwall — both boundaries.
  *
  * A non-builtin strategy name makes the loader dynamic-import() and EXECUTE a
  * file from the tenant's home, in the process that holds every session key.
@@ -9,17 +9,17 @@
  *   - mergeSettings forces every remote-execution flag off, even if a value is
  *     already on disk or in env.
  *
- * MERRYMEN_HOSTED is toggled per-case and restored.
+ * OATHWALL_HOSTED is toggled per-case and restored.
  */
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { buildStrategy, type StrategyBuildOpts } from "./strategies/registry";
 import { mergeSettings } from "./settings";
-import { PANCAKE, type MerrymenSettings } from "../../packages/core/src/index";
+import { PANCAKE, type OathwallSettings } from "../../packages/core/src/index";
 import { cashUnits } from "../../packages/core/src/index";
 
 afterEach(() => {
-  delete process.env.MERRYMEN_HOSTED;
+  delete process.env.OATHWALL_HOSTED;
 });
 
 const opts = (onNote?: StrategyBuildOpts["onNote"]): StrategyBuildOpts => ({
@@ -35,7 +35,7 @@ const opts = (onNote?: StrategyBuildOpts["onNote"]): StrategyBuildOpts => ({
 
 describe("hosted strategy loader fails closed", () => {
   it("a non-builtin name runs steady-basket, never a tenant file", () => {
-    process.env.MERRYMEN_HOSTED = "1";
+    process.env.OATHWALL_HOSTED = "1";
     const notes: string[] = [];
     const s = buildStrategy("totally-custom-evil", opts((_l, m) => notes.push(m)));
     assert.equal(s.name, "steady-basket", "hosted falls back to the safe builtin");
@@ -46,13 +46,13 @@ describe("hosted strategy loader fails closed", () => {
   });
 
   it("a builtin name still resolves normally hosted", () => {
-    process.env.MERRYMEN_HOSTED = "1";
+    process.env.OATHWALL_HOSTED = "1";
     assert.equal(buildStrategy("even-keel", opts()).name, "even-keel");
   });
 });
 
 describe("hosted forces the remote-execution flags off", () => {
-  const rceFile: MerrymenSettings = {
+  const rceFile: OathwallSettings = {
     telegramPcControlEnabled: true,
     telegramAgentEnabled: true,
     telegramAgentAutoShell: true,
@@ -62,13 +62,13 @@ describe("hosted forces the remote-execution flags off", () => {
     telegramCapabilities: ["shell", "keyboard"],
   };
   const rceEnv = {
-    MERRYMEN_TELEGRAM_PC_CONTROL: "true",
-    MERRYMEN_TELEGRAM_AGENT: "true",
-    MERRYMEN_TELEGRAM_AGENT_AUTOSHELL: "true",
+    OATHWALL_TELEGRAM_PC_CONTROL: "true",
+    OATHWALL_TELEGRAM_AGENT: "true",
+    OATHWALL_TELEGRAM_AGENT_AUTOSHELL: "true",
   };
 
   it("self-hosted honours them (unchanged)", () => {
-    delete process.env.MERRYMEN_HOSTED;
+    delete process.env.OATHWALL_HOSTED;
     const c = mergeSettings(rceFile, {});
     assert.equal(c.telegramPcControlEnabled, true);
     assert.equal(c.telegramAgentAutoShell, true);
@@ -76,7 +76,7 @@ describe("hosted forces the remote-execution flags off", () => {
   });
 
   it("hosted forces them off no matter what the file OR env say", () => {
-    process.env.MERRYMEN_HOSTED = "1";
+    process.env.OATHWALL_HOSTED = "1";
     const c = mergeSettings(rceFile, rceEnv);
     assert.equal(c.telegramPcControlEnabled, false);
     assert.equal(c.telegramAgentEnabled, false);

@@ -162,7 +162,7 @@ export default function OnboardingStart() {
         <>
           <Text style={styles.h1}>Your key, your machine</Text>
           <Text style={styles.lede}>
-            merrymen creates a key that lives only on this phone. It signs the permission wall your agent
+            oathwall creates a key that lives only on this phone. It signs the permission wall your agent
             trades inside — and it is the only thing that can ever move your funds back out.
           </Text>
 

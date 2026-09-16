@@ -1,5 +1,5 @@
 /**
- * What the little merryman in the corner is doing, and the rule that keeps him
+ * What the little agent in the corner is doing, and the rule that keeps him
  * honest.
  *
  * HE IS DRIVEN BY TIMESTAMPS, NEVER BY A TIMER. A mascot that animates

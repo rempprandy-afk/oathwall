@@ -1,7 +1,7 @@
 /**
  * prepublishOnly gate — the counterpart to build.mjs's soft-fail install hook.
  *
- * Publishing ships web/.next verbatim, and `merrymen start` on user machines
+ * Publishing ships web/.next verbatim, and `oathwall start` on user machines
  * serves it with `next start` (users can't rebuild — no dev tooling). A dev-mode
  * run (`next dev`) clobbers the production build (drops BUILD_ID and
  * required-server-files.json), and build.mjs deliberately exits 0 on failure so
@@ -21,7 +21,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const WEB = path.join(ROOT, "web");
 const NEXT_DIR = path.join(WEB, ".next");
 
-console.log("[merrymen] prepublish: clean production build of the dashboard…");
+console.log("[oathwall] prepublish: clean production build of the dashboard…");
 rmSync(NEXT_DIR, { recursive: true, force: true });
 
 // Invoke next's JS entry with node directly — the .cmd shim needs shell:true on
@@ -29,12 +29,12 @@ rmSync(NEXT_DIR, { recursive: true, force: true });
 // exact bug that let 0.11.0 pack a broken dashboard.
 const nextJs = path.join(ROOT, "node_modules", "next", "dist", "bin", "next");
 if (!existsSync(nextJs)) {
-  console.error("[merrymen] prepublish FAILED: next is not installed — run npm install first.");
+  console.error("[oathwall] prepublish FAILED: next is not installed — run npm install first.");
   process.exit(1);
 }
 const res = spawnSync(process.execPath, [nextJs, "build"], { cwd: WEB, stdio: "inherit" });
 if (res.status !== 0) {
-  console.error("[merrymen] prepublish FAILED: next build errored — refusing to publish a broken dashboard.");
+  console.error("[oathwall] prepublish FAILED: next build errored — refusing to publish a broken dashboard.");
   process.exit(1);
 }
 
@@ -43,7 +43,7 @@ if (res.status !== 0) {
 const REQUIRED = ["BUILD_ID", "required-server-files.json", "prerender-manifest.json", "routes-manifest.json"];
 const missing = REQUIRED.filter((f) => !existsSync(path.join(NEXT_DIR, f)));
 if (missing.length > 0) {
-  console.error(`[merrymen] prepublish FAILED: build incomplete — missing ${missing.join(", ")}.`);
+  console.error(`[oathwall] prepublish FAILED: build incomplete — missing ${missing.join(", ")}.`);
   process.exit(1);
 }
-console.log("[merrymen] prepublish OK: complete production build verified.");
+console.log("[oathwall] prepublish OK: complete production build verified.");

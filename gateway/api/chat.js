@@ -1,5 +1,5 @@
 // POST /v1/chat/completions (and /chat/completions) — OpenAI-compatible endpoint
-// the merrymen client calls with `Authorization: Bearer <token>`.
+// the oathwall client calls with `Authorization: Bearer <token>`.
 import { getGateway, clientIp, jsonBody, sendResult, fail } from "../lib/instance.mjs";
 
 export default async function handler(req, res) {

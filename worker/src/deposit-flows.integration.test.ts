@@ -12,7 +12,7 @@
  * between that and a contribution booked twice, and contributions are what P&L
  * is measured against: double one and the account reports a loss it never took.
  *
- * MERRYMEN_HOME is set before any store import runs getDb(); node's --test runs
+ * OATHWALL_HOME is set before any store import runs getDb(); node's --test runs
  * each file in its own process, so the override never leaks.
  */
 import assert from "node:assert/strict";
@@ -21,8 +21,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const HOME = mkdtempSync(path.join(os.tmpdir(), "merrymen-flows-"));
-process.env.MERRYMEN_HOME = HOME;
+const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-flows-"));
+process.env.OATHWALL_HOME = HOME;
 
 const {
   initStore,

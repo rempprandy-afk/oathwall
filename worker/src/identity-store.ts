@@ -59,7 +59,7 @@
 import { randomBytes } from "node:crypto";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { merrymenHome } from "./home";
+import { oathwallHome } from "./home";
 import { planClaims, socialIdentityProblem, type AccountClaim, type ClaimPlan } from "./account-claim";
 
 /**
@@ -99,7 +99,7 @@ export function mintSlug(): string {
 /**
  * How somebody authenticated. DISPLAY AND ROUTING, never authorization.
  *
- * `twitter` is the primary route for merrymen; `email` and `wallet` are the
+ * `twitter` is the primary route for oathwall; `email` and `wallet` are the
  * secondary and fallback. Uniqueness lives on the DID and on
  * (provider, subject) — never on a handle, which is reassignable, and never on
  * this field alone.
@@ -161,11 +161,11 @@ export interface IdentityStore {
    * wallet whose possession was just proved, and there is no identity row yet
    * because there is no agent yet. It creates one with an EMPTY account
    * history, which is the honest description of somebody who has signed in and
-   * not yet made a Merryman.
+   * not yet made an Agent.
    *
    * Returns the tenant that owns the DID. If the DID is already mapped, that
    * mapping wins and `tenant` is ignored — which is what makes logging out and
-   * back in return the same Merryman rather than minting a second.
+   * back in return the same Agent rather than minting a second.
    */
   resolveOrClaimDid(
     tenant: `0x${string}`,
@@ -187,7 +187,7 @@ function withAccount(accounts: `0x${string}`[], account: `0x${string}`): `0x${st
 // ── file backend ─────────────────────────────────────────────────────────────
 
 export class FileIdentityStore implements IdentityStore {
-  private dir = path.join(merrymenHome(), "agent-identity");
+  private dir = path.join(oathwallHome(), "agent-identity");
   private file(tenant: string) {
     return path.join(this.dir, `${tenant.toLowerCase()}.json`);
   }
@@ -693,7 +693,7 @@ export class PgIdentityStore implements IdentityStore {
    * would either overwrite the winner or die on the unique index as a 500.
    * Inside a transaction the second one blocks on the unique index, finds the
    * first tenant on read-back, and returns it — so a duplicate login returns
-   * the SAME Merryman instead of minting a second.
+   * the SAME Agent instead of minting a second.
    */
   async resolveOrClaimDid(
     tenant: `0x${string}`,
@@ -715,7 +715,7 @@ export class PgIdentityStore implements IdentityStore {
         return { ok: true, tenant: String(held[0].tenant).toLowerCase() as `0x${string}`, created: false };
       }
 
-      // No mapping yet. The row may still exist — an existing Merryman linking
+      // No mapping yet. The row may still exist — an existing Agent linking
       // its first social identity — so this is an upsert on the tenant, and the
       // slug is minted only when there is nothing to keep.
       const { rows: mine } = await c.query(`SELECT slug FROM agent_identity WHERE tenant = $1`, [t]);
@@ -754,7 +754,7 @@ export class PgIdentityStore implements IdentityStore {
         // "whose is this DID", and now there is an answer.
         const winner = await this.byDid(social.did);
         if (winner) return { ok: true, tenant: winner.tenant, created: false };
-        return { ok: false, why: "this social identity is already linked to another merryman" };
+        return { ok: false, why: "this social identity is already linked to another agent" };
       }
       throw e;
     }

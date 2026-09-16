@@ -179,7 +179,7 @@ test("REGRESSION: the zero check runs BEFORE the disagreement math", () => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// STAGE E. The first operation of a merrymen account installs the entire policy
+// STAGE E. The first operation of a oathwall account installs the entire policy
 // wall inside validation, and the blanket 2x headroom turned a 7,711,654-gas
 // operation into a 15,423,308-gas refusal — on the one operation in an
 // account's life that has to succeed. These pin what changed and what did not.

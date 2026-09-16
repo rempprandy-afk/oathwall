@@ -33,14 +33,14 @@ describe("the display scout is bounded", () => {
     // Asserted on the constant rather than on behaviour so that if the default
     // ever flips permissive, somebody has to change this line and think about
     // it — which is the whole mechanism the worker's version relies on too.
-    assert.match(CODE, /MERRYMEN_DISPLAY_SCOUT_ENABLED/);
+    assert.match(CODE, /OATHWALL_DISPLAY_SCOUT_ENABLED/);
     assert.match(
       CODE,
       /const DISPLAY_SCOUT_ENABLED = \[[^\]]*\]\.includes\(/,
       "an allow-list of truthy strings, not a negation",
     );
     // The unset case must be falsy: `?? ""` and nothing else.
-    assert.match(CODE, /process\.env\.MERRYMEN_DISPLAY_SCOUT_ENABLED \?\? ""/);
+    assert.match(CODE, /process\.env\.OATHWALL_DISPLAY_SCOUT_ENABLED \?\? ""/);
   });
 
   it("there is a daily ceiling, and it resets on a boundary a person can predict", () => {

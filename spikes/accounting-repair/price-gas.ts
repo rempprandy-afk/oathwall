@@ -16,7 +16,7 @@
  */
 import { findRoundAt, priceGasAtRound, type FeedRound } from "../../worker/src/gas-backfill";
 
-const RPC = process.env.MERRYMEN_RPC_URL ?? "https://rpc.mainnet.chain.robinhood.com";
+const RPC = process.env.OATHWALL_RPC_URL ?? "https://rpc.mainnet.chain.robinhood.com";
 const ETH_USD = "0x78F3556b67E17Df817D51Ef5a990cDaF09E8d3A9";
 
 const argAt = (flag: string) => {

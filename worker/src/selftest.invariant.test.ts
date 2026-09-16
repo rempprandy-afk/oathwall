@@ -6,7 +6,7 @@ import { PANCAKE, type GrantCaps } from "../../packages/core/src/index";
 import { buildCallPermissions } from "../../packages/core/src/wall";
 
 /**
- * `merrymen selftest` IS THE GATE BEFORE REAL MONEY.
+ * `oathwall selftest` IS THE GATE BEFORE REAL MONEY.
  *
  * cli/bin.mjs walks a first-timer to it as onboarding step 4, "prove the shot
  * lands". Three separate things made it prove nothing:

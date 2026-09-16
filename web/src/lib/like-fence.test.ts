@@ -69,12 +69,12 @@ describe("nothing an agent runs can see a like", () => {
 
   it("and the store is somewhere the worker structurally cannot import from", () => {
     // `imports.test.ts` forbids every file under worker/src from alias-importing
-    // @merrymen/*, and web/src is not aliased inward at all — so an import of
+    // @oathwall/*, and web/src is not aliased inward at all — so an import of
     // this module from the worker would not resolve, in tsc or at runtime.
     const store = join(ROOT, "web", "src", "lib", "like-store.ts");
     assert.ok(statSync(store).isFile(), "the like store lives under web/src, not worker/src");
     const guard = codeOf(readFileSync(join(WORKER, "imports.test.ts"), "utf8"));
-    assert.match(guard, /@merrymen\\?\//, "the worker's alias ban is what makes this structural");
+    assert.match(guard, /@oathwall\\?\//, "the worker's alias ban is what makes this structural");
   });
 });
 

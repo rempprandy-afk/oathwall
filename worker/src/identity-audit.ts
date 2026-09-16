@@ -14,7 +14,7 @@
  *
  * THE RELATIONSHIPS THAT MUST BE ONE-TO-ONE, and why each one:
  *
- *   privy_did → tenant        one login, one Merryman. Without it, logging out
+ *   privy_did → tenant        one login, one Agent. Without it, logging out
  *                             and back in can land on a second agent.
  *   (provider, subject)       the provider's own immutable user id. The handle
  *                             is reassignable and must never be the key —

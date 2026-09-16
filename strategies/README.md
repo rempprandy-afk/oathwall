@@ -1,14 +1,14 @@
 # write your own bot
 
-Your strategies live in **`~/.merrymen/strategies/`** — outside the install,
+Your strategies live in **`~/.oathwall/strategies/`** — outside the install,
 so upgrades and reinstalls never touch them. Scaffold one:
 
 ```bash
-merrymen strategy new my-bot
-# edit ~/.merrymen/strategies/my-bot.mjs, select "my-bot" in /settings — done
+oathwall strategy new my-bot
+# edit ~/.oathwall/strategies/my-bot.mjs, select "my-bot" in /settings — done
 ```
 
-(This folder in the package only ships the example + this doc; `merrymen
+(This folder in the package only ships the example + this doc; `oathwall
 onboard` copies them into your home folder.)
 
 ## The contract
@@ -37,7 +37,7 @@ walkthrough including sell intents.
 
 ## Written before the BNB move?
 
-merrymen moved from Robinhood Chain to BNB Chain. A strategy file from before
+oathwall moved from Robinhood Chain to BNB Chain. A strategy file from before
 the move needs these changes:
 
 | was | now |

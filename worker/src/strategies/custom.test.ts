@@ -33,7 +33,7 @@ function snap(): Snapshot {
 }
 
 function tempDir(): string {
-  const dir = path.join(tmpdir(), `merrymen-custom-${process.pid}-${Math.random().toString(36).slice(2)}`);
+  const dir = path.join(tmpdir(), `oathwall-custom-${process.pid}-${Math.random().toString(36).slice(2)}`);
   mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -150,7 +150,7 @@ describe("makeCustomStrategy — hot-loaded, crash-isolated", () => {
 /**
  * A USER STRATEGY IS THE ONE CALLER THAT CANNOT BE MIGRATED WITH THE REPO.
  *
- * These files live in ~/.merrymen/strategies, are dynamically imported, and are
+ * These files live in ~/.oathwall/strategies, are dynamically imported, and are
  * never typechecked — so a rename that every builtin follows silently changes
  * what a user's file reads. Both cases below were written for the old chain and
  * must fail LOUDLY rather than quietly doing nothing.
