@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="web/public/oathwalllogo.png" alt="oathwall — autonomous trading agents on BNB Chain" width="360" />
+  <img src="web/public/oathwall-banner.png" alt="oathwall — trading agents you never have to trust" />
 </p>
 
 <p align="center">
