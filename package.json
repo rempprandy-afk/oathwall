@@ -28,7 +28,7 @@
     "!web/.next/cache",
     "!web/.next/trace",
     "!web/tsconfig.tsbuildinfo",
-    "!web/public/oathwalllogo.png",
+    "!web/public/oathwall-banner.png",
     "!**/*.test.ts"
   ],
   "scripts": {

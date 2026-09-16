@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   // future brokerage rail is custodial by construction (the broker holds the
   // account; oathwall holds a revocable trading token), and a product-wide
   // absolute here would become false the day it ships.
-  keywords: ["oathwall", "Robinhood Chain", "trading agent", "self-hosted", "non-custodial on-chain trading", "session keys", "Telegram bot", "crypto", "autonomous agent"],
+  keywords: ["oathwall", "BNB Chain", "trading agent", "self-hosted", "non-custodial on-chain trading", "session keys", "Telegram bot", "crypto", "autonomous agent"],
   openGraph: {
     title: "oathwall — trading agents you never have to trust",
     description:
@@ -36,6 +36,7 @@ export const metadata: Metadata = {
     url,
     siteName: "oathwall",
     type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "oathwall — trading agents you never have to trust" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -43,6 +44,7 @@ export const metadata: Metadata = {
     description: "Trading agents you never have to trust — your keys, your caps, enforced on-chain.",
     site: "@OathwallAI",
     creator: "@OathwallAI",
+    images: ["/og.png"],
   },
   icons: { icon: "/favicon.svg" },
   // Site-verification tokens (public by design — they prove ownership of the
