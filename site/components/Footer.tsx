@@ -4,7 +4,7 @@ import { TokenCA } from "./TokenCA";
 
 const GITHUB = "https://github.com/rempprandy-afk/oathwall";
 const NPM = "https://www.npmjs.com/package/oathwall";
-const X_URL = "https://x.com/OathwallAI";
+const X_URL = "https://x.com/Oatwallbsc";
 const SUPPORT = "support@oathwall.dev";
 /**
  * The beta testers' room. Labelled "Beta group" rather than "Telegram" on
