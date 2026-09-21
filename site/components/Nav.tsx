@@ -4,7 +4,7 @@ import { Icon } from "./Icon";
 
 const GITHUB = "https://github.com/rempprandy-afk/oathwall";
 const HOSTED_APP = "https://app.oathwall.dev";
-const X_URL = "https://x.com/OathwallAI";
+const X_URL = "https://x.com/Oatwallbsc";
 
 function XMark({ size = 15 }: { size?: number }) {
   return (

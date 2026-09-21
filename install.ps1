@@ -1,32 +1,14 @@
-# oathwall installer for Windows — installs Node (if needed) + oathwall, fixes PATH.
-#
-#   irm https://raw.githubusercontent.com/rempprandy-afk/oathwall/main/install.ps1 | iex
-#
-# Safe to re-run. Touches only: Node (via winget, with your consent) and your
-# USER PATH. No admin rights required for the oathwall + PATH steps.
 
 $ErrorActionPreference = "Stop"
 
 function Say($msg, $color = "Gray") { Write-Host "  $msg" -ForegroundColor $color }
 
-# Run npm without tripping PowerShell's execution policy. Typing `npm` in
-# PowerShell resolves to its `npm.ps1` shim, which a default "Restricted" policy
-# refuses to load (PSSecurityException / UnauthorizedAccess). Route through
-# cmd.exe's `npm.cmd` batch shim instead — the execution policy never touches it,
-# so the install works on a locked-down stock Windows without asking the user to
-# change any system setting.
+
 function Invoke-Npm($cmdLine) {
   & cmd.exe /c "npm $cmdLine"
   if ($LASTEXITCODE -ne 0) { throw "npm $cmdLine failed (exit $LASTEXITCODE)" }
 }
 
-# npm installs the `oathwall` CLI on Windows as a oathwall.ps1 shim. A default
-# "Restricted" (or "AllSigned") execution policy refuses to load it, so
-# `oathwall ...` would fail with PSSecurityException right after a successful
-# install. Relax the CURRENT-USER policy to RemoteSigned — the standard
-# Node-on-Windows setting: your own local scripts run, remote ones must be
-# signed. No admin needed; only the current user is affected; reversible with
-# `Set-ExecutionPolicy -Scope CurrentUser Undefined`.
 function Enable-LocalScripts {
   try {
     $eff = Get-ExecutionPolicy

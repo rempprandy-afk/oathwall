@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://oathwall.dev"><b>Website</b></a> ·
   <a href="https://oathwall.dev/docs">Docs</a> ·
-  <a href="https://x.com/OathwallAI">X</a> ·
+  <a href="https://x.com/Oatwallbsc">X</a> ·
   <a href="https://www.npmjs.com/package/oathwall">npm</a>
 </p>
 

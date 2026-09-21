@@ -31,7 +31,7 @@ const HERO_VIDEO =
 
 const GITHUB = "https://github.com/rempprandy-afk/oathwall";
 const NPM = "https://www.npmjs.com/package/oathwall";
-const X_URL = "https://x.com/OathwallAI";
+const X_URL = "https://x.com/Oatwallbsc";
 const SUPPORT = "support@oathwall.dev";
 const HOSTED_APP = "https://app.oathwall.dev";
 const TELEGRAM_BETA = "https://t.me/+oL-7xzghFwA4OTc8";
@@ -805,8 +805,8 @@ npm install -g oathwall && oathwall start`}
 
           <p className="field-invite">
             Running an agent? Tell us what broke and what sang — the{" "}
-            <a href={TELEGRAM_BETA} target="_blank" rel="noreferrer">beta group on Telegram</a>,{" "}
-            <a href="https://x.com/OathwallAI" target="_blank" rel="noreferrer">@OathwallAI</a>, or a{" "}
+            
+            <a href="https://x.com/Oatwallbsc" target="_blank" rel="noreferrer">@Oatwallbsc</a>, or a{" "}
             <a href={GITHUB + "/issues"} target="_blank" rel="noreferrer">GitHub issue</a>.
           </p>
         </div>
@@ -820,7 +820,7 @@ npm install -g oathwall && oathwall start`}
           <div className="hero-actions" style={{ marginTop: 28 }}>
             <a href={HOSTED_APP} className="btn btn-solid">Start Trading</a>
             <Link href="/docs" className="btn btn-ghost">Read the docs</Link>
-            <a href={TELEGRAM_BETA} target="_blank" rel="noreferrer" className="btn btn-ghost">Join the beta</a>
+            {/* <a href={TELEGRAM_BETA} target="_blank" rel="noreferrer" className="btn btn-ghost">Join the beta</a> */}
             <a href={GITHUB} target="_blank" rel="noreferrer" className="btn btn-ghost">GitHub</a>
           </div>
           <p className="cta-note">

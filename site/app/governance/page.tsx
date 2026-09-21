@@ -103,7 +103,7 @@ export default function GovernancePage() {
           <li>Hold $OATHWALL and set your holder wallet in the dashboard&apos;s Oathwall Circle panel.</li>
           <li>
             Join the discussion on{" "}
-            <a className="link" href="https://x.com/OathwallAI" target="_blank" rel="noreferrer">
+            <a className="link" href="https://x.com/Oatwallbsc" target="_blank" rel="noreferrer">
               X
             </a>{" "}
             and in the holders&apos; channel, and weigh in on the open round.
