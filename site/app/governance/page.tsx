@@ -18,7 +18,7 @@ const PROPOSALS = [
   {
     tag: "Basket",
     title: "Add a token to the default basket",
-    body: "Which Robinhood-Chain stock token should join the default equal-weight basket next — e.g. NVDA, TSLA, or an ETF like SPY?",
+    body: "Which BNB Chain token should join the default basket next — e.g. XRP, SOL, or LINK — once its feed and pool depth are verified?",
   },
   {
     tag: "Strategy",
@@ -53,7 +53,7 @@ export default function GovernancePage() {
         <h2>What holders decide</h2>
         <ul>
           <li>
-            <strong>The basket</strong> — which stock tokens make up the default equal-weight universe.
+            <strong>The basket</strong> — which tokens make up the default weighted basket.
           </li>
           <li>
             <strong>Strategies</strong> — which community strategies get promoted to builtins, and

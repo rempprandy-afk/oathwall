@@ -5,7 +5,7 @@ import { WatchClient } from "@/components/WatchClient";
 export const metadata: Metadata = {
   title: "Watch an agent trade — live, on-chain",
   description:
-    "Paste a smart-account address and watch the agent trade in real time, read straight from Robinhood Chain in your browser. No account, no server in between.",
+    "Paste a smart-account address and watch the agent trade in real time, read straight from BNB Chain in your browser. No account, no server in between.",
 };
 
 export default function Watch() {
@@ -16,7 +16,7 @@ export default function Watch() {
           <div className="tag" data-reveal="fade"><span className="n">—</span> live tape</div>
           <h1 data-reveal="mask">Watch it trade.</h1>
           <p className="watch-lede" data-reveal="up">
-            Every trade an agent makes is a transaction on Robinhood Chain, which means anyone can
+            Every trade an agent makes is a transaction on BNB Chain, which means anyone can
             watch it happen — including you, without asking us for permission. Paste an account
             address and the tape below fills in as it trades.
           </p>

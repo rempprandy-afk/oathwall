@@ -8,10 +8,16 @@ import { fetchScope, type ScopePool } from "@/lib/gateway";
 /** Matches the gateway's shared-cache TTL — polling faster returns the same bytes. */
 const POLL_MS = 45_000;
 
-const USDG = "0x5fc5360d0400a0fd4f2af552add042d716f1d168";
+/** The quote legs the gateway pairs launches against — USDT and WBNB on BNB Chain. */
+const QUOTES: Record<string, string> = {
+  "0x55d398326f99059ff775485246999027b3197955": "USDT",
+  "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c": "WBNB",
+};
 
 function quoteLabel(quote: string): string {
-  return quote.toLowerCase() === USDG ? "USDG" : "WETH";
+  // Anything else is named by address rather than guessed at: a wrong label on
+  // the quote side misprices the whole row in the reader's head.
+  return QUOTES[quote.toLowerCase()] ?? `${quote.slice(0, 6)}…`;
 }
 
 function PoolRow({ p }: { p: ScopePool }) {

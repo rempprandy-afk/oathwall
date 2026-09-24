@@ -4,7 +4,9 @@ import { useState } from "react";
 
 /**
  * The $OATHWALL token contract address, verifiable on-chain. Launched via
- * Virtuals on Robinhood Chain (the same chain the agents trade). Factual only
+ * Virtuals on Robinhood Chain, and it has NOT moved with the agents: there is no
+ * contract at this address on BNB Chain, so the explorer link below stays on
+ * Robinhood's Blockscout until the token is deployed there. Factual only
  * — no price, no "buy", no returns; the footer already carries the
  * not-financial-advice line.
  */

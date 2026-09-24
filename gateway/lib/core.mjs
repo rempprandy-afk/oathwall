@@ -39,8 +39,8 @@ export const DEFAULTS = {
  * Mirrors CASH_SIDE in worker/src/discovery.ts — same rule, different runtime.
  */
 const CASH_SIDE = new Set([
-  "0x5fc5360d0400a0fd4f2af552add042d716f1d168", // USDG
-  "0x0bd7d308f8e1639fab988df18a8011f41eacad73", // WETH
+  "0x55d398326f99059ff775485246999027b3197955", // USDT (BSC)
+  "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", // WBNB
   "0x0000000000000000000000000000000000000000",
 ]);
 

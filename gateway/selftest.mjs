@@ -142,8 +142,8 @@ assert.ok(DEFAULTS.BITQUERY_RATE_PER_MIN < DEFAULTS.RATE_PER_MIN, "discovery is 
 // bearing rather than nice to have. Each assertion below is guarding the
 // operator's Bitquery bill against a route strangers can call.
 
-const USDG = "0x5fc5360d0400a0fd4f2af552add042d716f1d168";
-const WETH_ADDR = "0x0bd7d308f8e1639fab988df18a8011f41eacad73";
+const USDG = "0x55d398326f99059ff775485246999027b3197955"; // USDT — the cash side on BSC
+const WETH_ADDR = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"; // WBNB
 const MEME = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const evt = (a, b, iso = "2026-07-29T00:00:00Z", hash = "0xdead") => ({
   Block: { Time: iso },

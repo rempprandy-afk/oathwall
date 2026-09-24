@@ -37,7 +37,7 @@ export default function Docs() {
       <article className="doc-body">
         <h1>Documentation</h1>
         <p className="doc-lead">
-          oathwall is a self-hosted autonomous trading agent for Robinhood Chain. Everything
+          oathwall is a self-hosted autonomous trading agent for BNB Chain. Everything
           runs on your machine; your keys never leave it. This guide takes you from install to a
           named agent you chat with on Telegram.
         </p>
@@ -95,12 +95,12 @@ oathwall update     # upgrade later (stops the agent, installs, restarts)`}
           </thead>
           <tbody>
             <tr>
-              <td><strong>testnet · 46630</strong></td>
-              <td>The sandbox (default). Free <strong>gas</strong> from the faucet, and the grant, caps, policy checks, live prices and journal all run for real. The trading venues aren&apos;t deployed there, so swaps simulate and no-route by design. <strong>Send gas, not capital:</strong> oathwall only knows the mainnet token addresses, so USDG sent to testnet reads 0 and is never traded — the agent trades a simulated 1,000 USDG paper book at live prices instead.</td>
+              <td><strong>testnet · 97</strong></td>
+              <td>The sandbox, one click away and not the default. Free <strong>gas</strong> (tBNB) from the faucet, and the grant, caps, policy checks, live prices and journal all run for real. The venue addresses on 97 haven&apos;t been probed, so swaps simulate and no-route by design. <strong>Send gas, not capital:</strong> the token registry is mainnet-only, so any cash sent to testnet reads 0 and is never used — paper mode is already trading a simulated book at live prices.</td>
             </tr>
             <tr>
-              <td><strong>mainnet · 4663</strong></td>
-              <td>Real funds. Real USDG, real Stock Tokens, real execution. Keys are stored in plain text on your machine, so treat the account like a hot wallet — your caps are the seatbelt, start small. No faucet: send ETH (gas) + USDG (capital) from your own wallet or an exchange.</td>
+              <td><strong>mainnet · 56</strong> (default)</td>
+              <td>Real funds. Real USDT, real tokens, real execution. Keys are stored in plain text on your machine, so treat the account like a hot wallet — your caps are the seatbelt, start small. No faucet: send BNB (gas) + USDT (capital) from your own wallet or an exchange.</td>
             </tr>
           </tbody>
         </table>
@@ -155,8 +155,8 @@ oathwall kill       # kill switch — destroys the grant`}
           <tbody>
             <tr><td><code className="inline">/status /positions /pnl /trades</code></td><td>read the live book</td></tr>
             <tr><td><code className="inline">/report · /brag · /why</code></td><td>daily report · shareable scorecard · explain the last trade</td></tr>
-            <tr><td><code className="inline">/buy &lt;SYM&gt; &lt;usdg&gt; · /sell …</code></td><td>trade (passes the policy wall)</td></tr>
-            <tr><td><code className="inline">/transfer &lt;0x…&gt; &lt;usdg&gt;</code></td><td>send USDG out — always asks to /confirm</td></tr>
+            <tr><td><code className="inline">/buy &lt;SYM&gt; &lt;amount&gt; · /sell …</code></td><td>trade (passes the policy wall)</td></tr>
+            <tr><td><code className="inline">/transfer &lt;0x…&gt; &lt;amount&gt;</code></td><td>send cash out — always asks to /confirm</td></tr>
             <tr><td><code className="inline">/alert &lt;SYM&gt; &gt; &lt;price&gt;</code></td><td>one-shot price alerts · /alerts · /unalert</td></tr>
             <tr><td><code className="inline">/pause /resume · /strategy · /cap</code></td><td>steer the worker (cap only tightens)</td></tr>
             <tr><td><code className="inline">/name · /soul · /remember</code></td><td>name it, see who it is, teach it about you</td></tr>
@@ -171,7 +171,7 @@ oathwall kill       # kill switch — destroys the grant`}
 
         {/* ── transfers ── */}
         <h2 id="transfers">Transfers</h2>
-        <p>Sending USDG out of the account is triple-guarded:</p>
+        <p>Sending cash (USDT) out of the account is triple-guarded:</p>
         <ul>
           <li><strong>Off by default</strong> — enable “allow transfers” in settings.</li>
           <li><strong>Amount-capped on-chain</strong> — the grant&apos;s call policy caps the per-transfer amount.</li>
@@ -256,7 +256,7 @@ oathwall kill       # kill switch — destroys the grant`}
         </pre>
         <p>
           Default-export <code className="inline">{`{ name, tick(snapshot, ctx) }`}</code>. <code className="inline">ctx</code> injects the
-          verified registry (<code className="inline">ctx.tokenBySymbol.QQQ</code>, <code className="inline">ctx.usdg(10)</code>). Every
+          verified registry (<code className="inline">ctx.tokenBySymbol.BTCB</code>, <code className="inline">ctx.CASH.USD</code>, <code className="inline">ctx.usdg(10)</code>). Every
           intent still passes shape validation → the policy wall → quote simulation → the on-chain
           session key.
         </p>
@@ -348,7 +348,7 @@ oathwall kill       # kill switch — destroys the grant`}
         <h3>The dashboard won&apos;t open</h3>
         <p>Run <code className="inline">oathwall doctor</code>. The prebuilt dashboard ships with the package, so a missing build usually means an interrupted install — reinstall with <code className="inline">npm i -g oathwall@latest</code>.</p>
         <h3>Trades never land</h3>
-        <p>Live trading needs three things together: the wallet on <strong>mainnet · 4663</strong>, a <strong>Pimlico API key</strong> in settings (or a full bundler URL), and the smart account funded with <strong>ETH for gas and USDG for capital</strong>. Without a bundler key the agent stays in practice mode — it simulates but never signs. On testnet no trade can land by design: the stock-token venues aren&apos;t deployed, so swaps no-route, and any USDG you sent there reads 0 because oathwall only knows the mainnet token addresses. Switch to mainnet for real fills.</p>
+        <p>Live trading needs three things together: the wallet on <strong>mainnet · 56</strong>, a <strong>Pimlico API key</strong> in settings (or a full bundler URL), and the smart account funded with <strong>BNB for gas and USDT for capital</strong>. Without a bundler key the agent stays in practice mode — it simulates but never signs. On testnet no trade can land by design: the venue addresses on 97 aren&apos;t probed, so swaps no-route, and any USDT you sent there reads 0 because oathwall only knows the mainnet token addresses. Switch to mainnet for real fills.</p>
         <h3>Telegram says “not authorized”</h3>
         <p>Only allowlisted chats are obeyed. Send <code className="inline">/link &lt;code&gt;</code> with the code from settings to claim ownership.</p>
         <h3>A PC command is refused</h3>

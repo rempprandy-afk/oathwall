@@ -92,7 +92,7 @@ export default function TokenPage() {
 
         <h2>A say in where the roadmap goes</h2>
         <p>
-          Holders steer the roadmap — which stock tokens join the basket, which strategies ship next,
+          Holders steer the roadmap — which tokens join the basket, which strategies ship next,
           and how the fee parameters are set. Your tier is your vote weight. Open proposals and how
           voting works live on the{" "}
           <Link className="link" href="/governance">
@@ -118,7 +118,7 @@ export default function TokenPage() {
         </ul>
         <p>
           They&apos;re selectable by anyone but only <em>run</em> for holders — the worker checks your
-          tier each tick. The free strategies (steady-basket, weekend-gap, the LLM strategist, and any
+          tier each tick. The free strategies (steady-basket, the LLM strategist, and any
           you write yourself) are never gated.
         </p>
 
@@ -137,8 +137,9 @@ export default function TokenPage() {
 
         <h2>The token, on-chain</h2>
         <p>
-          $OATHWALL lives on Robinhood Chain — the same chain the agents trade — and was launched via
-          Virtuals. Verify it yourself:
+          $OATHWALL lives on Robinhood Chain, where it was launched via Virtuals. The agents now
+          trade on BNB Chain; the token hasn&apos;t moved with them yet, so your holder wallet stays
+          on Robinhood Chain. Verify it yourself:
         </p>
         <div style={{ margin: "16px 0 8px" }}>
           <TokenCA />

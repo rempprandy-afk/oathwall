@@ -1,10 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { EXPLORER, ageOf, fetchTrades, formatAmount, headBlock, isAddress, type Trade } from "@/lib/chain";
+import {
+  BACKFILL_BLOCKS,
+  EXPLORER,
+  LOG_NODES,
+  RPC_URL,
+  ageOf,
+  disambiguate,
+  fetchTrades,
+  formatAmount,
+  headBlock,
+  isAddress,
+  type Trade,
+} from "@/lib/chain";
 
 const POLL_MS = 6_000;
+/**
+ * The most blocks one poll reads. A tab the browser put to sleep wakes up far
+ * behind the head; catching up in slices keeps each request the size of the
+ * backfill instead of one enormous batch the node would refuse.
+ */
+const MAX_STEP = BACKFILL_BLOCKS;
+/** The floor a refused read backs off to — one chunk on the smallest log node. */
+const MIN_STEP = 25;
 
 type Status = "idle" | "loading" | "live" | "error";
 
@@ -77,17 +97,30 @@ export function WatchClient() {
     let timer: ReturnType<typeof setTimeout>;
     const controller = new AbortController();
 
+    // The next block to read. Unset until the first poll pins it to the head,
+    // so the tape starts from "now" minus the backfill, never from genesis.
+    let cursor: number | null = null;
+    // How many blocks the next read asks for. Halved when the node refuses —
+    // a very busy account can return more logs than it will send at once —
+    // and grown back on success, so a transient refusal never stalls the tape.
+    let step = MAX_STEP;
+
     async function tick() {
+      let behind = false;
       try {
-        const [fresh, h] = await Promise.all([
-          fetchTrades(watching!, controller.signal),
-          headBlock().catch(() => null),
-        ]);
+        const h = await headBlock();
         if (!alive) return;
-        if (h !== null) setHead(h);
+        setHead(h);
+        const from = cursor ?? Math.max(0, h - step + 1);
+        const to = Math.min(h, from + step - 1);
+        const fresh = await fetchTrades(watching!, from, to, controller.signal);
+        if (!alive) return;
+        cursor = to + 1;
+        behind = to < h;
+        step = Math.min(MAX_STEP, step * 2);
         setTrades((prev) => {
-          // Merge rather than replace so a row never flickers out and back while
-          // the explorer's page boundary shifts under a live feed.
+          // Merge rather than replace: each poll only reads the blocks since the
+          // last one, so what's already on screen is the history.
           const merged = new Map(prev.map((t) => [t.txHash, t]));
           for (const t of fresh) merged.set(t.txHash, t);
           return [...merged.values()].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0)).slice(0, 100);
@@ -96,12 +129,14 @@ export function WatchClient() {
         setError(null);
       } catch (e) {
         if (!alive || (e instanceof DOMException && e.name === "AbortError")) return;
+        step = Math.max(MIN_STEP, Math.floor(step / 2));
         // A failed poll is not a dead page: keep what's on screen, say the read
-        // failed, and try again on the next tick.
+        // failed, and try again on the next tick — from the same cursor, so the
+        // blocks it missed are re-read rather than skipped.
         setError(e instanceof Error ? e.message : "couldn't reach the chain");
         setStatus((s) => (trades.length ? "live" : s === "loading" ? "error" : s));
       } finally {
-        if (alive) timer = setTimeout(tick, POLL_MS);
+        if (alive) timer = setTimeout(tick, behind ? 0 : POLL_MS);
       }
     }
 
@@ -116,6 +151,9 @@ export function WatchClient() {
     // would restart the poll loop every time a trade arrives.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watching]);
+
+  // Collisions are judged across the whole tape, not one poll's slice of it.
+  const shown = useMemo(() => disambiguate(trades), [trades]);
 
   return (
     <>
@@ -160,7 +198,12 @@ export function WatchClient() {
 
       {watching && status === "live" && trades.length === 0 && (
         <p className="watch-empty">
-          No token movements on this account yet. A agent running in{" "}
+          No token movements on this account since a few minutes before you opened this page — the tape
+          reads forward from there, not the account&apos;s whole history (that&apos;s on{" "}
+          <a className="link" href={`${EXPLORER}/address/${watching}#tokentxns`} target="_blank" rel="noreferrer">
+            BscScan
+          </a>
+          ). An agent running in{" "}
           <strong>paper mode</strong> simulates its fills and never touches the chain, so it shows an
           empty tape by design — as does one that&apos;s funded but hasn&apos;t opened a position.
           That&apos;s the honest answer, not a failure.
@@ -169,20 +212,27 @@ export function WatchClient() {
 
       {trades.length > 0 && (
         <ul className="tape">
-          {trades.map((t) => (
+          {shown.map((t) => (
             <TradeRow key={t.txHash} t={t} />
           ))}
         </ul>
       )}
 
       <p className="watch-foot">
-        History read from the chain&apos;s own block explorer at{" "}
-        <code className="inline">{EXPLORER.replace("https://", "")}</code>, block height from{" "}
-        <code className="inline">{RPC_HOST}</code>. No server of ours sits in between — open the
-        network tab and check.
+        Transfers read as raw logs from the public nodes at{" "}
+        {LOG_NODES.map((n, i) => (
+          <span key={n.url}>
+            {i > 0 && " / "}
+            <code className="inline">{hostOf(n.url)}</code>
+          </span>
+        ))}
+        , names and block height from{" "}
+        <code className="inline">{hostOf(RPC_URL)}</code>. BNB Chain has no keyless explorer API, so
+        this is a live tail — it starts a few minutes before you opened the page and follows every
+        block after. No server of ours sits in between — open the network tab and check.
       </p>
     </>
   );
 }
 
-const RPC_HOST = "rpc.mainnet.chain.robinhood.com";
+const hostOf = (url: string) => new URL(url).host;

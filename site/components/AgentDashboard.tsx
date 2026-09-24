@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   EXPLORER,
+  KNOWN_TOKENS,
   fetchGas,
   fetchHoldings,
   formatAmount,
@@ -33,11 +34,6 @@ import {
 /** A pasted address is remembered so a refresh doesn't mean typing it again. */
 const STORE_KEY = "oathwall.watch.address";
 
-/**
- * Rendering thousands of rows would lock the page, and an agent account holds a
- * handful of tokens. The tail is airdrop spam — shown as a count, not hidden.
- */
-const MAX_ROWS = 40;
 
 type State = "idle" | "loading" | "ready" | "error";
 
@@ -86,11 +82,7 @@ export function AgentDashboard() {
     } catch (e) {
       if (ac.signal.aborted) return;
       const msg = e instanceof Error ? e.message : String(e);
-      setError(
-        msg.includes("timed out") || msg.includes("abort")
-          ? "The explorer didn't answer in time. That happens on accounts holding thousands of airdropped tokens — try again, or check it on the explorer directly."
-          : `Couldn't read the chain — ${msg}`,
-      );
+      setError(`Couldn't read the chain — ${msg}`);
       setState("error");
     }
   }, []);
@@ -118,9 +110,8 @@ export function AgentDashboard() {
   useEffect(() => () => abort.current?.abort(), []);
 
   const p = snap?.portfolio;
-  const rows = p?.holdings.slice(0, MAX_ROWS) ?? [];
-  const hidden = Math.max(0, (p?.holdings.length ?? 0) - rows.length);
-  const gasEth = snap ? Number(snap.gasWei) / 1e18 : 0;
+  const rows = p?.holdings ?? [];
+  const gasBnb = snap ? Number(snap.gasWei) / 1e18 : 0;
 
   return (
     <div className="dash">
@@ -158,7 +149,7 @@ export function AgentDashboard() {
           <a className="link" href={`${EXPLORER}/address/${showing}`} target="_blank" rel="noreferrer">
             {showing.slice(0, 10)}…{showing.slice(-8)}
           </a>{" "}
-          straight from Robinhood Chain. Nothing here passes through a server of ours.
+          straight from BNB Chain. Nothing here passes through a server of ours.
         </p>
       )}
 
@@ -174,8 +165,8 @@ export function AgentDashboard() {
                   zero would report a smaller portfolio than the account has. */}
               {p!.unpricedCount > 0 && (
                 <div className="dash-note">
-                  plus {p!.unpricedCount} token{p!.unpricedCount === 1 ? "" : "s"} the explorer has no
-                  price for — not counted above, not worth nothing
+                  plus {p!.unpricedCount} token{p!.unpricedCount === 1 ? "" : "s"} whose price feed
+                  didn&apos;t answer — not counted above, not worth nothing
                 </div>
               )}
             </div>
@@ -184,8 +175,8 @@ export function AgentDashboard() {
               <span className={`dash-chip ${snap.deployed ? "" : "dash-chip-warn"}`}>
                 {snap.deployed ? "account deployed" : "not deployed yet"}
               </span>
-              <span className={`dash-chip ${gasEth === 0 ? "dash-chip-warn" : ""}`}>
-                {gasEth.toFixed(6)} ETH for gas
+              <span className={`dash-chip ${gasBnb === 0 ? "dash-chip-warn" : ""}`}>
+                {gasBnb.toFixed(6)} BNB for gas
               </span>
             </div>
           </div>
@@ -200,9 +191,9 @@ export function AgentDashboard() {
               <strong>smart account</strong> rather than the owner address.
             </p>
           )}
-          {snap.deployed && gasEth === 0 && (
+          {snap.deployed && gasBnb === 0 && (
             <p className="dash-hint">
-              No ETH here. A smart account pays for its own transactions, so it cannot trade — or be
+              No BNB here. A smart account pays for its own transactions, so it cannot trade — or be
               swept — until someone sends it a little gas.
             </p>
           )}
@@ -220,7 +211,7 @@ export function AgentDashboard() {
                 {rows.length === 0 && (
                   <tr>
                     <td colSpan={3} className="dash-empty">
-                      No tokens in this account.
+                      None of the registry tokens in this account.
                     </td>
                   </tr>
                 )}
@@ -244,20 +235,22 @@ export function AgentDashboard() {
             </table>
           </div>
 
-          {hidden > 0 && (
-            <p className="dash-note">
-              {hidden} smaller holding{hidden === 1 ? "" : "s"} not shown — almost always airdropped
-              spam. All of them are on{" "}
-              <a className="link" href={`${EXPLORER}/address/${showing}`} target="_blank" rel="noreferrer">
-                the explorer
-              </a>
-              .
-            </p>
-          )}
+          {/* No keyless BNB explorer lists every balance an address holds, so
+              this reads the curated registry by name. Say which tokens that is,
+              so a longtail position that isn't here doesn't read as a lost one. */}
+          <p className="dash-note">
+            Checked: {KNOWN_TOKENS.map((t) => t.symbol).join(", ")}. A token you added yourself in{" "}
+            <code className="inline">/settings</code> isn&apos;t on this list — the account&apos;s full
+            balance sheet is on{" "}
+            <a className="link" href={`${EXPLORER}/address/${showing}#asset-tokens`} target="_blank" rel="noreferrer">
+              BscScan
+            </a>
+            .
+          </p>
 
           <p className="dash-note">
-            Prices come from the explorer, not from us, and a thin token&apos;s quoted rate can be far
-            from what it would actually sell for. This is what the account holds — for what your
+            Prices are the Chainlink feeds the agent itself trades against, read on-chain, not from
+            us. This is what the account holds — for what your
             agent <em>decided</em>, including the trades its caps refused, open your own dashboard.
           </p>
         </>

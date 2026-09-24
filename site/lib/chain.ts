@@ -1,26 +1,134 @@
 /**
- * A tiny Robinhood Chain reader for the browser — no dependency, no backend.
+ * A tiny BNB Chain reader for the browser — no dependency, no backend.
  *
  * The whole claim oathwall makes is "you don't have to trust us", so a page that
  * proxied this through a server of ours would be asking for exactly the trust
- * the project says you shouldn't extend. Everything here reads the chain's OWN
- * public infrastructure — the Blockscout explorer for history and the public RPC
- * for liveness — both of which serve `access-control-allow-origin: *`. There is
- * no key to leak and no server of ours in the path. Open the network tab and
- * every request is to a host you can verify independently.
+ * the project says you shouldn't extend. Everything here reads public RPC nodes
+ * that serve `access-control-allow-origin: *`. There is no key to leak and no
+ * server of ours in the path. Open the network tab and every request is to a
+ * host you can verify independently.
  *
- * HISTORY COMES FROM THE EXPLORER, NOT FROM RAW LOGS. The first version of this
- * scanned `eth_getLogs` and halved the range whenever the node refused. On a
- * chain producing a block every 0.1s with ~12 transfers in each, a one-hour
- * window for an active account needed six levels of splitting — up to 128
- * requests for a single page load, which the browser simply refused. Blockscout
- * answers the same question in one request, with symbol, decimals and timestamp
- * already resolved. Fewer moving parts and a far better answer.
+ * THERE IS NO KEYLESS EXPLORER API ON BNB CHAIN. On Robinhood Chain, Blockscout
+ * answered "every transfer for this account" and "every balance, priced" in one
+ * request each. Probed 2026-09-24 for a BSC replacement: BscScan / Etherscan v2
+ * refuse free access for chain 56, Routescan answers "chain not supported",
+ * Ankr's multichain API wants a key. So both reads are rebuilt on plain RPC,
+ * and each loses something that is stated where it happens:
+ *
+ *   • history is a LIVE TAIL — a short backfill, then every block from the
+ *     moment the page opened. Public nodes cap `eth_getLogs` hard (dataseed
+ *     refuses it outright, 1rpc allows 50 blocks, blockrazor 25), and at ~0.45s blocks an hour
+ *     is 8,000 blocks: scanning it would be the 128-request page load the first
+ *     version of this file was rewritten to escape.
+ *   • holdings are the curated registry only, priced from the same Chainlink
+ *     feeds the agent trades against. A longtail token added in /settings is not
+ *     on this list and will not appear here.
  */
 
-export const EXPLORER = "https://robinhoodchain.blockscout.com";
-export const RPC_URL = "https://rpc.mainnet.chain.robinhood.com";
-export const CHAIN_ID = 4663;
+export const EXPLORER = "https://bscscan.com";
+export const RPC_URL = "https://bsc-dataseed.bnbchain.org";
+export const CHAIN_ID = 56;
+
+/**
+ * Where transfer logs come from — dataseed answers every `eth_getLogs` with
+ * "limit exceeded". Tried in order; the first to return the whole range wins.
+ * Limits measured 2026-09-24:
+ *   • 1rpc — "limited to 0 - 50 blocks range", batches fine, but a per-IP usage
+ *     quota that a heavy session can exhaust ("reached the usage limit").
+ *   • blockrazor — "must not exceed 25 blocks", and back-to-back requests
+ *     draw a 429; two calls per request, half a second apart, held for 8 in a
+ *     row. Slow for a backfill, fine for a tail that reads a dozen blocks a poll.
+ * drpc was measured and left out: batches of more than 3 refused, and single
+ * 100-block reads timed out on the free plan.
+ */
+export const LOG_NODES = [
+  { url: "https://1rpc.io/bnb", chunk: 50, batch: 20, gapMs: 0 },
+  { url: "https://bsc.blockrazor.xyz", chunk: 25, batch: 2, gapMs: 500 },
+] as const;
+/** ~6 minutes at ~0.45s blocks — enough to show a tick that just fired, cheap enough to ask once. */
+export const BACKFILL_BLOCKS = 800;
+
+const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+
+/**
+ * The curated registry — mirrors USD/MAJORS in packages/core/src/tokens.ts (kept
+ * inline; the site builds on its own). Feeds are Chainlink AggregatorV3, 8dp USD.
+ */
+export const KNOWN_TOKENS: { symbol: string; address: string; decimals: number; feed: string }[] = [
+  { symbol: "USDT", address: "0x55d398326f99059ff775485246999027b3197955", decimals: 18, feed: "0xb97ad0e74fa7d920791e90258a6e2085088b4320" },
+  { symbol: "WBNB", address: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", decimals: 18, feed: "0x0567f2323251f0aab15c8dfb1967e4e8a7d42aee" },
+  { symbol: "BTCB", address: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c", decimals: 18, feed: "0x264990fbd0a4796a3e3d8e37c4d5f87a3aca5ebf" },
+  { symbol: "ETH", address: "0x2170ed0880ac9a755fd29b2688956bd959f933f8", decimals: 18, feed: "0x9ef1b8c0e4f7dc8bf5719ea496883dc6401d5b2e" },
+  { symbol: "CAKE", address: "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82", decimals: 18, feed: "0xb6064ed41d4f67e353768aa239ca86f4f73665a1" },
+  { symbol: "USDC", address: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", decimals: 18, feed: "0x51597f405303c4377e36123cbc172b13269ea163" },
+];
+
+interface RpcCall {
+  method: string;
+  params: unknown[];
+}
+
+/**
+ * dataseed answers a batch of more than ~20 `eth_call`s with one "method eth_call
+ * in batch triggered rate limit" (measured 2026-09-24: 20 whole, 40 refused), so
+ * batches go out 20 at a time, one after another.
+ */
+const MAX_BATCH = 20;
+
+/**
+ * JSON-RPC batches, results in call order. A per-call error comes back as null
+ * rather than failing the batch — one token with a broken `symbol()` must not
+ * blank the whole page. Callers that can't live with a hole check for null.
+ */
+async function rpcBatch(
+  url: string,
+  calls: RpcCall[],
+  signal?: AbortSignal,
+  { size = MAX_BATCH, gapMs = 0 } = {},
+): Promise<unknown[]> {
+  const out: unknown[] = [];
+  for (let i = 0; i < calls.length; i += size) {
+    if (i > 0 && gapMs > 0) await new Promise((r) => setTimeout(r, gapMs));
+    out.push(...(await rpcBatchOnce(url, calls.slice(i, i + size), signal)));
+  }
+  return out;
+}
+
+async function rpcBatchOnce(url: string, calls: RpcCall[], signal?: AbortSignal): Promise<unknown[]> {
+  const res = await fetch(url, {
+    method: "POST",
+    signal,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(calls.map((c, id) => ({ jsonrpc: "2.0", id, ...c }))),
+  });
+  if (!res.ok) throw new Error(`rpc ${res.status}`);
+  const json = await res.json();
+  if (!Array.isArray(json)) throw new Error(json?.error?.message || "rpc error");
+  const out: unknown[] = new Array(calls.length).fill(null);
+  for (const r of json as { id: number; result?: unknown; error?: { message?: string } }[]) {
+    if (typeof r.id === "number" && r.id < calls.length) out[r.id] = r.error ? null : (r.result ?? null);
+  }
+  return out;
+}
+
+const pad32 = (addr: string) => `0x${addr.toLowerCase().replace(/^0x/, "").padStart(64, "0")}`;
+const topicToAddress = (t: string) => `0x${t.slice(-40)}`.toLowerCase();
+
+/** An ABI string return — or a bytes32 one, which older tokens still use for `symbol()`. */
+function decodeString(hex: unknown): string | null {
+  if (typeof hex !== "string" || hex.length < 66) return null;
+  const body = hex.slice(2);
+  const bytes = (h: string) => new Uint8Array(h.match(/../g)!.map((b) => parseInt(b, 16)));
+  try {
+    if (body.length >= 128 && BigInt(`0x${body.slice(0, 64)}`) === 32n) {
+      const len = Number(BigInt(`0x${body.slice(64, 128)}`));
+      return new TextDecoder().decode(bytes(body.slice(128, 128 + len * 2)));
+    }
+    return new TextDecoder().decode(bytes(body.slice(0, 64))).replace(/\0+$/, "");
+  } catch {
+    return null;
+  }
+}
 
 export interface TokenMeta {
   symbol: string;
@@ -50,8 +158,8 @@ export function isAddress(v: string): boolean {
  * A token's own name, made safe to render.
  *
  * Mirrors sanitizeSymbol in the worker and the gateway. A symbol is whatever an
- * anonymous deployer wrote into their contract, and the explorer passes it
- * through verbatim, so it reaches the DOM stripped to a known alphabet and
+ * anonymous deployer wrote into their contract and `symbol()` hands it back
+ * verbatim, so it reaches the DOM stripped to a known alphabet and
  * length-capped. React escapes HTML on its own — what stripping adds is removing
  * the right-to-left overrides and zero-width joiners that let a token render as
  * a convincing copy of a different one.
@@ -94,60 +202,125 @@ export async function headBlock(): Promise<number> {
   return Number(BigInt(json.result));
 }
 
-interface BsTransfer {
-  transaction_hash?: string;
-  tx_hash?: string;
-  timestamp?: string;
-  from?: { hash?: string };
-  to?: { hash?: string };
-  token?: { address?: string; address_hash?: string; symbol?: string; decimals?: string | number };
-  total?: { value?: string; decimals?: string | number };
+interface RawLog {
+  address: string;
+  topics: string[];
+  data: string;
+  blockNumber: string;
+  transactionHash: string;
+  logIndex: string;
+}
+
+/** Symbol and decimals per token contract. Immutable in practice, so read once per page. */
+const metaCache = new Map<string, TokenMeta>(
+  KNOWN_TOKENS.map((t) => [t.address, { symbol: t.symbol, decimals: t.decimals }]),
+);
+
+async function tokenMeta(tokens: string[], signal?: AbortSignal): Promise<void> {
+  const missing = tokens.filter((t) => !metaCache.has(t));
+  if (missing.length === 0) return;
+  const results = await rpcBatch(
+    RPC_URL,
+    missing.flatMap((to) => [
+      { method: "eth_call", params: [{ to, data: "0x95d89b41" }, "latest"] }, // symbol()
+      { method: "eth_call", params: [{ to, data: "0x313ce567" }, "latest"] }, // decimals()
+    ]),
+    signal,
+  );
+  missing.forEach((token, i) => {
+    // A read that failed stays uncached, so the next poll asks again rather than
+    // pinning a real token to "?" for the life of the page.
+    if (typeof results[i * 2] !== "string" || typeof results[i * 2 + 1] !== "string") return;
+    const d = results[i * 2 + 1] === "0x" ? NaN : Number(BigInt(results[i * 2 + 1] as string));
+    metaCache.set(token, {
+      symbol: sanitizeSymbol(decodeString(results[i * 2])),
+      decimals: Number.isFinite(d) && d >= 0 && d <= 36 ? d : 18,
+    });
+  });
 }
 
 /**
- * ERC-20 transfers touching `account`, newest first, grouped into trades.
+ * ERC-20 transfers touching `account` in blocks [from, to], newest first,
+ * grouped into trades.
+ *
+ * Every chunk is two filters — the account as sender (topic 1) and as
+ * receiver (topic 2) — batched as far as the node allows.
  *
  * A swap is not a transfer — it's a matched pair of them inside one
  * transaction. Grouping by transaction is what turns a raw ledger into
- * "sold 100 USDG, bought 4,200 PEPE", and it's also what makes a multi-hop
+ * "sold 100 USDT, bought 4,200 PEPE", and it's also what makes a multi-hop
  * route read as the single trade it actually was rather than three.
  */
-export async function fetchTrades(account: string, signal?: AbortSignal): Promise<Trade[]> {
-  const url = `${EXPLORER}/api/v2/addresses/${account}/token-transfers?type=ERC-20`;
-  const res = await fetch(url, { signal, headers: { accept: "application/json" } });
-  if (!res.ok) throw new Error(`explorer ${res.status}`);
-  const json = (await res.json()) as { items?: BsTransfer[] };
-  const items = Array.isArray(json.items) ? json.items : [];
+export async function fetchTrades(account: string, from: number, to: number, signal?: AbortSignal): Promise<Trade[]> {
+  if (to < from) return [];
   const me = account.toLowerCase();
+  let results: RawLog[][] | null = null;
+  let lastError = "no log node answered";
+  for (const node of LOG_NODES) {
+    const calls: RpcCall[] = [];
+    for (let hi = to; hi >= from; hi -= node.chunk) {
+      const lo = Math.max(from, hi - node.chunk + 1);
+      const range = { fromBlock: `0x${lo.toString(16)}`, toBlock: `0x${hi.toString(16)}` };
+      calls.push({ method: "eth_getLogs", params: [{ ...range, topics: [TRANSFER_TOPIC, pad32(me)] }] });
+      calls.push({ method: "eth_getLogs", params: [{ ...range, topics: [TRANSFER_TOPIC, null, pad32(me)] }] });
+    }
+    try {
+      const got = await rpcBatch(node.url, calls, signal, { size: node.batch, gapMs: node.gapMs });
+      // A chunk the node refused is a hole in the tape, and a tape with a silent
+      // hole is worse than one that says it couldn't read — so a partial answer
+      // counts as no answer and the next node reads the whole range.
+      if (got.every(Array.isArray)) {
+        results = got as RawLog[][];
+        break;
+      }
+      lastError = `${new URL(node.url).host} refused part of the range`;
+    } catch (e) {
+      if (signal?.aborted) throw e;
+      lastError = e instanceof Error ? e.message : String(e);
+    }
+  }
+  if (!results) throw new Error(lastError);
+
+  // ERC-721 Transfer shares the topic but indexes the id — four topics, no data.
+  const logs = results.flat().filter((l) => l.topics.length === 3 && l.data.length >= 66);
+  const seen = new Set<string>();
+  const unique = logs.filter((l) => {
+    // A self-transfer matches both filters; count it once.
+    const key = `${l.transactionHash}:${l.logIndex}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const tokens = [...new Set(unique.map((l) => l.address.toLowerCase()))];
+  const blocks = [...new Set(unique.map((l) => l.blockNumber))];
+  const [, headers] = await Promise.all([
+    tokenMeta(tokens, signal),
+    rpcBatch(RPC_URL, blocks.map((b) => ({ method: "eth_getBlockByNumber", params: [b, false] })), signal),
+  ]);
+  const tsByBlock = new Map<string, number>();
+  blocks.forEach((b, i) => {
+    const t = (headers[i] as { timestamp?: string } | null)?.timestamp;
+    if (t) tsByBlock.set(b, Number(BigInt(t)));
+  });
 
   const byTx = new Map<string, { ts: number | null; out: Map<string, Leg>; in: Map<string, Leg> }>();
 
-  for (const it of items) {
-    const txHash = it.transaction_hash || it.tx_hash;
-    if (!txHash) continue;
-    const token = (it.token?.address || it.token?.address_hash || "").toLowerCase();
-    if (!token) continue;
-
-    const rawValue = it.total?.value;
-    if (typeof rawValue !== "string" || !/^\d+$/.test(rawValue)) continue;
-    const amount = BigInt(rawValue);
+  for (const log of unique) {
+    const txHash = log.transactionHash;
+    const token = log.address.toLowerCase();
+    const amount = BigInt(`0x${log.data.slice(2, 66)}`);
     if (amount === 0n) continue;
+    const meta = metaCache.get(token) ?? { symbol: "?", decimals: 18 };
 
-    const decimals = Number(it.total?.decimals ?? it.token?.decimals ?? 18);
-    const meta: TokenMeta = {
-      symbol: sanitizeSymbol(it.token?.symbol),
-      decimals: Number.isFinite(decimals) && decimals >= 0 && decimals <= 36 ? decimals : 18,
-    };
-
-    const ts = it.timestamp ? Math.floor(new Date(it.timestamp).getTime() / 1000) : null;
     const entry = byTx.get(txHash) ?? {
-      ts: Number.isFinite(ts as number) ? ts : null,
+      ts: tsByBlock.get(log.blockNumber) ?? null,
       out: new Map<string, Leg>(),
       in: new Map<string, Leg>(),
     };
 
-    const from = it.from?.hash?.toLowerCase();
-    const to = it.to?.hash?.toLowerCase();
+    const from = topicToAddress(log.topics[1]);
+    const to = topicToAddress(log.topics[2]);
     // A transaction can move the same token more than once — a multi-hop route
     // through the same pool, say — so legs accumulate rather than overwrite.
     const add = (side: Map<string, Leg>) => {
@@ -161,27 +334,29 @@ export async function fetchTrades(account: string, signal?: AbortSignal): Promis
 
   const trades: Trade[] = [...byTx]
     .map(([txHash, e]) => ({ txHash, timestamp: e.ts, out: [...e.out.values()], in: [...e.in.values()] }))
-    // Drop transactions where the account neither sent nor received anything,
-    // which can happen when the explorer includes a transfer between two other
-    // parties inside a transaction this account merely appears in.
+    // Defensive: every log here names the account, so both sides being empty
+    // means a zero-amount transfer was all this transaction held.
     .filter((t) => t.out.length > 0 || t.in.length > 0);
 
   trades.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
-  return disambiguate(trades);
+  return trades;
 }
 
 /**
  * Where two DIFFERENT contracts claim the same symbol, show which is which.
  *
- * This is not hypothetical tidying. On this chain right now, "GME" is two
- * unrelated contracts and so is "PIPEDOG" — anyone can deploy a token and name
- * it whatever they like, and impersonating a real ticker is the oldest trick
- * there is. Rendering both as a bare "GME" on a page people use to check what
- * their agent actually bought would be actively misleading, so a colliding
- * symbol carries a slice of its address and stops being a claim you have to
- * take on faith.
+ * This is not hypothetical tidying. Anyone can deploy a token and name it
+ * whatever they like, and impersonating a real ticker is the oldest trick
+ * there is — a fake "USDT" costs a few cents of gas. Rendering both as a bare
+ * "USDT" on a page people use to check what their agent actually bought would
+ * be actively misleading, so a colliding symbol carries a slice of its address
+ * and stops being a claim you have to take on faith.
+ *
+ * Run over the WHOLE tape the page holds, not one poll's worth: the tail reads a
+ * few blocks at a time, and the impostor rarely lands in the same poll as the
+ * real one.
  */
-function disambiguate(trades: Trade[]): Trade[] {
+export function disambiguate(trades: Trade[]): Trade[] {
   const addrsBySymbol = new Map<string, Set<string>>();
   for (const t of trades) {
     for (const l of [...t.out, ...t.in]) {
@@ -206,10 +381,9 @@ function disambiguate(trades: Trade[]): Trade[] {
  * answers "what did it do"; this answers "what is it sitting on right now",
  * which is the question anyone actually opens a dashboard to ask.
  *
- * Blockscout resolves symbol, decimals AND an exchange rate in one request and
- * serves it `access-control-allow-origin: *`, so the browser can price a
- * portfolio with no key, no price feed and no server of ours in the path —
- * which is the same rule the rest of this file follows.
+ * Read as `balanceOf` on each registry token plus `latestAnswer` on its
+ * Chainlink feed — the same feeds the agent's policy wall prices against, in
+ * one batched request to the public RPC. No key, no server of ours.
  */
 
 export interface Holding {
@@ -218,12 +392,12 @@ export interface Holding {
   decimals: number;
   amount: bigint;
   /**
-   * USD value, or null when the explorer has no rate for this token.
+   * USD value, or null when the feed didn't answer.
    *
-   * NULL IS NOT ZERO, and the difference is the whole point. Most tokens on a
-   * young chain have no listed rate, and quietly folding them in at 0 would
-   * report a portfolio smaller than it is — the exact direction of error that
-   * makes someone think their agent lost money. Unpriced holdings are shown,
+   * NULL IS NOT ZERO, and the difference is the whole point. Quietly folding an
+   * unread price in at 0 would report a portfolio smaller than it is — the
+   * exact direction of error that makes someone think their agent lost money.
+   * Unpriced holdings are shown,
    * counted separately, and excluded from the total that claims to be a total.
    */
   usd: number | null;
@@ -237,91 +411,50 @@ export interface Portfolio {
   unpricedCount: number;
 }
 
-interface BsBalance {
-  value?: string;
-  token?: {
-    address_hash?: string;
-    address?: string;
-    symbol?: string;
-    decimals?: string | number;
-    exchange_rate?: string | null;
-    type?: string;
-  };
-}
-
 /** Human amount as a float, for multiplying by a rate. Display still uses formatAmount. */
 function toFloat(amount: bigint, decimals: number): number {
   return Number(amount) / 10 ** decimals;
 }
 
-/**
- * This endpoint returns EVERY balance in one unpaginated response, and on an
- * address with a huge airdrop tail it can simply never answer — measured: the
- * burn address returned 142,968 holdings once and then timed out at 120s having
- * sent 0 bytes. A dashboard whose spinner runs forever is worse than one that
- * says it could not read, so the wait is bounded here rather than left to the
- * caller to remember.
- */
-const HOLDINGS_TIMEOUT_MS = 20_000;
-
 export async function fetchHoldings(account: string, signal?: AbortSignal): Promise<Portfolio> {
-  const url = `${EXPLORER}/api/v2/addresses/${account}/token-balances`;
-  const timeout = AbortSignal.timeout(HOLDINGS_TIMEOUT_MS);
-  // Either the caller giving up or the ceiling above ends the request.
-  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
-  const res = await fetch(url, { signal: combined, headers: { accept: "application/json" } });
-  if (!res.ok) throw new Error(`explorer ${res.status}`);
-  const rows = (await res.json()) as BsBalance[];
-  if (!Array.isArray(rows)) return { holdings: [], pricedUsd: 0, unpricedCount: 0 };
-
-  const holdings: Holding[] = [];
-  for (const r of rows) {
-    // ERC-20 only. An NFT in a trading account is somebody's airdrop, and it has
-    // no amount that means anything next to a token balance.
-    if (r.token?.type && r.token.type !== "ERC-20") continue;
-    const token = (r.token?.address_hash || r.token?.address || "").toLowerCase();
-    if (!token) continue;
-    if (typeof r.value !== "string" || !/^\d+$/.test(r.value)) continue;
-    const amount = BigInt(r.value);
-    if (amount === 0n) continue;
-
-    const d = Number(r.token?.decimals ?? 18);
-    const decimals = Number.isFinite(d) && d >= 0 && d <= 36 ? d : 18;
-    const rate = r.token?.exchange_rate ? Number(r.token.exchange_rate) : NaN;
-    const usd = Number.isFinite(rate) && rate > 0 ? toFloat(amount, decimals) * rate : null;
-
-    holdings.push({ token, symbol: sanitizeSymbol(r.token?.symbol), decimals, amount, usd });
-  }
-
-  // Same impersonation problem as the tape: anyone can deploy a token called
-  // USDG. A holdings list is arguably the worse place to get it wrong, since
-  // that is where someone checks whether their money is where they think.
-  const addrsBySymbol = new Map<string, Set<string>>();
-  for (const h of holdings) {
-    const set = addrsBySymbol.get(h.symbol) ?? new Set<string>();
-    set.add(h.token);
-    addrsBySymbol.set(h.symbol, set);
-  }
-  const colliding = new Set([...addrsBySymbol].filter(([, s]) => s.size > 1).map(([sym]) => sym));
-  const marked = holdings.map((h) =>
-    colliding.has(h.symbol) ? { ...h, symbol: `${h.symbol}·${h.token.slice(2, 6)}` } : h,
+  const results = await rpcBatch(
+    RPC_URL,
+    KNOWN_TOKENS.flatMap((t) => [
+      // balanceOf(account)
+      { method: "eth_call", params: [{ to: t.address, data: `0x70a08231${pad32(account).slice(2)}` }, "latest"] },
+      // latestAnswer() — USD, 8dp
+      { method: "eth_call", params: [{ to: t.feed, data: "0x50d25bcd" }, "latest"] },
+    ]),
+    signal,
   );
 
-  // Priced first and largest first — the things worth money lead, and the long
-  // tail of unpriced airdrops sorts to the bottom instead of burying them.
-  marked.sort((a, b) => {
+  const holdings: Holding[] = [];
+  KNOWN_TOKENS.forEach((t, i) => {
+    const bal = results[i * 2];
+    // A balance that didn't come back is a failed read, not an empty one.
+    if (typeof bal !== "string" || bal === "0x") throw new Error(`couldn't read the ${t.symbol} balance`);
+    const amount = BigInt(bal);
+    if (amount === 0n) return;
+    const answer = results[i * 2 + 1];
+    const rate = typeof answer === "string" && answer !== "0x" ? Number(BigInt.asIntN(256, BigInt(answer))) / 1e8 : NaN;
+    const usd = Number.isFinite(rate) && rate > 0 ? toFloat(amount, t.decimals) * rate : null;
+    holdings.push({ token: t.address, symbol: t.symbol, decimals: t.decimals, amount, usd });
+  });
+
+  // Priced first and largest first — the things worth money lead.
+  holdings.sort((a, b) => {
     if ((a.usd === null) !== (b.usd === null)) return a.usd === null ? 1 : -1;
     return (b.usd ?? 0) - (a.usd ?? 0);
   });
 
   return {
-    holdings: marked,
-    pricedUsd: marked.reduce((sum, h) => sum + (h.usd ?? 0), 0),
-    unpricedCount: marked.filter((h) => h.usd === null).length,
+    holdings,
+    pricedUsd: holdings.reduce((sum, h) => sum + (h.usd ?? 0), 0),
+    unpricedCount: holdings.filter((h) => h.usd === null).length,
   };
 }
 
-/** Native ETH, which pays for gas and is NOT part of the traded portfolio. */
+/** Native BNB, which pays for gas and is NOT part of the traded portfolio. */
 export async function fetchGas(account: string, signal?: AbortSignal): Promise<bigint> {
   const res = await fetch(RPC_URL, {
     method: "POST",
