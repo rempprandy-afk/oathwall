@@ -22,18 +22,25 @@ export function ScrollFx() {
     const revealEls = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
     let io: IntersectionObserver | null = null;
     if ("IntersectionObserver" in window) {
+      // A "mask" element starts fully clipped, and the observer counts its own
+      // clip-path — it would never intersect. Watch its parent instead.
+      const watched = new Map<Element, HTMLElement[]>();
+      for (const el of revealEls) {
+        const target = el.dataset.reveal === "mask" && el.parentElement ? el.parentElement : el;
+        watched.set(target, [...(watched.get(target) ?? []), el]);
+      }
       io = new IntersectionObserver(
         (entries) => {
           for (const e of entries) {
             if (e.isIntersecting) {
-              e.target.classList.add("is-in");
+              watched.get(e.target)?.forEach((el) => el.classList.add("is-in"));
               io?.unobserve(e.target);
             }
           }
         },
         { rootMargin: "0px 0px -10% 0px", threshold: 0.12 },
       );
-      revealEls.forEach((el) => io!.observe(el));
+      watched.forEach((_, target) => io!.observe(target));
     } else {
       // no observer support — just show everything
       revealEls.forEach((el) => el.classList.add("is-in"));

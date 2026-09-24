@@ -1,10 +1,21 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
-import { Icon } from "./Icon";
 
 const GITHUB = "https://github.com/rempprandy-afk/oathwall";
 const HOSTED_APP = "https://app.oathwall.dev";
 const X_URL = "https://x.com/Oatwallbsc";
+
+const LINKS = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/watch", label: "Watch" },
+  { href: "/memescope", label: "Memescope" },
+  { href: "/token", label: "Token" },
+  { href: "/docs", label: "Docs" },
+];
 
 function XMark({ size = 15 }: { size?: number }) {
   return (
@@ -14,37 +25,65 @@ function XMark({ size = 15 }: { size?: number }) {
   );
 }
 
+/** The inner pages' header: the homepage's glass nav pill, with the links
+ * folding into a glass dropdown on narrow screens. */
 export function Nav() {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
   return (
-    <header className="nav">
+    <header className={`nav${open ? " nav-open" : ""}`}>
       <div className="wrap nav-inner">
         <Link href="/" className="brand">
-          <Logo size={22} />
+          <Logo size={28} />
           <span>oathwall</span>
         </Link>
-        <nav className="nav-links">
-          <Link href="/#features" data-text="Features"><span>Features</span></Link>
-          <Link href="/memescope" data-text="Memescope"><span>Memescope</span></Link>
-          <Link href="/dashboard" data-text="Dashboard"><span>Dashboard</span></Link>
-          <Link href="/watch" data-text="Watch"><span>Watch</span></Link>
-          <Link href="/#telegram" data-text="Telegram"><span>Telegram</span></Link>
-          <Link href="/token" data-text="Token"><span>Token</span></Link>
-          <Link href="/docs" data-text="Docs"><span>Docs</span></Link>
-        </nav>
-        <div className="nav-right">
-          <a href={X_URL} target="_blank" rel="noreferrer" className="nav-ghost nav-social" aria-label="oathwall on X">
-            <XMark />
-          </a>
-          <a href={GITHUB} target="_blank" rel="noreferrer" className="nav-ghost">
-            GitHub
-          </a>
-          {/* Points where the hero's primary button points. Two primaries
-              disagreeing about where to start is worse than either choice. */}
-          <span className="mag" data-magnetic>
-            <a href={HOSTED_APP} className="btn btn-primary has-box">
-              Start trading <span className="box"><Icon name="arrow" size={15} /></span>
+
+        <button
+          type="button"
+          className="nav-burger"
+          aria-controls="nav-menu"
+          aria-expanded={open}
+          aria-label={open ? "Close menu" : "Open menu"}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <i />
+          <i />
+        </button>
+
+        <div className="nav-menu" id="nav-menu">
+          <nav className="nav-links" aria-label="Primary">
+            {LINKS.map((l, i) => (
+              <Link key={l.href} href={l.href} aria-current={pathname?.startsWith(l.href) ? "page" : undefined}>
+                <span className="nav-i">0{i + 1}</span>
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="nav-right">
+            <a href={X_URL} target="_blank" rel="noreferrer" className="nav-ghost" aria-label="oathwall on X">
+              <XMark />
             </a>
-          </span>
+            <a href={GITHUB} target="_blank" rel="noreferrer" className="nav-ghost">
+              GitHub
+            </a>
+            <a href={HOSTED_APP} className="btn btn-primary has-knob">
+              Start trading
+              <span className="knob" aria-hidden>
+                <svg viewBox="0 0 18 18">
+                  <path d="m6.6 3.6 6 5.4-6 5.4" />
+                </svg>
+              </span>
+            </a>
+          </div>
         </div>
       </div>
     </header>
