@@ -344,10 +344,13 @@ function SearchIcon() {
 }
 
 /**
- * The oathwall mark, shared with oathwall.dev: a sworn ring held shut by a
- * wall. The ring takes currentColor so it follows the tab bar's active state;
- * the bar through it is always seal red — the limit the chain enforces.
- * `tile` sets it on the dark rounded square the site uses for the wordmark.
+ * The oathwall mark, shared with oathwall.dev — the split O: an O (the oath)
+ * held apart by a wall down its middle, the limit nothing passes.
+ *
+ * Bare (the tab bar), it takes currentColor so it follows the bar's active
+ * state. With `tile` it is the full-colour mark on the navy square the site
+ * uses beside the wordmark. Flat — no gradients or filters — so it is crisp
+ * at 16px and any number of copies share a page without id collisions.
  */
 export function LogoMark({ size = 22, tile = false }: { size?: number; tile?: boolean }) {
   return (
@@ -360,9 +363,19 @@ export function LogoMark({ size = 22, tile = false }: { size?: number; tile?: bo
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
     >
-      {tile && <rect width="32" height="32" rx="8" fill="#0f1729" stroke="rgba(170,210,255,0.18)" />}
-      <circle cx="16" cy="16" r="8.25" stroke="currentColor" strokeWidth="3.5" />
-      <rect x="4" y="14.25" width="24" height="3.5" rx="1" fill="#d6431f" />
+      {tile && (
+        <>
+          <rect width="32" height="32" rx="8" fill="#0c1a33" />
+          <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" stroke="#cfe6ff" strokeOpacity="0.16" />
+        </>
+      )}
+      <path
+        d="M12.6 8.1a8.6 8.6 0 0 0 0 15.8M19.4 8.1a8.6 8.6 0 0 1 0 15.8"
+        stroke={tile ? "#cfe6ff" : "currentColor"}
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <rect x="14.6" y="5.5" width="2.8" height="21" rx="1.4" fill={tile ? "#6cb6ff" : "currentColor"} />
     </svg>
   );
 }
