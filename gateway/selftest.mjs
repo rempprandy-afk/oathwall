@@ -95,7 +95,7 @@ assert.equal(
 
 // Raw GraphQL must be refused BY NAME LOOKUP — not sanitised, not escaped.
 for (const attempt of [
-  "{ EVM(network: robinhood) { Blocks { Block { Number } } } }",
+  "{ EVM(network: bsc) { Blocks { Block { Number } } } }",
   "query { __schema { types { name } } }",
   "ping\n{ evil }",
   "__proto__",

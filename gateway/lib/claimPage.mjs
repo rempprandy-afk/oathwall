@@ -37,12 +37,31 @@ export const CLAIM_HTML = `<!doctype html>
   const out = document.getElementById("out");
   const btn = document.getElementById("go");
   const show = (html) => { out.innerHTML = html; };
+  const BNB_CHAIN = {
+    chainId: "0x38",
+    chainName: "BNB Smart Chain",
+    nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+    rpcUrls: ["https://bsc-dataseed.bnbchain.org"],
+    blockExplorerUrls: ["https://bscscan.com"],
+  };
 
   btn.onclick = async () => {
     if (!window.ethereum) return show('<p class="err">No wallet found — open this in a wallet browser or install MetaMask.</p>');
     btn.disabled = true;
     try {
       const [addr] = await window.ethereum.request({ method: "eth_requestAccounts" });
+      // Put the wallet on BNB Chain, where the agents trade, instead of leaving
+      // it on whatever it last used. Best-effort: the claim is a personal_sign,
+      // which is valid on any chain, so a wallet that declines to switch can
+      // still claim.
+      show('<p>Switching your wallet to BNB Chain…</p>');
+      try {
+        await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BNB_CHAIN.chainId }] });
+      } catch (e) {
+        if (e && e.code === 4902) {
+          try { await window.ethereum.request({ method: "wallet_addEthereumChain", params: [BNB_CHAIN] }); } catch {}
+        }
+      }
       show('<p>Getting a one-time challenge…</p>');
       // Ask the server for a fresh, single-use nonce bound to this address, then
       // sign the EXACT message it returns. Nothing to keep in sync with the server,

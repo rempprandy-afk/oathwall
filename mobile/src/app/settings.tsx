@@ -3,7 +3,7 @@ import { Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View
 import { router } from "expo-router";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as Clipboard from "expo-clipboard";
-import type { StoredGrant } from "@oathwall/core";
+import { CASH_SYMBOL, type StoredGrant } from "@oathwall/core";
 import { EXPLORER } from "@/net/chainlinks";
 import { feedOrigin, isMock } from "@/net/api";
 import { chatUrl, fetchTelegramStatus, type TelegramStatus } from "@/net/telegram";
@@ -316,7 +316,7 @@ export default function Settings() {
         WHY IT HANDS OFF RATHER THAN BEING A CHAT BOX. There is no chat endpoint:
         narrateChat lives in the worker, and everything that makes the
         conversation safe lives beside it — the chat allowlist, the single-use
-        link code, and the confirm-park flow that stops "send 400 USDG to 0x…"
+        link code, and the confirm-park flow that stops "send 400 USDT to 0x…"
         executing on one message. A chat box here would reach none of that, or
         would need it all rebuilt, and a second implementation of a confirmation
         gate ends up subtly weaker than the first.
@@ -402,8 +402,8 @@ export default function Settings() {
             value={short(grant.sessionKeyAddress)}
             onCopy={() => Clipboard.setStringAsync(grant.sessionKeyAddress)}
           />
-          <Row label="most per trade" value={`${grant.caps.perTradeUsdg} USDG`} />
-          <Row label="most per day" value={`${grant.caps.dailyUsdg} USDG`} />
+          <Row label="most per trade" value={`${grant.caps.perTradeUsdg} ${CASH_SYMBOL}`} />
+          <Row label="most per day" value={`${grant.caps.dailyUsdg} ${CASH_SYMBOL}`} />
           <Row label="trades per day" value={String(grant.caps.maxOpsPerDay)} />
           {/* A signed cap, chosen at /grant and shown there as "stops out at
               −10% drawdown", then never surfaced again. A card headed "verify

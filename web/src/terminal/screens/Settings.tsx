@@ -732,8 +732,8 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
             </Field>
           </div>
           <div className="mm-hint">
-            Bitquery indexes Robinhood Chain from genesis, including <b>Uniswap v4</b> — where new
-            pairs actually launch, and which your agent can&apos;t see by scanning. It reports
+            Bitquery indexes BNB Chain from genesis, including the <b>PancakeSwap</b> pool launches where new
+            pairs actually appear, and which your agent can&apos;t see by scanning. It reports
             what it finds, with the depth and whether it could price it.
             <br />
             <b>It never buys anything.</b> A pair it surfaces still needs you to add it above and
@@ -1255,7 +1255,7 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
             <Field
               label="bitquery api key"
               action={{ href: "https://account.bitquery.io/", label: "get a key" }}
-              hint="Lets your agent SEE what it otherwise can't: Bitquery indexes Robinhood Chain from genesis, including Uniswap v4 — where new pairs and graduating tokens actually launch. Discovery only: it can tell your agent a pair exists, never authorise a trade in one. Everything it finds still has to clear the same depth and price guards."
+              hint="Lets your agent SEE what it otherwise can't: Bitquery indexes BNB Chain from genesis, including PancakeSwap pool launches — where new pairs actually appear. Discovery only: it can tell your agent a pair exists, never authorise a trade in one. Everything it finds still has to clear the same depth and price guards."
             >
               <input
                 type="password"

@@ -14,8 +14,8 @@
  *  - The gateway forces its own model server-side; the client never learns it.
  */
 import { createServer } from "node:http";
-import { createPublicClient, defineChain, http } from "viem";
 import { createGateway, clientIp } from "./lib/core.mjs";
+import { chainsFromEnv } from "./lib/chains.mjs";
 import { createStore, hasRedis } from "./lib/store.mjs";
 import { CLAIM_HTML } from "./lib/claimPage.mjs";
 import { addSignup, signupCount } from "./lib/signups.mjs";
@@ -33,13 +33,10 @@ const BITQUERY_KEY = process.env.OATHWALL_GATEWAY_BITQUERY_KEY; // optional — 
 // Pinned against SETTINGS_DEFAULTS.groqModel by packages/core/src/gateway-model.test.ts.
 const MODEL = process.env.OATHWALL_GATEWAY_MODEL || "qwen/qwen3.8-27b";
 const SECRET = process.env.OATHWALL_GATEWAY_SECRET; // REQUIRED — HMAC token-signing secret (32+ random bytes)
-const RPC = process.env.OATHWALL_GATEWAY_RPC; // REQUIRED — Robinhood Chain RPC for balanceOf
+const RPC = process.env.OATHWALL_GATEWAY_RPC; // REQUIRED — RPC of the chain $OATHWALL lives on, for balanceOf (see lib/chains.mjs)
 const MIN_TOKENS = BigInt(process.env.OATHWALL_GATEWAY_MIN_TOKENS || "10000"); // whole $OATHWALL to qualify
 const GATEWAY_DOMAIN = process.env.OATHWALL_GATEWAY_DOMAIN || "oathwall.dev"; // shown in the signed message
 
-// $OATHWALL — mirrors packages/core/src/token.ts (kept inline; the gateway is standalone).
-const TOKEN_ADDRESS = "0xa15cd06dd305269a0f48bebeb30aa3588fba7b32";
-const CHAIN_ID = 4663;
 const MAX_BODY_BYTES = 256 * 1024; // reject oversized chat payloads
 
 for (const [k, v] of Object.entries({ OATHWALL_GATEWAY_UPSTREAM_KEY: UPSTREAM_KEY, OATHWALL_GATEWAY_SECRET: SECRET, OATHWALL_GATEWAY_RPC: RPC })) {
@@ -53,13 +50,7 @@ if (Buffer.byteLength(SECRET, "utf8") < 32) {
   process.exit(1);
 }
 
-const chain = defineChain({
-  id: CHAIN_ID,
-  name: "Robinhood Chain",
-  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-  rpcUrls: { default: { http: [RPC] } },
-});
-const publicClient = createPublicClient({ chain, transport: http(RPC) });
+const { publicClient, tokenClient, tokenAddress } = chainsFromEnv(process.env, RPC);
 
 // Hoisted rather than inlined into createGateway: the signup route needs the
 // same rate limiter, and two stores would mean two independent counters.
@@ -73,7 +64,8 @@ const gw = createGateway({
   model: MODEL,
   domain: GATEWAY_DOMAIN,
   minTokens: MIN_TOKENS,
-  tokenAddress: TOKEN_ADDRESS,
+  tokenAddress,
+  tokenClient,
   publicClient,
   store,
 });

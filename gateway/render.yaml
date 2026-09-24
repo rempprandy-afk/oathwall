@@ -6,7 +6,7 @@
 #      it prompts for (they're marked sync:false so they're never committed):
 #        OATHWALL_GATEWAY_UPSTREAM_KEY  — your real Groq/OpenAI key (server-only)
 #        OATHWALL_GATEWAY_SECRET        — 32+ random bytes (node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))")
-#        OATHWALL_GATEWAY_RPC           — Robinhood Chain (4663) RPC URL
+#        OATHWALL_GATEWAY_RPC           — RPC of the chain $OATHWALL lives on (4663 until it launches on BNB)
 #   3. Apply → Render builds + starts it and gives you an onrender.com URL.
 #   4. Add the custom domain ai.oathwall.dev in Render → repoint that DNS record
 #      away from Vercel to Render's target. Then it's live at the URL the client

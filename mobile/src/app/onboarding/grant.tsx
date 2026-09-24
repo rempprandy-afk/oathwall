@@ -8,10 +8,10 @@ import { isMock } from "@/net/api";
 // package so the wall lists what the key may actually touch — and because a
 // type-only import would be erased at compile time, leaving the Metro alias for
 // @oathwall/core configured but never exercised, which is the same as untested.
-import { TRADEABLE_SYMBOLS, type GrantCaps } from "@oathwall/core";
+import { CASH_SYMBOL, TRADEABLE_SYMBOLS, type GrantCaps } from "@oathwall/core";
 import { accountFromMnemonic } from "@/crypto/mnemonic";
 import { readOwner } from "@/crypto/keystore";
-import { fundWithPhantom } from "@/net/wallets";
+import { fundWithWallet } from "@/net/wallets";
 import { handoffMessage } from "@/net/handoffMessage";
 import { useBottomPad, useTopPad } from "@/ui/insets";
 import { C } from "@/ui/tokens";
@@ -106,16 +106,16 @@ export default function Grant() {
   }, [caps]);
 
   /**
-   * Copy the account and open Phantom, in that order and in one tap.
+   * Copy the account and open the wallet, in that order and in one tap.
    *
-   * Phantom publishes no deeplink that prefills a send (see net/wallets.ts), so
+   * There is no dependable deeplink that prefills a send (see net/wallets.ts), so
    * "one tap, then paste" is the most automatic this can honestly be — and every
    * outcome below is reported truthfully rather than assumed, because the copy
    * and the launch fail for different reasons.
    */
   const fundNow = useCallback(async () => {
     if (!signed) return;
-    setHandoff(handoffMessage(await fundWithPhantom(signed)));
+    setHandoff(handoffMessage(await fundWithWallet(signed)));
   }, [signed]);
 
   // Say it before the walkthrough, not as a thrown error at the end of it.
@@ -129,7 +129,7 @@ export default function Grant() {
         <Text style={styles.h1}>Not in a demo build</Text>
         <Text style={styles.lede}>
           This build reads generated data — the balances and trades it shows are invented on the phone. So it
-          will not sign a permission wall, because signing one would create a real account on Robinhood Chain
+          will not sign a permission wall, because signing one would create a real account on BNB Chain
           that real money could be sent to, and every number this app then showed you about it would be
           fiction.
         </Text>
@@ -151,7 +151,7 @@ export default function Grant() {
         You&apos;re about to give your agent a key that can trade — and only trade, inside these limits. They
         live in the account contract on-chain, not in this app: a compromised agent can trade inside the
         wall, but it can&apos;t sign anything in your name, can&apos;t send your funds to an address you
-        didn&apos;t register, and can&apos;t touch your ETH.
+        didn&apos;t register, and can&apos;t touch your BNB.
       </Text>
 
       <Text style={styles.section}>temperament</Text>
@@ -170,8 +170,8 @@ export default function Grant() {
 
       <Text style={styles.section}>what it may do</Text>
       <View style={styles.caps}>
-        <Cap label="most per trade" value={`${caps.perTradeUsdg} USDG`} />
-        <Cap label="most per day" value={`${caps.dailyUsdg} USDG`} />
+        <Cap label="most per trade" value={`${caps.perTradeUsdg} ${CASH_SYMBOL}`} />
+        <Cap label="most per day" value={`${caps.dailyUsdg} ${CASH_SYMBOL}`} />
         <Cap label="trades per day" value={`${caps.maxOpsPerDay}`} />
         <Cap label="key expires in" value={`${caps.expiryDays} days`} />
         <Cap label="stops out at" value={`−${caps.maxDrawdownPct}% drawdown`} last />
@@ -208,7 +208,7 @@ export default function Grant() {
       {signed ? (
         <View style={styles.done}>
           <Text style={styles.doneTitle}>Wall signed</Text>
-          <Text style={styles.doneLabel}>smart account · Robinhood Chain</Text>
+          <Text style={styles.doneLabel}>smart account · BNB Smart Chain</Text>
           {/* Selectable: this screen asks the reader to move money to this
               address, so being able to select it by hand is the floor. The
               button below is the fast path, not the only one. */}
@@ -216,22 +216,21 @@ export default function Grant() {
             {signed}
           </Text>
           <Text style={styles.doneText}>
-            Send USDG and a little ETH for gas here, and your agent can start inside the limits above. Your
+            Send {CASH_SYMBOL} and a little BNB for gas here, and your agent can start inside the limits above. Your
             recovery phrase never left this phone.
           </Text>
 
           <Pressable style={styles.fundBtn} onPress={fundNow}>
-            <Text style={styles.fundBtnText}>Copy address & open Phantom</Text>
+            <Text style={styles.fundBtnText}>Copy address & open Trust Wallet</Text>
           </Pressable>
           {handoff && <Text style={styles.handoff}>{handoff}</Text>}
-          {/* Phantom carries Robinhood Chain on the same EVM address it already
-              uses for Ethereum, but the network ships switched off, and a send
-              screen with no Robinhood Chain in the list is exactly where someone
-              gets stuck. Say where the toggle is, once. */}
+          {/* A send on the wrong network is the likeliest way to strand funds,
+              and Phantom — a wallet many owners already have — does not carry
+              BNB Smart Chain at all. Say which wallets work, once. */}
           <Text style={styles.fundNote}>
-            No Robinhood Chain in Phantom&apos;s network list? Turn it on under Settings → Active Networks. Any
-            wallet or exchange that supports Robinhood Chain works too — the address above is the same either
-            way.
+            Send on BNB Smart Chain (BEP-20) only. Any wallet or exchange that supports BNB Smart Chain works —
+            MetaMask, Trust Wallet, Binance — and the address above is the same either way. Phantom does not
+            support BNB Smart Chain.
           </Text>
         </View>
       ) : (

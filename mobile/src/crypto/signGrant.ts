@@ -77,7 +77,7 @@ export async function signGrant(args: {
   //
   // `isMock` used to gate only what the screens DISPLAY — the feed and the
   // Telegram card. It never reached here, and there is no testnet path: the
-  // chain below is Robinhood Chain 4663, mainnet, unconditionally. So a demo
+  // chain below is BNB Chain 56, mainnet, unconditionally. So a demo
   // build generated a real key, derived a real mainnet smart account, showed
   // the owner its address, and then reported a portfolio that was entirely
   // invented. Anyone who funded that address had put real money somewhere the

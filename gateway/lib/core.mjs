@@ -132,6 +132,10 @@ export function createGateway(cfg) {
     tokenAddress,
     decimals = 18n,
     publicClient,
+    /** Reads $OATHWALL balances. Separate from publicClient because the token
+     * can live on a different chain from the one the agents trade (see
+     * lib/chains.mjs); defaults to it when both are the same chain. */
+    tokenClient = publicClient,
     store,
     tunables = {},
   } = cfg;
@@ -209,7 +213,7 @@ export function createGateway(cfg) {
     if (cached !== null) return cached;
     let ok = false;
     try {
-      const raw = await publicClient.readContract({ address: tokenAddress, abi: erc20Abi, functionName: "balanceOf", args: [addr] });
+      const raw = await tokenClient.readContract({ address: tokenAddress, abi: erc20Abi, functionName: "balanceOf", args: [addr] });
       ok = raw / 10n ** decimals >= minTokens;
     } catch {
       ok = false; // fail closed — never grant access we can't verify
@@ -352,7 +356,7 @@ export function createGateway(cfg) {
       cost: 2,
       build: (v) => ({
         query: `query ($since: DateTime, $limit: Int) {
-          EVM(network: robinhood) {
+          EVM(network: bsc) {
             Events(
               limit: {count: $limit}
               orderBy: {descending: Block_Time}
@@ -376,7 +380,7 @@ export function createGateway(cfg) {
     ping: {
       cost: 1,
       build: () => ({
-        query: `{ EVM(network: robinhood) { Blocks(limit: {count: 1}, orderBy: {descending: Block_Number}) { Block { Number } } } }`,
+        query: `{ EVM(network: bsc) { Blocks(limit: {count: 1}, orderBy: {descending: Block_Number}) { Block { Number } } } }`,
         variables: {},
       }),
     },

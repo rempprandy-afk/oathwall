@@ -16,7 +16,7 @@ import {
   SETTINGS_DEFAULTS,
   effectivePerfFeeBps,
   nextTier,
-  bnbChain,
+  oathwallTokenChain,
   tierForBalance,
   wholeTokens,
   type CircleTier,
@@ -55,7 +55,7 @@ export async function GET() {
     symbol: OATHWALL_TOKEN.symbol,
     address: OATHWALL_TOKEN.address,
     chainId: OATHWALL_TOKEN.chainId,
-    explorer: `${bnbChain.blockExplorers!.default.url}/token/${OATHWALL_TOKEN.address}`,
+    explorer: `${oathwallTokenChain.blockExplorers.default.url}/token/${OATHWALL_TOKEN.address}`,
   };
   const tiers = CIRCLE_TIERS.map((t) => ({
     ...tierView(t),
@@ -72,7 +72,9 @@ export async function GET() {
   }
 
   try {
-    const client = createPublicClient({ chain: bnbChain, transport: http(settings.rpcMainnet) });
+    // The token's chain, not the agent's — settings.rpcMainnet is a BNB RPC and
+    // $OATHWALL has no contract there (packages/core/src/token.ts).
+    const client = createPublicClient({ chain: oathwallTokenChain, transport: http() });
     const raw = (await client.readContract({
       address: OATHWALL_TOKEN.address,
       abi: erc20Abi,

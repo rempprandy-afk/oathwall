@@ -267,7 +267,7 @@ export default function Recover() {
                   <Text style={styles.muted}>Nothing to sweep — every token balance is zero.</Text>
                 )}
                 <View style={styles.balRow}>
-                  <Text style={styles.balSymDim}>ETH (gas)</Text>
+                  <Text style={styles.balSymDim}>BNB (gas)</Text>
                   <Text style={[styles.balAmt, noGas && { color: C.red }]}>{formatEther(plan.gasWei)}</Text>
                 </View>
               </View>
@@ -275,11 +275,11 @@ export default function Recover() {
               {/* Two things people get wrong here, so both are said before the
                   button rather than discovered after a failed transaction. */}
               <Text style={styles.warnText}>
-                The sweep moves tokens only. The ETH above pays for the transaction and stays behind.
+                The sweep moves tokens only. The BNB above pays for the transaction and stays behind.
               </Text>
               {noGas && (
                 <Text style={styles.errorBox}>
-                  This account has no ETH, so it cannot pay for its own recovery. Send a small amount of ETH to
+                  This account has no BNB, so it cannot pay for its own recovery. Send a small amount of BNB to
                   the address above first, then come back.
                 </Text>
               )}
@@ -313,7 +313,7 @@ export default function Recover() {
                       setBundler(t);
                       setError(null);
                     }}
-                    placeholder="https://api.pimlico.io/v2/4663/rpc?apikey=…"
+                    placeholder="https://api.pimlico.io/v2/56/rpc?apikey=…"
                     placeholderTextColor={C.faint}
                     autoCapitalize="none"
                     autoCorrect={false}

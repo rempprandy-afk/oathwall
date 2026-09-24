@@ -220,7 +220,8 @@ async function rpcCall(url, method, params = []) {
 
 // ───────────────────────────────────────────────────────── wallets/archive ──
 
-const USDG_ADDR = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168"; // 6 decimals
+// The cash leg — mirrors CASH.USD in packages/core/src/tokens.ts (18 decimals on BNB).
+const USDT_ADDR = "0x55d398326f99059fF775485246999027B3197955";
 
 /** Copy the live grant into the archive before anything destroys it. */
 function archiveCurrentGrant() {
@@ -253,17 +254,17 @@ async function archivedWallets() {
 const rpcFor = (s, chainId) =>
   chainId === 97 ? (s.rpcTestnet ?? RPC_TESTNET) : (s.rpcMainnet ?? RPC_MAINNET);
 
-async function usdgBalance(rpc, addr) {
+async function usdtBalance(rpc, addr) {
   const data = "0x70a08231" + addr.toLowerCase().replace(/^0x/, "").padStart(64, "0");
-  const r = await rpcCall(rpc, "eth_call", [{ to: USDG_ADDR, data }, "latest"]);
+  const r = await rpcCall(rpc, "eth_call", [{ to: USDT_ADDR, data }, "latest"]);
   try {
-    return Number(BigInt(r)) / 1e6;
+    return Number(BigInt(r)) / 1e18;
   } catch {
     return null;
   }
 }
 
-async function ethBalance(rpc, addr) {
+async function bnbBalance(rpc, addr) {
   const r = await rpcCall(rpc, "eth_getBalance", [addr, "latest"]);
   try {
     return Number(BigInt(r)) / 1e18;
@@ -304,11 +305,11 @@ async function wallets() {
   console.log();
   for (const { g, active } of list) {
     const rpc = rpcFor(s, g.chainId);
-    const [usdg, eth] = await Promise.all([usdgBalance(rpc, g.smartAccount), ethBalance(rpc, g.smartAccount)]);
+    const [usdt, bnb] = await Promise.all([usdtBalance(rpc, g.smartAccount), bnbBalance(rpc, g.smartAccount)]);
     const key = g.demoOwnerPrivateKey ? green("🔑 owner key on disk") : red("⚠ no owner key — not recoverable here");
     console.log(`  ${active ? green("● active ") : dim("○ archived")}  ${bold(g.smartAccount)} ${dim(`· chain ${g.chainId}`)}`);
     console.log(
-      `     ${bold(usdg === null ? "?" : `${usdg.toFixed(2)} USDG`)} · ${eth === null ? "?" : `${eth.toFixed(5)} ETH`}  ${key}`,
+      `     ${bold(usdt === null ? "?" : `${usdt.toFixed(2)} USDT`)} · ${bnb === null ? "?" : `${bnb.toFixed(5)} BNB`}  ${key}`,
     );
   }
   console.log(
@@ -543,10 +544,10 @@ async function onboard() {
   console.log(`
 ${bold(`  ${c.arrow} get started`)}
   1. ${bold("oathwall start")} — opens the dashboard at http://localhost:3100 + starts the worker
-  2. at ${bold("/grant")}, create your agent wallet — pick testnet 46630 (practice) or mainnet 4663 (real funds)
-  3. testnet ${bold("gas")} from the faucet: ${dim("https://faucet.testnet.chain.robinhood.com")}
-     ${dim("gas only — USDG sent to a testnet account is never shown and never traded.")}
-     ${dim("mainnet: send ETH (gas) + USDG (capital) from your own wallet.")}
+  2. at ${bold("/grant")}, create your agent wallet — pick testnet 97 (practice) or mainnet 56 (real funds)
+  3. testnet ${bold("gas")} from the faucet: ${dim("https://www.bnbchain.org/en/testnet-faucet")}
+     ${dim("gas only — USDT sent to a testnet account is never shown and never traded.")}
+     ${dim("mainnet: send BNB (gas) + USDT (capital) from your own wallet.")}
   4. prove it works: ${bold("oathwall selftest")}
   5. status check anytime: ${bold("oathwall doctor")} · tune your agent: ${dim("http://localhost:3100/settings")}
 
@@ -744,7 +745,7 @@ async function doctor() {
       : ok(`PowerShell script policy ok (${(pol || "unknown").trim()})`);
   }
 
-  const sp1 = spinner("scouting the Robinhood Chain (mainnet)");
+  const sp1 = spinner("scouting BNB Chain (mainnet)");
   const mainnetBlock = await rpcCall(s.rpcMainnet ?? RPC_MAINNET, "eth_blockNumber");
   mainnetBlock
     ? sp1.succeed(`mainnet RPC reachable ${dim(`block ${parseInt(mainnetBlock, 16).toLocaleString()}`)}`)
@@ -904,14 +905,14 @@ async function status() {
     const events = db.prepare(`SELECT level, message, datetime(created_at,'unixepoch') AS at FROM events${where} ORDER BY created_at DESC, id DESC LIMIT 3`).all(...arg);
     console.log(`  trades: ${t?.landed ?? 0} landed / ${t?.n ?? 0} attempts`);
     if (eq) {
-      console.log(`  equity: ${Number(eq.equity_usdg).toFixed(2)} USDG ${dim(`(${eq.at} UTC)`)}`);
+      console.log(`  equity: ${Number(eq.equity_usdg).toFixed(2)} USDT ${dim(`(${eq.at} UTC)`)}`);
       // Equity is not performance. Say what was put in so the two are never
       // read as the same number. Without a flow ledger there is no honest P&L
       // to state, so say nothing rather than restate equity as profit.
       if (flow && Number(flow.n ?? 0) > 0) {
         const net = Number(flow.net ?? 0);
         const pnl = Number(eq.equity_usdg) - net;
-        console.log(`  p&l:    ${pnl >= 0 ? "+" : "−"}${Math.abs(pnl).toFixed(2)} USDG ${dim(`(you put in ${net.toFixed(2)})`)}`);
+        console.log(`  p&l:    ${pnl >= 0 ? "+" : "−"}${Math.abs(pnl).toFixed(2)} USDT ${dim(`(you put in ${net.toFixed(2)})`)}`);
       } else {
         console.log(dim("  p&l:    no record of deposits yet — equity above is not profit"));
       }
@@ -1159,14 +1160,14 @@ async function recover() {
   // one — e.g. an old funded wallet you switched away from.
   const candidates = [];
   if (grant && /^0x[0-9a-fA-F]{64}$/.test(grant.demoOwnerPrivateKey ?? "")) {
-    candidates.push({ key: grant.demoOwnerPrivateKey, account: grant.smartAccount, chainId: grant.chainId || 4663, active: true });
+    candidates.push({ key: grant.demoOwnerPrivateKey, account: grant.smartAccount, chainId: grant.chainId || 56, active: true });
   }
   for (const g of await archivedWallets()) {
     if (
       /^0x[0-9a-fA-F]{64}$/.test(g.demoOwnerPrivateKey ?? "") &&
       !candidates.some((c) => c.account?.toLowerCase() === g.smartAccount.toLowerCase())
     ) {
-      candidates.push({ key: g.demoOwnerPrivateKey, account: g.smartAccount, chainId: g.chainId || 4663, active: false });
+      candidates.push({ key: g.demoOwnerPrivateKey, account: g.smartAccount, chainId: g.chainId || 56, active: false });
     }
   }
 
@@ -1195,8 +1196,8 @@ async function recover() {
       bad("that isn't a 32-byte hex private key (expected 0x + 64 hex chars).");
       return;
     }
-    const chainAns = (await p.ask("  chain — [1] mainnet 4663 (real funds)  ·  [2] testnet 46630  [1]: ")).trim();
-    chainId = chainAns === "2" ? 46630 : 4663;
+    const chainAns = (await p.ask("  chain — [1] mainnet 56 (real funds)  ·  [2] testnet 97  [1]: ")).trim();
+    chainId = chainAns === "2" ? 97 : 56;
     expect = "";
   }
 
@@ -1232,26 +1233,26 @@ async function recover() {
     return;
   }
   const balances = plan.result.balances ?? [];
-  // Native ETH counts as something to recover. It did not used to: an account
-  // funded with ETH and no tokens — exactly what the fund instructions ask for —
+  // Native BNB counts as something to recover. It did not used to: an account
+  // funded with BNB and no tokens — exactly what the fund instructions ask for —
   // was told it held nothing while its whole balance sat there.
   const heldWei = BigInt(plan.result.gasWei ?? "0");
-  const heldEth = Number(heldWei) / 1e18;
+  const heldBnb = Number(heldWei) / 1e18;
   if (balances.length === 0 && heldWei === 0n) {
     p.close();
-    warn(`nothing to recover — ${plan.result.smartAccount} holds no ETH, USDG or tokens.`);
+    warn(`nothing to recover — ${plan.result.smartAccount} holds no BNB, USDT or tokens.`);
     console.log(dim("  If you expected funds here, check you're using the right owner key and chain."));
     return;
   }
 
   const parts = balances.map((b) => `${b.amount} ${b.symbol}`);
-  if (heldWei > 0n) parts.push(`${heldEth.toFixed(6)} ETH ${dim("(minus gas)")}`);
+  if (heldWei > 0n) parts.push(`${heldBnb.toFixed(6)} BNB ${dim("(minus gas)")}`);
   const list = parts.join(", ");
   console.log();
   warn(`about to sweep ${bold(list)}`);
   console.log(`  from ${dim(plan.result.smartAccount)}`);
   console.log(`  to   ${bold(to)}`);
-  console.log(dim("  real and irreversible. a little ETH stays behind to pay for this operation.\n"));
+  console.log(dim("  real and irreversible. a little BNB stays behind to pay for this operation.\n"));
   const confirm = (await p.ask(`  type ${bold("sweep")} to confirm: `)).trim().toLowerCase();
   p.close();
   if (confirm !== "sweep") {
@@ -1525,7 +1526,7 @@ switch (cmd) {
     version();
     break;
   default:
-    await banner("autonomous trading agents for Robinhood Chain");
+    await banner("autonomous trading agents for BNB Chain");
     console.log(`${dim("  install: npm install -g oathwall · your data: ~/.oathwall")}
 
   ${bold("oathwall setup")}          check your rig — node, npm, PATH (with fixes)

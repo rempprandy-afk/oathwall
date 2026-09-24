@@ -4687,7 +4687,7 @@ async function main() {
 
     // Oathwall Circle — refresh the holder's tier ($OATHWALL on mainnet, read-only)
     // and note tier changes. The tier discounts the performance fee below.
-    holderTier = (await readHolderStatus(cfg.rpcMainnet, cfg.holderAddress)).tier;
+    holderTier = (await readHolderStatus(cfg.holderAddress)).tier;
     if (holderTier.id !== lastTierId) {
       lastTierId = holderTier.id;
       await addEvent(

@@ -3,6 +3,7 @@ import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Link } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { CASH_SYMBOL } from "@oathwall/core";
 import { isMock } from "@/net/api";
 import {
   useAgentName,
@@ -201,7 +202,7 @@ export default function Home() {
 
             <Text style={styles.equity}>{money(equity)}</Text>
             <View style={styles.equityMeta}>
-              <Text style={styles.unit}>USDG</Text>
+              <Text style={styles.unit}>{CASH_SYMBOL}</Text>
               {delta !== null && (
                 <Text style={[styles.delta, { color: delta >= 0 ? C.green : C.red }]}>
                   {delta >= 0 ? "+" : ""}
