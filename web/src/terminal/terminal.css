@@ -228,11 +228,11 @@
   color: var(--tx-2);
 }
 :where(.terminal-host) .public-event-mark.buy {
-  background: #13251c;
+  background: #0d2a22;
   color: var(--up);
 }
 :where(.terminal-host) .public-event-mark.sell {
-  background: #2d1920;
+  background: #2a1321;
   color: var(--down);
 }
 :where(.terminal-host) .public-event > div {
@@ -390,7 +390,7 @@
 :where(.terminal-host) .fund-presets button[aria-pressed="true"] {
   border-color: var(--lime);
   color: var(--lime);
-  background: #181f0f;
+  background: #0f1d33;
 }
 :where(.terminal-host) .flow-notice {
   border-left: 2px solid var(--line);
@@ -605,20 +605,26 @@
 }
 
 .terminal-host {
-  --bg: #070806;
-  --card: #12130f;
-  --raised: #1a1b16;
-  --tx: #ecece4;
-  --tx-2: #abada1;
-  --faint: #898c80;
-  --line: #24261e;
-  --up: #3dd68c;
+  /* THE SENTINEL PALETTE — shared with oathwall.dev. Deep navy ground, one
+     cold blue (--lime keeps its name so every rule that means "the accent"
+     still reads it), ice for anything filled, red and green only for money. */
+  --bg: #03060c;
+  --card: #0a101d;
+  --raised: #0f1729;
+  --tx: #e8eef8;
+  --tx-2: #9aa6bd;
+  --faint: #6b7690;
+  --line: #18223a;
+  --up: #4ade9a;
   --down: #ff5c71;
-  --lime: #a5ce1f;
-  --ink: #111;
-  --sans: "Geist Numerals", "DM Sans", system-ui, sans-serif;
+  --lime: #6cb6ff;
+  --solid: #cfe6ff;
+  --ink: #03060c;
+  --glass: linear-gradient(135deg, rgba(22, 36, 62, 0.6), rgba(10, 16, 30, 0.42));
+  --glass-line: rgba(170, 210, 255, 0.16);
+  --sans: var(--font-inter), "DM Sans", system-ui, sans-serif;
   --pixel: "Geist Pixel", ui-monospace, monospace;
-  --mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --mono: var(--font-jb-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
   --nav: 76px;
   --r: 16px;
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
@@ -633,7 +639,7 @@
 .terminal-host {
   min-height: 100%;
   margin: 0;
-  background: #000;
+  background: var(--bg);
   color: var(--tx);
   color-scheme: dark;
   font-family: var(--sans);
@@ -777,7 +783,7 @@
   margin-left: auto;
   border-radius: 999px;
   background: var(--lime);
-  box-shadow: 0 0 0 4px rgb(165 206 31 / 0.14);
+  box-shadow: 0 0 0 4px rgb(108 182 255 / 0.16);
 }
 
 :where(.terminal-host) .hero-said {
@@ -822,7 +828,7 @@
 }
 
 :where(.terminal-host) .fund.solid {
-  background: var(--tx);
+  background: var(--solid);
   color: var(--ink);
 }
 
@@ -837,7 +843,7 @@
   margin-top: 8px;
   padding: 14px 16px;
   border-radius: 12px;
-  background: var(--tx);
+  background: var(--solid);
   color: var(--ink);
   font-weight: 700;
 }
@@ -972,8 +978,8 @@
 }
 
 :where(.terminal-host) .pill.on {
-  background: #ecece4;
-  color: #111;
+  background: #cfe6ff;
+  color: #03060c;
 }
 
 :where(.terminal-host) .tok {
@@ -1081,7 +1087,7 @@
   height: 40px;
   border-radius: 999px;
   font-size: 12px;
-  background: #ecece4;
+  background: var(--raised);
 }
 
 :where(.terminal-host) .tabbar {
@@ -1095,7 +1101,7 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   height: 52px;
-  background: rgb(18 19 15 / 0.92);
+  background: rgb(10 16 30 / 0.82);
   border: 1px solid rgb(255 255 255 / 0.1);
   border-radius: 26px;
   backdrop-filter: blur(18px);
@@ -1117,8 +1123,8 @@
 }
 
 :where(.terminal-host) .tab svg.logo-mark {
-  width: 28px;
-  height: 19px;
+  width: 24px;
+  height: 24px;
 }
 
 :where(.terminal-host) .back {
@@ -1270,7 +1276,7 @@
   width: 100%;
   max-width: 430px;
   height: 96px;
-  background: linear-gradient(180deg, rgb(7 8 6 / 0), var(--bg) 58%);
+  background: linear-gradient(180deg, rgb(3 6 12 / 0), var(--bg) 58%);
 }
 
 :where(.terminal-host) .row {
@@ -1431,8 +1437,8 @@
 :where(.terminal-host) .stamp.wall,
 :where(.terminal-host) .stamp.breaker,
 :where(.terminal-host) .stamp.blocked {
-  color: #d4a24a;
-  border-color: #d4a24a;
+  color: #f5c451;
+  border-color: #f5c451;
 }
 
 :where(.terminal-host) .stamp.paper {
@@ -1452,7 +1458,7 @@
 }
 
 :where(.terminal-host) .ticks i.on {
-  background: var(--tx);
+  background: var(--solid);
 }
 
 :where(.terminal-host) .vault {
@@ -1708,7 +1714,7 @@
   align-items: center;
   padding: 3px 6px 2px;
   border-radius: 2px;
-  background: #1c1d16;
+  background: #121b2e;
   color: var(--tx-2);
   font-family: var(--sans);
   font-size: 12px;
@@ -1723,8 +1729,8 @@
 }
 
 :where(.terminal-host) .tag.on {
-  background: #ecece4;
-  color: #111;
+  background: #cfe6ff;
+  color: #03060c;
 }
 
 :where(.terminal-host) .held-sub {
@@ -1879,7 +1885,7 @@
 :where(.terminal-host) .leg i b {
   display: block;
   height: 100%;
-  background: var(--tx);
+  background: var(--solid);
   border-radius: inherit;
 }
 
@@ -1904,7 +1910,7 @@
 
 :where(.terminal-host) .gate i.live {
   background: var(--lime);
-  box-shadow: 0 0 0 4px rgb(165 206 31 / 0.14);
+  box-shadow: 0 0 0 4px rgb(108 182 255 / 0.16);
 }
 
 :where(.terminal-host) .gate i.rest {
@@ -2069,23 +2075,23 @@
 }
 
 :where(.terminal-host) .bookbar-track .seg-0 {
-  background: #ecece4;
+  background: #cfe6ff;
 }
 
 :where(.terminal-host) .bookbar-track .seg-1 {
-  background: #b8b8ac;
+  background: #8fb8e6;
 }
 
 :where(.terminal-host) .bookbar-track .seg-2 {
-  background: #8a8a7e;
+  background: #5d86b8;
 }
 
 :where(.terminal-host) .bookbar-track .seg-3 {
-  background: #6e6e62;
+  background: #3d5d88;
 }
 
 :where(.terminal-host) .bookbar-track .seg-4 {
-  background: #4a4a40;
+  background: #2a3f5f;
 }
 
 :where(.terminal-host) .bookbar-labs {
@@ -2169,7 +2175,7 @@
   position: sticky;
   bottom: 0;
   padding-top: 12px;
-  background: linear-gradient(180deg, rgb(7 8 6 / 0), var(--bg) 18%);
+  background: linear-gradient(180deg, rgb(3 6 12 / 0), var(--bg) 18%);
 }
 
 :where(.terminal-host) .composer input,
@@ -2533,7 +2539,7 @@
 
 :where(.terminal-host) .feed-topics button.on .feed-check {
   border-color: var(--tx);
-  background: var(--tx);
+  background: var(--solid);
 }
 
 :where(.terminal-host) .feed-shut {
@@ -2923,7 +2929,7 @@
 }
 
 :where(.terminal-host) .wire-beat.sell .wire-parts {
-  background: #14110f;
+  background: #1a1016;
   box-shadow: inset 2px 0 0 var(--down);
 }
 
@@ -3461,7 +3467,7 @@
 :where(.terminal-host) .account-header { justify-content: space-between; }
 :where(.terminal-host) .account-demo { color: var(--tx-2); font-size: 10px; }
 :where(.terminal-host) .account-person { margin: 32px 0; }
-:where(.terminal-host) .account-avatar { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 18px; background: #252c19; color: var(--lime); font-family: var(--sans); font-size: 26px;
+:where(.terminal-host) .account-avatar { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 18px; background: #10223f; color: var(--lime); font-family: var(--sans); font-size: 26px;
   font-weight: 500;
 }
 :where(.terminal-host) .account-person h2 { margin: 0; font-size: 18px; font-weight: 600; text-transform: capitalize; overflow-wrap: anywhere; }
@@ -3621,7 +3627,7 @@
 }
 :where(.terminal-host) .desk-segments button[aria-pressed="true"] {
   color: var(--ink);
-  background: var(--tx);
+  background: var(--solid);
 }
 :where(.terminal-host) .desk-position {
   min-height: 60px;
@@ -3767,7 +3773,7 @@
 :where(.terminal-host) .desk-composer button {
   display: grid;
   place-items: center;
-  background: var(--tx);
+  background: var(--solid);
   color: var(--ink);
   width: 36px;
   height: 36px;
@@ -3881,7 +3887,7 @@
   margin-top: 18px;
   padding: 8px 14px;
   border-radius: 10px;
-  background: var(--tx);
+  background: var(--solid);
   color: var(--ink);
   font-size: 13px;
   font-weight: 600;
@@ -4052,7 +4058,7 @@
   font-size: 12px;
   padding: 3px 6px 2px;
   border-radius: 2px;
-  background: #1c1d16;
+  background: #121b2e;
   color: var(--tx-2);
   font-weight: 500;
 }
@@ -4260,7 +4266,7 @@
   min-height: 38px;
 }
 :where(.terminal-host) .fund-presets button[aria-pressed="true"] {
-  background: var(--tx);
+  background: var(--solid);
   color: var(--ink);
 }
 :where(.terminal-host) .flow-notice {
@@ -4284,7 +4290,7 @@
   gap: 7px;
 }
 :where(.terminal-host) .flow-primary {
-  background: var(--tx);
+  background: var(--solid);
   color: var(--ink);
   border-radius: 12px;
   min-height: 48px;
@@ -4568,7 +4574,7 @@
   font-size: 13px;
 }
 :where(.terminal-host) .portfolio-actions button:first-child {
-  background: var(--tx);
+  background: var(--solid);
   color: var(--bg);
 }
 :where(.terminal-host) .portfolio-dialog .portfolio-body {
@@ -4824,7 +4830,7 @@
   :where(.terminal-host) .desktop-fund {
     padding: 9px 12px;
     border-radius: 9px;
-    background: var(--tx);
+    background: var(--solid);
     color: var(--bg);
     font-size: 13px;
     font-weight: 600;
@@ -5027,7 +5033,7 @@
   }
   :where(.terminal-host) .desktop-money-actions button:first-child {
     color: var(--bg);
-    background: var(--tx);
+    background: var(--solid);
   }
   :where(.terminal-host) .desktop-cash {
     display: flex;
@@ -5800,9 +5806,9 @@
 /* Desktop: full navigation and a comfortably readable type scale. */
 @media (min-width: 1100px) {
   :where(.terminal-host) .app {
-    --faint: #95978d;
-    --tx-2: #b5b7ac;
-    --line: #25281e;
+    --faint: #7d88a1;
+    --tx-2: #a3aec4;
+    --line: #1a2540;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(
         --portfolio-width
       );
@@ -5869,7 +5875,7 @@
     font-size: 12px;
   }
   :where(.terminal-host) .desktop-market-row.selected {
-    background: #ffffff09;
+    background: rgb(108 182 255 / 0.07);
   }
   :where(.terminal-host) .desktop-section-heading {
     margin-bottom: 18px;
@@ -6236,7 +6242,7 @@
     inset: auto 0 -1px;
     height: 2px;
     border-radius: 2px;
-    background: var(--tx);
+    background: var(--solid);
   }
   :where(.terminal-host) .desktop-explore-panel {
     display: flex;
@@ -6616,7 +6622,7 @@
 .terminal-host .hosted-funding .funding-address { overflow-wrap: anywhere; padding: 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--tx); user-select: all; }
 .terminal-host .recover-input { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--tx); margin: 12px 0; }
 .terminal-host .recover-btn { display: block; width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 10px 0; }
-.terminal-host .recover-btn.go { background: var(--tx); color: var(--ink); }
+.terminal-host .recover-btn.go { background: var(--solid); color: var(--ink); }
 .terminal-host .recover-err, .terminal-host .recover-warn { color: var(--down); }
 .terminal-host .recover-panel { min-width: 0; overflow-wrap: anywhere; }
 .terminal-host a.flow-primary { display: flex; text-decoration: none; }
@@ -6640,7 +6646,7 @@
 .terminal-host .create-steps li { display:flex; align-items:center; gap:6px; }
 .terminal-host .create-steps li > span { width:20px; height:20px; border:1px solid var(--line); border-radius:50%; display:grid; place-items:center; }
 .terminal-host .create-steps [aria-current] { color:var(--tx); }
-.terminal-host .create-steps [aria-current] > span { background:var(--tx); color:var(--ink); }
+.terminal-host .create-steps [aria-current] > span { background:var(--solid); color:var(--ink); }
 .terminal-host .create-intro { margin:32px 0; }
 .terminal-host .create-intro .face { width:48px; height:48px; margin-bottom:16px; }
 .terminal-host .create-agent h1 { font-size:clamp(28px,3vw,36px); line-height:1.15; font-weight:600; letter-spacing:-.04em; margin:0 0 12px; }
@@ -7352,4 +7358,425 @@
   margin: 10px 0 0;
   font-size: 12.5px;
   color: var(--down);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SENTINEL SKIN — the look shared with oathwall.dev.
+
+   The tokens at the top of this file carry the palette; this section carries
+   the chrome that a palette alone can't: the navy ground with its blueprint
+   grid and scanlines, glass for anything that floats (header, search, tab
+   bar, menus), HUD corner brackets on the panels, and the accent on whatever
+   is active. Plain `.terminal-host` selectors on purpose — one class beats the
+   zero-specificity `:where()` rules above without touching any of them.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.terminal-host {
+  --bk: rgb(108 182 255 / 0.5);
+  --brackets:
+    linear-gradient(var(--bk), var(--bk)) top left / 12px 1px no-repeat,
+    linear-gradient(var(--bk), var(--bk)) top left / 1px 12px no-repeat,
+    linear-gradient(var(--bk), var(--bk)) top right / 12px 1px no-repeat,
+    linear-gradient(var(--bk), var(--bk)) top right / 1px 12px no-repeat,
+    linear-gradient(var(--bk), var(--bk)) bottom left / 12px 1px no-repeat,
+    linear-gradient(var(--bk), var(--bk)) bottom left / 1px 12px no-repeat,
+    linear-gradient(var(--bk), var(--bk)) bottom right / 12px 1px no-repeat,
+    linear-gradient(var(--bk), var(--bk)) bottom right / 1px 12px no-repeat;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(70% 55% at 72% -8%, rgb(40 90 170 / 0.24), transparent 70%),
+    radial-gradient(45% 40% at 0% 0%, rgb(108 182 255 / 0.07), transparent 70%),
+    linear-gradient(180deg, #050a15 0%, var(--bg) 55%);
+  background-attachment: fixed;
+}
+/* blueprint grid, strongest at the top of the frame */
+.terminal-host::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(140 180 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(140 180 255 / 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(90% 70% at 60% 0%, #000, transparent 85%);
+  mask-image: radial-gradient(90% 70% at 60% 0%, #000, transparent 85%);
+}
+/* scanlines */
+.terminal-host::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.013) 0 1px, transparent 1px 3px);
+}
+.terminal-host .app { background: transparent; }
+.terminal-host ::selection { background: rgb(108 182 255 / 0.35); color: #fff; }
+.terminal-host :focus-visible { outline-color: var(--lime); }
+
+/* ── type: thin display headings, like the site ─────────────────────────── */
+.terminal-host .hero h1 { font-weight: 300; letter-spacing: -0.045em; }
+.terminal-host .board-head h2 { font-weight: 400; letter-spacing: -0.035em; }
+
+/* ── the filled things: ice pills with a blue glow ─────────────────────── */
+.terminal-host .fund.solid,
+.terminal-host .guide-primary,
+.terminal-host .flow-primary,
+.terminal-host .desktop-fund,
+.terminal-host .recover-btn.go {
+  background: var(--solid);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px rgb(207 230 255 / 0.3), 0 8px 28px -12px rgb(108 182 255 / 0.75);
+  transition: box-shadow 0.25s var(--ease), translate 0.25s var(--ease);
+}
+.terminal-host .fund.solid:hover,
+.terminal-host .guide-primary:hover,
+.terminal-host .flow-primary:hover,
+.terminal-host .desktop-fund:hover,
+.terminal-host .recover-btn.go:hover {
+  translate: 0 -1px;
+  box-shadow: 0 0 0 1px rgb(207 230 255 / 0.5), 0 12px 34px -10px rgb(108 182 255 / 0.95);
+}
+.terminal-host .pill.on,
+.terminal-host .tag.on { box-shadow: 0 0 18px -6px rgb(108 182 255 / 0.7); }
+
+/* ── panels: glass + HUD corner brackets ───────────────────────────────── */
+.terminal-host .first-visit,
+.terminal-host .public-performance {
+  border-color: var(--glass-line);
+  background: var(--brackets), var(--glass);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+/* ── the mobile tab bar: a glass capsule, the active tab lit ───────────── */
+.terminal-host .tabbar {
+  border-color: var(--glass-line);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 12px 32px rgb(0 0 0 / 0.45);
+}
+.terminal-host .tab.on { color: #fff; }
+.terminal-host .tab.on svg:not(.logo-mark) { filter: drop-shadow(0 0 6px rgb(108 182 255 / 0.8)); }
+
+@media (min-width: 1100px) {
+  /* header: frosted, with the search as a glass capsule */
+  .terminal-host .desktop-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: linear-gradient(180deg, rgb(3 6 12 / 0.88), rgb(3 6 12 / 0.55));
+    -webkit-backdrop-filter: blur(14px) saturate(125%);
+    backdrop-filter: blur(14px) saturate(125%);
+  }
+  .terminal-host .desktop-brand span { font-weight: 500; letter-spacing: -0.045em; }
+  .terminal-host .desktop-search {
+    border-color: var(--glass-line);
+    background: rgb(12 20 36 / 0.55);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .terminal-host .desktop-search:hover { border-color: rgb(170 210 255 / 0.3); background: rgb(16 26 46 / 0.65); }
+
+  /* the two side columns */
+  .terminal-host .desktop-sidebar,
+  .terminal-host .desktop-portfolio > section {
+    border-color: var(--line);
+    background: var(--brackets), rgb(8 13 24 / 0.72);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+  .terminal-host .desktop-explore-tabs button[aria-selected="true"]::after {
+    background: var(--lime);
+    box-shadow: 0 0 10px var(--lime);
+  }
+  .terminal-host .desktop-market-row { transition: background 0.15s; }
+  .terminal-host .desktop-market-row:hover { background: linear-gradient(90deg, rgb(108 182 255 / 0.07), transparent); }
+  .terminal-host .desktop-market-row.selected { background: linear-gradient(90deg, rgb(108 182 255 / 0.12), transparent); box-shadow: inset 2px 0 0 var(--lime); }
+  .terminal-host .desktop-account-menu nav {
+    border-color: var(--glass-line);
+    background: rgb(10 16 30 / 0.92);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-host .fund.solid,
+  .terminal-host .guide-primary,
+  .terminal-host .recover-btn.go { transition: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE COMMAND DECK — the desktop layout.
+
+   The left market rail is gone. A HUD header carries the five destinations as
+   a glass pill; a ticker under it carries the markets; Home opens on a deck
+   band (the sentinel, the figures, the policy wall); and one side column
+   holds your agent above the explore tabs. The frame is still a fixed-height
+   grid whose columns scroll on their own — chat and the money panel rely on
+   that — so only the arrangement changes, not the scrolling model.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1100px) {
+  .terminal-host .app {
+    --side-width: 360px;
+    grid-template-columns: minmax(0, 1fr) var(--side-width);
+    grid-template-rows: 64px 42px minmax(0, 1fr);
+    column-gap: 14px;
+    row-gap: 0;
+  }
+
+  /* ── header: brand · centred nav pill · search · account ── */
+  .terminal-host .desktop-header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .terminal-host .desktop-nav-pill {
+    margin-left: 18px;
+    display: flex;
+    gap: 2px;
+    padding: 5px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-line);
+    background: rgb(12 20 36 / 0.55);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 10px 30px rgb(0 0 0 / 0.35);
+  }
+  .terminal-host .desktop-nav-pill button {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 8px 15px;
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: #b8c3d8;
+    transition: background 0.2s, color 0.2s;
+  }
+  .terminal-host .desktop-nav-pill button:hover { background: rgb(160 200 255 / 0.08); color: #fff; }
+  .terminal-host .desktop-nav-pill button[aria-current="page"] {
+    background: rgb(160 200 255 / 0.13);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgb(160 200 255 / 0.14);
+  }
+  .terminal-host .desktop-nav-i { font: 500 9.5px/1 var(--mono); color: var(--lime); }
+  .terminal-host .desktop-search {
+    width: 40px;
+    height: 40px;
+    margin-left: auto;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  .terminal-host .desktop-search span { display: none; }
+  .terminal-host .desktop-header-account { margin-left: 0; }
+
+  /* ── ticker ── */
+  .terminal-host .desktop-ticker {
+    grid-column: 1 / -1;
+    align-self: start;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgb(8 13 24 / 0.7);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+  }
+  .terminal-host .desktop-ticker-track { display: flex; width: max-content; animation: deck-ticker 70s linear infinite; }
+  .terminal-host .desktop-ticker:hover .desktop-ticker-track,
+  .terminal-host .desktop-ticker:focus-within .desktop-ticker-track { animation-play-state: paused; }
+  .terminal-host .desktop-ticker-row { display: flex; }
+  .terminal-host .desktop-ticker-row button {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 0 20px;
+    border-right: 1px solid var(--line);
+    font: 12px/1 var(--mono);
+    color: var(--tx-2);
+    white-space: nowrap;
+  }
+  .terminal-host .desktop-ticker-row button:hover { color: var(--tx); }
+  .terminal-host .desktop-ticker-row strong { font: 600 12.5px/1 var(--sans); color: var(--tx); letter-spacing: -0.01em; }
+  @keyframes deck-ticker { to { transform: translateX(-50%); } }
+
+  /* ── the two columns ── */
+  .terminal-host .app > .body { grid-column: 1; grid-row: 3; padding-top: 14px; }
+  .terminal-host .desktop-side {
+    grid-column: 2;
+    grid-row: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    padding: 14px 0 4px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+  .terminal-host .desktop-side > .desktop-portfolio { flex: none; overflow: visible; }
+  .terminal-host .desktop-side > .desktop-money-panel { flex: none; max-height: none; }
+  .terminal-host .desktop-side > .desktop-sidebar { flex: none; height: min(640px, calc(100dvh - 150px)); }
+
+  /* Home's phone header (logo, balance, "This one trades.") is the deck's job
+     at this width. */
+  .terminal-host .app[data-screen="home"] > .body > header.top { display: none; }
+
+  /* ── the deck ── */
+  .terminal-host .desktop-deck {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    flex: none;
+    display: grid;
+    grid-template-columns: 34% minmax(0, 1fr) 250px;
+    grid-template-rows: 1fr auto;
+    min-height: 318px;
+    border: 1px solid var(--glass-line);
+    border-radius: 22px;
+    background: radial-gradient(ellipse 55% 95% at 18% 50%, #0d1c3a 0%, #060c19 55%, #03060c 92%);
+  }
+  .terminal-host .desktop-deck::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgb(140 180 255 / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(140 180 255 / 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 90% at 20% 50%, #000 15%, transparent 80%);
+    mask-image: radial-gradient(ellipse 70% 90% at 20% 50%, #000 15%, transparent 80%);
+  }
+  .terminal-host .desktop-deck::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.018) 0 1px, transparent 1px 3px);
+  }
+  .terminal-host .deck-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; font-family: var(--mono); }
+  .terminal-host .desktop-deck-shade {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent 28%, rgb(3 6 12 / 0.55) 42%, rgb(3 6 12 / 0.78) 100%);
+  }
+  .terminal-host .desktop-deck-copy,
+  .terminal-host .desktop-deck-stats,
+  .terminal-host .desktop-deck-wall { position: relative; z-index: 2; }
+
+  .terminal-host .desktop-deck-copy { grid-column: 2; grid-row: 1; padding: 28px 24px 0 8px; }
+  .terminal-host .desktop-deck-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font: 500 10.5px/1 var(--mono);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--tx-2);
+  }
+  .terminal-host .desktop-deck-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--lime);
+    box-shadow: 0 0 0 3px rgb(108 182 255 / 0.18), 0 0 12px var(--lime);
+    animation: deck-pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes deck-pulse { 50% { box-shadow: 0 0 0 6px rgb(108 182 255 / 0), 0 0 6px var(--lime); } }
+  .terminal-host .desktop-deck h1 {
+    margin: 16px 0 0;
+    font-size: clamp(30px, 2.9vw, 44px);
+    font-weight: 300;
+    line-height: 1.02;
+    letter-spacing: -0.05em;
+    overflow-wrap: anywhere;
+  }
+  .terminal-host .desktop-deck-sub { margin: 12px 0 0; max-width: 36em; font-size: 13.5px; line-height: 1.55; color: var(--tx-2); }
+  .terminal-host .desktop-deck-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .terminal-host .deck-btn,
+  .terminal-host .deck-link { text-decoration: none; }
+  .terminal-host .deck-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-line);
+    background: rgb(160 200 255 / 0.05);
+    color: var(--tx);
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: background 0.2s, box-shadow 0.25s, translate 0.25s var(--ease);
+  }
+  .terminal-host .deck-btn:hover { background: rgb(160 200 255 / 0.1); translate: 0 -1px; }
+  .terminal-host .deck-btn.solid {
+    border-color: transparent;
+    background: var(--solid);
+    color: var(--ink);
+    box-shadow: 0 0 0 1px rgb(207 230 255 / 0.3), 0 8px 28px -12px rgb(108 182 255 / 0.8);
+  }
+
+  .terminal-host .desktop-deck-stats { grid-column: 2; grid-row: 2; display: flex; gap: 30px; margin: 0; padding: 22px 24px 26px 8px; }
+  .terminal-host .desktop-deck-stats > div { display: flex; flex-direction: column-reverse; gap: 6px; }
+  .terminal-host .desktop-deck-stats dt { font: 500 9.5px/1.3 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); max-width: 14em; }
+  .terminal-host .desktop-deck-stats dd { margin: 0; font-size: 40px; font-weight: 200; line-height: 1; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+  .terminal-host .desktop-deck-stats dd.refused { color: #ff6a55; text-shadow: 0 0 24px rgb(255 84 64 / 0.45); }
+
+  .terminal-host .desktop-deck-wall {
+    grid-column: 3;
+    grid-row: 1 / -1;
+    align-self: center;
+    margin: 18px 18px 18px 0;
+    padding: 20px;
+    border-radius: 22px;
+    border: 1px solid var(--glass-line);
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(20px) saturate(120%);
+    backdrop-filter: blur(20px) saturate(120%);
+    box-shadow: inset 1px 1px 0 rgb(255 255 255 / 0.07), 0 24px 50px -20px rgb(0 0 0 / 0.6);
+  }
+  .terminal-host .desktop-deck-wall-top { display: flex; align-items: center; justify-content: space-between; }
+  .terminal-host .desktop-deck-wall-top strong { font-size: 17px; font-weight: 500; letter-spacing: -0.03em; }
+  .terminal-host .desktop-deck-wall-top span { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); }
+  .terminal-host .desktop-deck-wall-top span.on { background: var(--lime); box-shadow: 0 0 12px var(--lime); }
+  .terminal-host .desktop-deck-wall p { margin: 8px 0 14px; font-size: 12.5px; line-height: 1.5; color: var(--tx-2); }
+  .terminal-host .desktop-deck-wall .desktop-cash { margin: 0; padding: 9px 0; border-top: 1px dashed var(--line); font-family: var(--mono); font-size: 12px; }
+  .terminal-host .deck-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    font: 500 11.5px/1 var(--mono);
+    letter-spacing: 0.04em;
+    color: var(--solid);
+  }
+  .terminal-host .deck-link:hover { color: #fff; }
+}
+
+@media (min-width: 1100px) and (max-width: 1279px) {
+  .terminal-host .app { --side-width: 320px; }
+  .terminal-host .desktop-nav-i { display: none; }
+  .terminal-host .desktop-nav-pill button { padding: 8px 11px; }
+  .terminal-host .desktop-deck { grid-template-columns: 30% minmax(0, 1fr) 220px; }
+  .terminal-host .desktop-deck-stats dd { font-size: 32px; }
+}
+@media (min-width: 1500px) {
+  .terminal-host .app { --side-width: 380px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .terminal-host .desktop-ticker-track,
+  .terminal-host .desktop-deck-dot { animation: none; }
 }

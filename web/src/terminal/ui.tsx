@@ -321,7 +321,7 @@ export function TabIcon({ id }: { id: import("./live").Tab }) {
 export function TopBar({ onSearch, onDeposit }: { onSearch: () => void; onDeposit: () => void }) {
   return (
     <div className="top-row">
-      <LogoMark size={26} />
+      <LogoMark size={30} tile />
       <div className="top-actions">
         <button type="button" className="icon-btn" aria-label="Search" onClick={onSearch}>
           <SearchIcon />
@@ -343,37 +343,26 @@ function SearchIcon() {
   );
 }
 
-export function LogoMark({ size = 22 }: { size?: number }) {
-  const w = Math.round(size * (940 / 630));
+/**
+ * The oathwall mark, shared with oathwall.dev: a sworn ring held shut by a
+ * wall. The ring takes currentColor so it follows the tab bar's active state;
+ * the bar through it is always seal red — the limit the chain enforces.
+ * `tile` sets it on the dark rounded square the site uses for the wordmark.
+ */
+export function LogoMark({ size = 22, tile = false }: { size?: number; tile?: boolean }) {
   return (
     <svg
       className="logo-mark"
-      width={w}
+      width={size}
       height={size}
-      viewBox="0 0 940 630"
-      fill="currentColor"
+      viewBox="0 0 32 32"
+      fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
     >
-      <rect x="280" y="1" width="324" height="47" rx="23.5" />
-      <rect x="403" y="72" width="258" height="49" rx="24.5" />
-      <rect x="138" y="137" width="51" height="54" rx="25.5" />
-      <rect x="473" y="137" width="227" height="54" rx="27" />
-      <rect x="742" y="137" width="50" height="54" rx="25" />
-      <rect x="64" y="212" width="199" height="48" rx="24" />
-      <rect x="516" y="212" width="204" height="48" rx="24" />
-      <rect x="766" y="212" width="109" height="48" rx="24" />
-      <rect x="0" y="288" width="126" height="48" rx="24" />
-      <rect x="161" y="288" width="582" height="48" rx="24" />
-      <rect x="812" y="288" width="128" height="48" rx="24" />
-      <rect x="64" y="366" width="199" height="47" rx="23.5" />
-      <rect x="518" y="366" width="202" height="47" rx="23.5" />
-      <rect x="766" y="366" width="109" height="47" rx="23.5" />
-      <rect x="138" y="436" width="51" height="48" rx="24" />
-      <rect x="473" y="436" width="227" height="48" rx="24" />
-      <rect x="742" y="436" width="51" height="48" rx="24" />
-      <rect x="403" y="510" width="259" height="48" rx="24" />
-      <rect x="280" y="582" width="324" height="47" rx="23.5" />
+      {tile && <rect width="32" height="32" rx="8" fill="#0f1729" stroke="rgba(170,210,255,0.18)" />}
+      <circle cx="16" cy="16" r="8.25" stroke="currentColor" strokeWidth="3.5" />
+      <rect x="4" y="14.25" width="24" height="3.5" rx="1" fill="#d6431f" />
     </svg>
   );
 }

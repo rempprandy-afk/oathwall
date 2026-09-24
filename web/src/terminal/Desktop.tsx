@@ -31,6 +31,8 @@ import { BalanceFigure } from "./studio";
 import { strategyName } from "./strategy";
 import { Feed } from "./screens/Feed";
 import { Board, tradeLine } from "./screens/Board";
+import { TABS } from "./nav";
+import { SentinelCanvas } from "./SentinelCanvas";
 
 export type SidebarSection = "markets" | "agents" | "feed" | "board";
 const SECTIONS: { id: SidebarSection; label: string }[] = [
@@ -62,9 +64,10 @@ type Actions = {
 export function DesktopHeader({
   mine,
   hasAgent = true,
+  activeTab,
   onScreen,
   onTab,
-}: Actions & { hasAgent?: boolean; mine: LiveMine }) {
+}: Actions & { hasAgent?: boolean; mine: LiveMine; activeTab?: Tab }) {
   const accountMenu = useRef<HTMLDetailsElement>(null);
   const closeAccountMenu = () => { if(accountMenu.current) accountMenu.current.open = false; };
   return (
@@ -80,15 +83,32 @@ export function DesktopHeader({
           would have turned the desktop wordmark into a speech bubble, with
           nothing failing to compile and no test noticing.
         */}
-        <LogoMark size={15} />
+        <LogoMark size={34} tile />
         <span>oathwall</span>
       </button>
+      {/* THE COMMAND DECK'S NAV. The same five destinations as the phone's tab
+          bar, in the same order, as words — the bar is hidden at this width, so
+          without these the only way to Chat or Alpha was a URL. */}
+      <nav className="desktop-nav-pill" aria-label="Primary">
+        {TABS.map((t, i) => (
+          <button
+            key={t.id}
+            type="button"
+            aria-current={activeTab === t.id ? "page" : undefined}
+            onClick={() => onTab(t.id)}
+          >
+            <span className="desktop-nav-i">0{i + 1}</span>
+            {t.label}
+          </button>
+        ))}
+      </nav>
       <button
         className="desktop-search"
         onClick={() => onScreen({ kind: "search" })}
+        aria-label="Search tokens or agents"
       >
         <Search size={17} />
-        <span>Search tokens or agents</span>
+        <span>Search</span>
       </button>
       <div className="desktop-header-account">
         <Link className="desktop-settings-link" href="/settings">Settings</Link>
@@ -507,5 +527,172 @@ export function DesktopPortfolio({
         </button>
       </section>
     </aside>
+  );
+}
+
+/**
+ * THE TICKER. Every listed token, scrolling under the header — the market rail
+ * the command deck gave up, compressed to one line. Prices and changes are the
+ * same reads the rail showed, so an unread quote prints the same dash it did
+ * there; nothing here is a number the list did not already have.
+ *
+ * Rendered twice for a seamless loop; the copy is aria-hidden and unfocusable
+ * so a screen reader and a keyboard meet each token once.
+ */
+export function DesktopTicker({ tokens, onScreen }: Pick<Actions, "onScreen"> & { tokens: LiveToken[] }) {
+  if (!tokens.length) return <div className="desktop-ticker" aria-hidden />;
+  const row = (copy: boolean) => (
+    <div className="desktop-ticker-row" aria-hidden={copy || undefined}>
+      {tokens.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          tabIndex={copy ? -1 : undefined}
+          onClick={() => onScreen({ kind: "token", id: t.id })}
+          title={quoteTitle(t)}
+        >
+          <strong>{t.symbol}</strong>
+          <span>{coinPrice(t.priceUsd)}</span>
+          <small className={deltaClass(t.change24hPct)}>{pctPts(t.change24hPct)}</small>
+        </button>
+      ))}
+    </div>
+  );
+  return (
+    <div className="desktop-ticker" aria-label="Market prices">
+      <div className="desktop-ticker-track">
+        {row(false)}
+        {row(true)}
+      </div>
+    </div>
+  );
+}
+
+/** A count we have actually read, or a dash — never a zero for "not yet". */
+function counted(read: LiveState["reads"][keyof LiveState["reads"]], n: number): string {
+  return read === "ok" ? String(n) : "—";
+}
+
+/**
+ * THE COMMAND DECK — Home's hero band on desktop.
+ *
+ * The sentinel on the left is the product's one picture (the same one the
+ * site opens on). The figures are the owner's when there is an owner, and the
+ * network's when there is not; either way each one is a read, labelled with
+ * what it counts, and a read that has not landed prints a dash.
+ *
+ * "Landed" and "refused" count DECISIONS BY OUTCOME in the recent window the
+ * feed carries — not lifetime totals, which nothing on the wire holds — and
+ * the labels say "recent" so the number cannot be mistaken for one.
+ */
+export function DesktopDeck({
+  mine,
+  theses,
+  agents,
+  reads,
+  perTrade,
+  perDay,
+  onScreen,
+  onTab,
+}: Actions & {
+  mine: LiveMine | null;
+  theses: Thesis[];
+  agents: LiveAgent[];
+  reads: LiveState["reads"];
+  perTrade: string;
+  perDay: string;
+}) {
+  const decisions = mine ? mine.moves : theses;
+  const decisionsRead = mine ? reads.mine : reads.theses;
+  const landed = decisions.filter((d) => d.outcome === "landed").length;
+  const refused = decisions.filter((d) => d.outcome === "refused").length;
+  const signed = perTrade !== "" && perDay !== "";
+
+  return (
+    <section className="desktop-deck" aria-label={mine ? `${mine.name} at a glance` : "The network at a glance"}>
+      <SentinelCanvas focusX={0.2} labels={false} />
+      <div className="desktop-deck-shade" aria-hidden />
+      <div className="desktop-deck-copy">
+        <p className="desktop-deck-eyebrow">
+          <span className="desktop-deck-dot" aria-hidden /> {bnbChain.name} · command deck
+        </p>
+        <h1>{mine ? mine.name : "Agents that trade, and say why."}</h1>
+        <p className="desktop-deck-sub">
+          {mine
+            ? `${mine.statusLabel ?? "Waiting for worker"} · ${strategyName(mine.glance.id)}`
+            : "Read what they decided and why. Every trade is checked against limits its owner signed, on-chain."}
+        </p>
+        <div className="desktop-deck-actions">
+          {mine ? (
+            <>
+              <button type="button" className="deck-btn solid" onClick={() => onTab("agent")}>
+                Chat with {mine.name} <ArrowUpRight size={15} />
+              </button>
+              <button type="button" className="deck-btn" onClick={() => onScreen({ kind: "deposit" })}>
+                <ArrowDownLeft size={15} /> Add funds
+              </button>
+            </>
+          ) : (
+            <>
+              <Link className="deck-btn solid" href="/create">
+                Create an agent <ArrowUpRight size={15} />
+              </Link>
+              <button type="button" className="deck-btn" onClick={() => onTab("feed")}>
+                Read the feed
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <dl className="desktop-deck-stats">
+        {mine ? (
+          <div>
+            <dt>Balance</dt>
+            <dd>{money(mine.equity)}</dd>
+          </div>
+        ) : (
+          <div>
+            <dt>Agents on the board</dt>
+            <dd>{counted(reads.board, agents.length)}</dd>
+          </div>
+        )}
+        <div>
+          <dt>Landed · recent</dt>
+          <dd>{counted(decisionsRead, landed)}</dd>
+        </div>
+        <div>
+          <dt>Refused by the wall · recent</dt>
+          <dd className={refused ? "refused" : undefined}>{counted(decisionsRead, refused)}</dd>
+        </div>
+      </dl>
+
+      <aside className="desktop-deck-wall" aria-label="Policy wall">
+        <div className="desktop-deck-wall-top">
+          <strong>Policy wall</strong>
+          <span className={signed ? "on" : ""} aria-hidden />
+        </div>
+        <p>{signed ? "Enforced by your account contract, on-chain." : mine ? "No limits signed yet." : "Each agent trades inside limits its owner signs."}</p>
+        {signed ? (
+          <>
+            <div className="desktop-cash">
+              <span>Per trade</span>
+              <strong>{money(Number(perTrade))}</strong>
+            </div>
+            <div className="desktop-cash">
+              <span>Per day</span>
+              <strong>{money(Number(perDay))}</strong>
+            </div>
+            <button type="button" className="deck-link" onClick={() => onScreen({ kind: "limits" })}>
+              Edit limits <SlidersHorizontal size={14} />
+            </button>
+          </>
+        ) : (
+          <Link className="deck-link" href={mine ? "/limits" : "/create"}>
+            {mine ? "Sign your limits" : "Sign your own"} <ArrowUpRight size={14} />
+          </Link>
+        )}
+      </aside>
+    </section>
   );
 }

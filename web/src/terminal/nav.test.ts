@@ -179,9 +179,15 @@ describe("what the nav rewrite could have broken quietly", () => {
     // by a media query, so a phone mounted a SECOND `AccountEntry` — polling,
     // fetching and holding its own state — behind the visible one.
     const app = codeOf(at("./App.tsx"));
+    // The command deck's side column is ONE gate around the portfolio and the
+    // rail, so a component inside it counts as gated.
+    const side = app.indexOf(`<div className="desktop-side">`);
+    const sideGated = side > 0 && /desktop && \($/.test(app.slice(Math.max(0, side - 40), side).trimEnd());
+    const sideEnd = sideGated ? app.indexOf("</div>", app.indexOf("<DesktopSidebar", side)) : -1;
     for (const c of ["DesktopHeader", "DesktopSidebar", "DesktopPortfolio"]) {
       const at_ = app.indexOf(`<${c}`);
       assert.ok(at_ > 0, `${c} is not mounted at all`);
+      if (sideGated && at_ > side && at_ < sideEnd) continue;
       assert.match(
         app.slice(Math.max(0, at_ - 140), at_),
         /desktop &&|desktop \?/,
