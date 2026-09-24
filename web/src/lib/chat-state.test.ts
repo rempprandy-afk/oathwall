@@ -106,7 +106,10 @@ describe("the surfaces that feed it", () => {
   it("the client sends a bounded tape and says how much it left out", async () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync(new URL("../terminal/screens/Agent.tsx", import.meta.url), "utf8");
-    assert.match(src, /moves:tapeFor\(mine\.moves\)/, "the whole tape must not be sent");
+    assert.match(src, /moves:tapeFor\(mine\.moves[,)]/, "the whole tape must not be sent");
+    // Refusals reach the model in the owner's words, never as a rule slug.
+    assert.match(src, /refusedBecause:/);
+    assert.ok(!/outcomeText: m\.outcomeText/.test(src), "the raw rule slug must not be sent to the model");
     assert.match(src, /movesShown/, "the agent must be able to say 'the last 8 of 30'");
     assert.match(src, /movesTotal/);
     // Each move carries its timestamp, or the model cannot tell old from new.

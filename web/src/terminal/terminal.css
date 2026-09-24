@@ -7780,3 +7780,15 @@
   .terminal-host .desktop-ticker-track,
   .terminal-host .desktop-deck-dot { animation: none; }
 }
+
+/* A refused trade says why, in the owner's words (rules.ts). */
+.terminal-host .desk-trade .desk-refusal {
+  margin: 4px 0 8px;
+  padding: 6px 10px;
+  border-left: 2px solid #ff6a55;
+  border-radius: 0 6px 6px 0;
+  background: rgb(255 84 64 / 0.07);
+  color: #ffb4a8;
+  font-size: 12px;
+  line-height: 1.5;
+}

@@ -33,6 +33,7 @@ import { Feed } from "./screens/Feed";
 import { Board, tradeLine } from "./screens/Board";
 import { TABS } from "./nav";
 import { SentinelCanvas } from "./SentinelCanvas";
+import { tradesWord } from "./rules";
 
 export type SidebarSection = "markets" | "agents" | "feed" | "board";
 const SECTIONS: { id: SidebarSection; label: string }[] = [
@@ -402,6 +403,7 @@ export function DesktopPortfolio({
   stopped,
   perTrade,
   perDay,
+  tradesPerDay,
   onScreen,
   onTab,
 }: Actions & {
@@ -411,6 +413,7 @@ export function DesktopPortfolio({
   stopped: boolean;
   perTrade: string;
   perDay: string;
+  tradesPerDay: string;
 }) {
   return (
     <aside className="desktop-portfolio" aria-label="Your portfolio">
@@ -521,6 +524,10 @@ export function DesktopPortfolio({
           <span>Per day</span>
           <strong>{money(Number(perDay))}</strong>
         </div>
+        <div className="desktop-cash">
+          <span>Trades per day</span>
+          <strong>{Number(tradesPerDay) > 0 ? tradesWord(Number(tradesPerDay)) : "—"}</strong>
+        </div>
         <button className="desktop-chat-link" onClick={() => onTab("agent")}>
           Chat with {mine.name}
           <ArrowUpRight size={15} />
@@ -592,6 +599,7 @@ export function DesktopDeck({
   reads,
   perTrade,
   perDay,
+  tradesPerDay,
   onScreen,
   onTab,
 }: Actions & {
@@ -601,6 +609,7 @@ export function DesktopDeck({
   reads: LiveState["reads"];
   perTrade: string;
   perDay: string;
+  tradesPerDay: string;
 }) {
   const decisions = mine ? mine.moves : theses;
   const decisionsRead = mine ? reads.mine : reads.theses;
@@ -682,6 +691,10 @@ export function DesktopDeck({
             <div className="desktop-cash">
               <span>Per day</span>
               <strong>{money(Number(perDay))}</strong>
+            </div>
+            <div className="desktop-cash">
+              <span>Trades per day</span>
+              <strong>{Number(tradesPerDay) > 0 ? tradesWord(Number(tradesPerDay)) : "—"}</strong>
             </div>
             <button type="button" className="deck-link" onClick={() => onScreen({ kind: "limits" })}>
               Edit limits <SlidersHorizontal size={14} />
