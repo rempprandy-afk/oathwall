@@ -7,7 +7,7 @@ import { handoffMessage, type HandoffOutcome } from "./handoffMessage";
  * This screen is the one that asks someone to send real money to an address, and
  * the message under the button is what they act on. The failure this pins is
  * specific: claiming the address was copied when the clipboard write failed
- * sends the user into Phantom to paste nothing, and they find out at the
+ * sends the user into their wallet to paste nothing, and they find out at the
  * recipient field of a transfer. So "copied" may appear only when it is true.
  */
 
@@ -42,14 +42,14 @@ describe("handoffMessage", () => {
     }
   });
 
-  it("names Robinhood Chain on the success path, where the user picks a network", () => {
-    // Phantom ships Robinhood Chain switched off, so a send screen without it is
-    // the likeliest place to get stuck — the happy path has to name the network.
-    expect(handoffMessage({ copied: true, opened: "app" })).toContain("Robinhood Chain");
-    expect(handoffMessage({ copied: false, opened: "app" })).toContain("Robinhood Chain");
+  it("names BNB Smart Chain on the success path, where the user picks a network", () => {
+    // A send on the wrong network is the likeliest way to strand funds, so the
+    // happy path has to name the network.
+    expect(handoffMessage({ copied: true, opened: "app" })).toContain("BNB Smart Chain");
+    expect(handoffMessage({ copied: false, opened: "app" })).toContain("BNB Smart Chain");
   });
 
-  it("does not assert Phantom is missing when it merely failed to open", () => {
+  it("does not assert the wallet is missing when it merely failed to open", () => {
     // "failed" means the launch threw; that is not proof of an uninstall, and
     // saying so would send someone to reinstall a wallet they already have.
     for (const copied of [true, false]) {

@@ -1,6 +1,7 @@
 "use client";
 
 import type { Chain } from "viem";
+import { bnbChain } from "@oathwall/core";
 
 export interface Eip1193Provider {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -48,9 +49,9 @@ export interface WalletBrowserLink {
  * and a phone browser has none — there is no mobile equivalent of a desktop
  * extension. The universal answer is to bounce the page into a wallet app's
  * built-in browser, which DOES inject one; the existing SIWE flow then runs
- * there unchanged. Sign-in only needs eth_requestAccounts + personal_sign (no
- * chain switch — nothing here calls ensureChain), so this works even though
- * Phantom does not yet offer dApp connectivity on Robinhood Chain itself.
+ * there unchanged. Sign-in only needs eth_requestAccounts + personal_sign; the
+ * switch to BNB Chain in requestAccount is best-effort, so a wallet browser
+ * that won't switch still signs in.
  *
  * The two link formats are NOT the same shape, which is exactly the kind of
  * detail that ships a button opening nothing, so each is spelled out:
@@ -84,10 +85,19 @@ export function walletBrowserLinks(url: string, origin: string): WalletBrowserLi
   ];
 }
 
+/**
+ * Connect, then put the wallet on BNB Chain — where the agents trade — instead
+ * of leaving it on whatever it last used (usually Ethereum mainnet).
+ *
+ * The switch is BEST-EFFORT. Everything signed after this is a personal_sign,
+ * which is valid on any chain, so a wallet that declines or can't switch
+ * (Phantom's EVM side, for one) must still be able to sign in.
+ */
 export async function requestAccount(provider: Eip1193Provider): Promise<`0x${string}`> {
   const accounts = (await provider.request({ method: "eth_requestAccounts" })) as string[];
   const account = accounts?.[0];
   if (!account) throw new Error("Wallet returned no accounts.");
+  await ensureChain(provider, bnbChain).catch(() => {});
   return account as `0x${string}`;
 }
 

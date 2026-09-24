@@ -4,12 +4,9 @@
  * adapters over this. Config errors surface as a 500 with a clear message so a
  * half-set-up deployment tells the operator exactly which env var is missing.
  */
-import { createPublicClient, defineChain, http } from "viem";
 import { createGateway, clientIp } from "./core.mjs";
 import { createStore, hasRedis } from "./store.mjs";
-
-const TOKEN_ADDRESS = "0xa15cd06dd305269a0f48bebeb30aa3588fba7b32"; // $OATHWALL
-const CHAIN_ID = 4663; // Robinhood Chain
+import { chainsFromEnv } from "./chains.mjs";
 
 let _gw = null;
 export function getGateway() {
@@ -24,12 +21,7 @@ export function getGateway() {
   if (Buffer.byteLength(SECRET, "utf8") < 32) throw new Error("gateway misconfigured: OATHWALL_GATEWAY_SECRET must be >= 32 bytes");
   if (!hasRedis) throw new Error("gateway misconfigured: a KV store is required on serverless — add Upstash/Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN)");
 
-  const chain = defineChain({
-    id: CHAIN_ID,
-    name: "Robinhood Chain",
-    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-    rpcUrls: { default: { http: [RPC] } },
-  });
+  const { publicClient, tokenClient, tokenAddress } = chainsFromEnv(process.env, RPC);
   _gw = createGateway({
     secret: SECRET,
     upstreamUrl: process.env.OATHWALL_GATEWAY_UPSTREAM || "https://api.groq.com/openai/v1/chat/completions",
@@ -40,8 +32,9 @@ export function getGateway() {
     model: process.env.OATHWALL_GATEWAY_MODEL || "qwen/qwen3.8-27b",
     domain: process.env.OATHWALL_GATEWAY_DOMAIN || "oathwall.dev",
     minTokens: BigInt(process.env.OATHWALL_GATEWAY_MIN_TOKENS || "10000"),
-    tokenAddress: TOKEN_ADDRESS,
-    publicClient: createPublicClient({ chain, transport: http(RPC) }),
+    tokenAddress,
+    publicClient,
+    tokenClient,
     store: createStore(),
   });
   return _gw;

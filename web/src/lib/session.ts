@@ -508,9 +508,9 @@ async function mintGrant(
  * are just arithmetic over public addresses.
  *
  * `personal_sign` for both, which is why this works at all: it carries no
- * domain and no chainId, so no wallet is asked to switch to (or even know
- * about) Robinhood Chain. Phantom cannot connect to dApps on 4663 at all, and
- * still signs this fine.
+ * domain and no chainId, so it is valid whatever chain the wallet is on.
+ * requestAccount asks for BNB Chain but doesn't insist, so a wallet that can't
+ * switch (Phantom has no BNB support) still signs this fine.
  */
 async function signBinding(args: {
   owner: Address;

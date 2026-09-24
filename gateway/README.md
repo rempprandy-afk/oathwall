@@ -27,9 +27,9 @@ Signing is **read-only proof of control** — no transaction, no private key eve
 ## Discovery too: `POST /bitquery`
 
 Same perk, same claimed token, second upstream. Set `OATHWALL_GATEWAY_BITQUERY_KEY`
-and holders get Bitquery — which indexes Robinhood Chain from genesis and decodes
-**Uniswap v4**, where new pairs actually launch — without a Bitquery account of
-their own. Leave it unset and the route returns 503; nothing else changes.
+and holders get Bitquery — which indexes BNB Chain from genesis and decodes the
+PancakeSwap pool initializations where new pairs actually launch — without a
+Bitquery account of their own. Leave it unset and the route returns 503; nothing else changes.
 
 **This route does not proxy GraphQL, and that is the whole point.** Bitquery bills
 by query cost and GraphQL is unbounded by construction: one caller asking for

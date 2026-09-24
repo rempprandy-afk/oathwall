@@ -222,7 +222,7 @@ export function YouClient() {
   const snap: AgentSnapshot = {
     name,
     mode: (grants?.mode as AgentSnapshot["mode"]) ?? "idle",
-    testnet: grants?.grant?.chainId === 46630,
+    testnet: grants?.grant?.chainId === 97, // BNB testnet
     gasSponsored: grants?.gasSponsored,
     hasGas: BigInt(grants?.balances?.ethWei ?? "0") > 0n,
     cashUsdg: cash,

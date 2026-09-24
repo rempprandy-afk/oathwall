@@ -42,7 +42,7 @@ import {
   CIRCLE_TIERS,
   OATHWALL_TOKEN,
   isHostedMode,
-  bnbChain,
+  oathwallTokenChain,
   tierForBalance,
 } from "@oathwall/core";
 import { createPublicClient, erc20Abi, http } from "viem";
@@ -73,7 +73,7 @@ async function balanceOf(address: `0x${string}`): Promise<bigint> {
   const key = address.toLowerCase();
   const hit = balances.get(key);
   if (hit && Date.now() - hit.at < BALANCE_TTL_MS) return hit.raw;
-  const client = createPublicClient({ chain: bnbChain, transport: http() });
+  const client = createPublicClient({ chain: oathwallTokenChain, transport: http() });
   const raw = (await client.readContract({
     address: OATHWALL_TOKEN.address,
     abi: erc20Abi,

@@ -16,6 +16,8 @@
  * are round placeholders, not calibrated to any supply or price.
  */
 
+import { defineChain } from "viem";
+
 /**
  * Where the Oathwall Circle gateway actually lives — the ONE place this is written.
  *
@@ -32,13 +34,29 @@
  */
 export const OATHWALL_GATEWAY_ORIGIN = "https://oathwall-gateway-production.up.railway.app";
 
-/** The token, on the same chain the agents trade (Robinhood Chain mainnet). */
+/**
+ * The token. It was launched on Robinhood Chain mainnet (4663) and has NOT moved
+ * with the agents: there is no contract at this address on BNB Chain
+ * (eth_getCode returned 0x on 2026-09-24). Every balance read must therefore go
+ * through `oathwallTokenChain`, never `bnbChain` — reading it on BNB fails
+ * closed and reports every holder as an outsider. When the token is deployed on
+ * BNB, change the address, the chain id and the chain below together.
+ */
 export const OATHWALL_TOKEN = {
   symbol: "OATHWALL",
   address: "0xa15cd06dd305269a0f48bebeb30aa3588fba7b32" as `0x${string}`,
   decimals: 18,
   chainId: 4663,
 } as const;
+
+/** The chain $OATHWALL lives on — the one place Robinhood Chain is still named. */
+export const oathwallTokenChain = defineChain({
+  id: OATHWALL_TOKEN.chainId,
+  name: "Robinhood Chain",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.mainnet.chain.robinhood.com"] } },
+  blockExplorers: { default: { name: "Blockscout", url: "https://robinhoodchain.blockscout.com" } },
+});
 
 export type CircleTierId = "outsider" | "villager" | "delegate" | "lord";
 

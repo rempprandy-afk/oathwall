@@ -13,7 +13,7 @@ import { chainRead } from "./rpc-meter";
 import {
   CIRCLE_TIERS,
   OATHWALL_TOKEN,
-  bnbChain,
+  oathwallTokenChain,
   tierForBalance,
   type CircleTier,
 } from "../../packages/core/src/index";
@@ -31,14 +31,15 @@ const OUTSIDER: HolderStatus = { tier: CIRCLE_TIERS[0]!, rawBalance: 0n };
  * grants a discount it can't verify).
  */
 export async function readHolderStatus(
-  rpcMainnet: string | undefined,
   holderAddress: `0x${string}` | undefined,
 ): Promise<HolderStatus> {
   if (!holderAddress) return OUTSIDER;
   try {
+    // The TOKEN's chain, not the agent's: the owner's rpcMainnet is a BNB RPC,
+    // and $OATHWALL has no contract there (see packages/core/src/token.ts).
     const client: PublicClient = createPublicClient({
-      chain: bnbChain,
-      transport: chainRead(rpcMainnet),
+      chain: oathwallTokenChain,
+      transport: chainRead(oathwallTokenChain.rpcUrls.default.http[0]),
     });
     const raw = (await client.readContract({
       address: OATHWALL_TOKEN.address,
