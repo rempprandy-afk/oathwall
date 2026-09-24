@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { SiteChrome } from "@/components/SiteChrome";
 
-// A structural, slightly technical grotesque — reads as engineered rather than
-// friendly, fitting a product whose pitch is enforcement, not vibes.
-const sansFont = Space_Grotesk({
+// Inter at thin display weights for the machined, instrument-panel look;
+// JetBrains Mono for anything the chain would print.
+const sansFont = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["400", "500", "600", "700"],
+  weight: ["200", "300", "400", "500", "600", "700"],
   display: "swap",
 });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-jb", display: "swap" });
@@ -18,11 +18,11 @@ const url = "https://oathwall.dev";
 export const metadata: Metadata = {
   metadataBase: new URL(url),
   title: {
-    default: "oathwall — trading agents you never have to trust",
+    default: "oathwall — trading agents, sworn to your limits",
     template: "%s — oathwall",
   },
   description:
-    "Trading agents you never have to trust — self-hosted or hosted. On-chain trading is non-custodial: your owner key never leaves you, every cap enforced by the account contract itself. Name your agent, chat with it and steer it from Telegram.",
+    "AI trading agents on BNB Chain that keep to limits you sign once. Your account contract checks every trade against them; your owner key never leaves you. Hosted or self-hosted, steered from Telegram.",
   // "non-custodial" is scoped to on-chain trading everywhere it appears —
   // deliberately, per the venue split in spikes/robinhood-mcp/DESIGN.md §9: a
   // future brokerage rail is custodial by construction (the broker holds the
@@ -30,18 +30,18 @@ export const metadata: Metadata = {
   // absolute here would become false the day it ships.
   keywords: ["oathwall", "BNB Chain", "trading agent", "self-hosted", "non-custodial on-chain trading", "session keys", "Telegram bot", "crypto", "autonomous agent"],
   openGraph: {
-    title: "oathwall — trading agents you never have to trust",
+    title: "oathwall — trading agents, sworn to your limits",
     description:
-      "Trading agents inside hard caps — on-chain, the chain itself enforces them, non-custodially. Self-host it or run it hosted; your owner key never leaves you. Verify the wall in the explorer; steer your agent from Telegram.",
+      "Sign your limits once. Your account contract checks every trade the agent makes against them, so it can't overspend, withdraw, or outlive its key.",
     url,
     siteName: "oathwall",
     type: "website",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "oathwall — trading agents you never have to trust" }],
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "oathwall — trading agents, sworn to your limits" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "oathwall",
-    description: "Trading agents you never have to trust — your keys, your caps, enforced on-chain.",
+    description: "Trading agents, sworn to your limits. Your keys, your caps, enforced on-chain.",
     site: "@Oatwallbsc",
     creator: "@Oatwallbsc",
     images: ["/og.png"],
@@ -56,7 +56,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sansFont.variable} ${mono.variable}`}>
+    // The inline script below adds fx-ready to <html> before hydration, on purpose.
+    <html lang="en" className={`${sansFont.variable} ${mono.variable}`} suppressHydrationWarning>
       <body>
         {/* Arm the reveal layer before first paint so content never flashes in
             un-animated; a delayed backstop un-hides everything if JS stalled. */}

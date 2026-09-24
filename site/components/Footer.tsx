@@ -6,14 +6,7 @@ const GITHUB = "https://github.com/rempprandy-afk/oathwall";
 const NPM = "https://www.npmjs.com/package/oathwall";
 const X_URL = "https://x.com/Oatwallbsc";
 const SUPPORT = "support@oathwall.dev";
-/**
- * The beta testers' room. Labelled "Beta group" rather than "Telegram" on
- * purpose — the Product and Docs columns already say "Telegram", meaning the
- * bot you connect to your own agent. Three identical labels pointing at two
- * unrelated things is how someone ends up pasting a bot token into a group
- * chat. Kept in sync with TELEGRAM_BETA in app/page.tsx.
- */
-const TELEGRAM_BETA = "https://t.me/+oL-7xzghFwA4OTc8";
+const HOSTED_APP = "https://app.oathwall.dev";
 
 export function Footer() {
   return (
@@ -22,21 +15,19 @@ export function Footer() {
         <div className="foot-grid">
           <div className="foot-brand">
             <Link href="/" className="brand">
-              <Logo size={20} />
+              <Logo size={24} />
               <span>oathwall</span>
             </Link>
-            <p>Trading agents you never have to trust. Non-custodial on-chain trading: your owner key, your caps, your call.</p>
+            <p>Trading agents, sworn to your limits. Non-custodial on-chain trading: your owner key, your caps, your call.</p>
           </div>
 
           <div className="foot-col">
             <h5>Product</h5>
-            <Link href="/#features">Features</Link>
-            <Link href="/memescope">Memescope</Link>
+            <a href={HOSTED_APP}>Open the app</a>
             <Link href="/dashboard">Your agent, live</Link>
             <Link href="/watch">Watch it trade</Link>
-            <Link href="/#telegram">Telegram</Link>
-            <Link href="/#install">Install</Link>
-            <Link href="/#safety">Safety model</Link>
+            <Link href="/memescope">Memescope</Link>
+            <Link href="/#wall">Try the wall</Link>
           </div>
 
           <div className="foot-col">
@@ -50,23 +41,20 @@ export function Footer() {
 
           <div className="foot-col">
             <h5>Project</h5>
-            <a href={TELEGRAM_BETA} target="_blank" rel="noreferrer">Beta group</a>
-            <a href={X_URL} target="_blank" rel="noreferrer">X (Twitter)</a>
+            <a href={X_URL} target="_blank" rel="noreferrer">X · @Oatwallbsc</a>
             <a href={GITHUB} target="_blank" rel="noreferrer">GitHub</a>
             <a href={NPM} target="_blank" rel="noreferrer">npm</a>
             <Link href="/token">$OATHWALL · the Circle</Link>
             <Link href="/governance">Governance</Link>
-            <Link href="/terms">Terms</Link>
-            <Link href="/privacy">Privacy</Link>
           </div>
         </div>
 
         <TokenCA />
 
         <div className="foot-bottom">
-          <span>© {new Date().getFullYear()} oathwall · MIT-licensed, open source</span>
+          <span>© {new Date().getFullYear()} oathwall · MIT-licensed, open source · Not financial advice.</span>
           <span>
-            Support: <a href={`mailto:${SUPPORT}`}>{SUPPORT}</a> · Not financial advice. Trade at your own risk.
+            <Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link>
           </span>
         </div>
       </div>

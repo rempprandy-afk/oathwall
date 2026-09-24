@@ -1,0 +1,233 @@
+/* oathwall homepage — the sworn document. Everything is scoped under .ow-home
+   so the rest of the site's dark chrome is untouched. */
+
+:root:has(.ow-home),
+:root:has(.ow-home) body {
+  background: #f4f0e6;
+  color-scheme: light;
+}
+
+.ow-home {
+  --paper: #f4f0e6;
+  --paper-2: #ebe5d6;
+  --card: #fbf9f3;
+  --ink: #15130f;
+  --ink-2: #3d3931;
+  --ink-3: #6b655a;
+  --rule: #d6cebb;
+  --rule-strong: #15130f;
+  --red: #d6431f;
+  --red-deep: #b0340f;
+  --ok: #1f7a4d;
+
+  --serif: var(--ow-font-display), Georgia, "Times New Roman", serif;
+  --sans: var(--ow-font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: var(--ow-font-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+/* resets sit in :where() so they weigh nothing against the component rules */
+:where(.ow-home) *,
+:where(.ow-home) *::before,
+:where(.ow-home) *::after { box-sizing: border-box; }
+:where(.ow-home) a { color: inherit; text-decoration: none; }
+:where(.ow-home) :where(h1, h2, h3, h4, p, figure, dl, dd, ol, ul, pre) { margin: 0; padding: 0; }
+.ow-home :focus-visible { outline: 2px solid var(--red); outline-offset: 3px; border-radius: 4px; }
+.ow-home .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+.ow-wrap { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 32px; }
+
+.ow-kicker {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+/* ---------- buttons ---------- */
+.ow-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 46px; padding: 0 22px; border-radius: 999px;
+  font-size: 15px; font-weight: 500; white-space: nowrap;
+  border: 1.5px solid transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.ow-btn:active { transform: translateY(1px); }
+.ow-btn-red { background: var(--red); color: #fff; }
+.ow-btn-red:hover { background: var(--red-deep); }
+.ow-btn-line { border-color: var(--ink); color: var(--ink); }
+.ow-btn-line:hover { background: var(--ink); color: var(--paper); }
+.ow-btn-line-light { border-color: rgba(244, 240, 230, 0.5); color: var(--paper); }
+.ow-btn-line-light:hover { border-color: var(--paper); background: rgba(244, 240, 230, 0.08); }
+
+.ow-link { font-weight: 500; color: var(--red); border-bottom: 1.5px solid currentColor; padding-bottom: 1px; align-self: flex-start; }
+.ow-link:hover { color: var(--red-deep); }
+
+/* ---------- the oath section: copy left, the document right ---------- */
+.ow-brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--serif); font-weight: 600; font-size: 21px; letter-spacing: -0.02em; }
+.ow-hero-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 64px; align-items: center; }
+.ow-oath-sec .ow-head { margin-bottom: 0; }
+.ow-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+
+/* the oath card */
+.ow-oath {
+  position: relative;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  padding: 28px 28px 24px;
+  box-shadow: 10px 10px 0 var(--ink);
+  transform: rotate(1.2deg);
+}
+.ow-oath-head { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--ink-3); padding-bottom: 14px; border-bottom: 1px dashed var(--rule); }
+.ow-oath-title { margin-top: 18px; font-family: var(--serif); font-size: 22px; line-height: 1.25; font-weight: 500; letter-spacing: -0.01em; }
+.ow-clauses { margin-top: 18px; }
+.ow-clauses > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--rule); }
+.ow-clauses dt { display: flex; align-items: baseline; gap: 12px; font-size: 15px; color: var(--ink-2); }
+.ow-n { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); width: 14px; }
+.ow-clauses dd { font-family: var(--mono); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.ow-sign { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 26px; }
+.ow-sig { display: block; font-family: var(--serif); font-style: italic; font-size: 26px; line-height: 1; border-bottom: 1.5px solid var(--ink); padding: 0 24px 6px 0; }
+.ow-sig-label { display: block; margin-top: 8px; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.ow-seal { transform: rotate(-12deg); margin: 0 4px 4px 0; filter: drop-shadow(0 2px 0 rgba(21, 19, 15, 0.2)); }
+
+/* ---------- sections ---------- */
+.ow-sec { padding: 104px 0; border-bottom: 1px solid var(--rule); }
+.ow-sec-tint { background: var(--paper-2); }
+.ow-head { max-width: 680px; margin-bottom: 52px; }
+.ow-head h2,
+.ow-close h2 {
+  margin-top: 14px;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: clamp(32px, 4.2vw, 50px);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  font-variation-settings: "opsz" 144;
+}
+.ow-head > p:not(.ow-kicker) { margin-top: 18px; font-size: 17px; color: var(--ink-2); }
+
+/* the ink section — the only dark band on the page */
+.ow-sec-ink { background: var(--ink); color: var(--paper); border-bottom: none; }
+.ow-sec-ink .ow-head > p:not(.ow-kicker) { color: #c9c2b2; }
+.ow-sec-ink .ow-kicker { color: #f07a55; }
+
+/* ---------- wall demo ---------- */
+.wd { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+.wd-asks { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.wd-ask {
+  width: 100%; text-align: left; cursor: pointer;
+  display: flex; gap: 12px; align-items: baseline;
+  padding: 16px 18px; border-radius: 10px;
+  background: transparent; color: var(--paper);
+  border: 1px solid #3d3931;
+  font: 500 15.5px/1.4 var(--sans);
+  transition: background 0.15s, border-color 0.15s;
+}
+.wd-ask:hover { border-color: #6b655a; background: rgba(244, 240, 230, 0.04); }
+.wd-ask[aria-pressed="true"] { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.wd-prompt { font-family: var(--mono); font-size: 12px; color: #8f887a; flex: none; }
+.wd-ask[aria-pressed="true"] .wd-prompt { color: var(--red); }
+
+.wd-out {
+  border: 1px solid #3d3931; border-radius: 12px; padding: 24px 26px;
+  background: #1d1b16;
+  font-family: var(--mono);
+  display: flex; flex-direction: column;
+}
+.wd-out-head { display: flex; justify-content: space-between; font-size: 11.5px; color: #8f887a; text-transform: uppercase; letter-spacing: 0.08em; padding-bottom: 14px; border-bottom: 1px dashed #3d3931; }
+.wd-ask-echo { margin-top: 20px; font-size: 14px; color: #c9c2b2; }
+.wd-ask-echo::before { content: "› "; color: #8f887a; }
+.wd-verdict { margin-top: 18px; font-family: var(--serif); font-size: 54px; line-height: 1; font-weight: 500; letter-spacing: -0.015em; }
+.wd-refused { color: #f07a55; }
+.wd-allowed { color: #6fcf9a; }
+.wd-clause { margin-top: 10px; font-size: 13px; color: #c9c2b2; }
+.wd-detail { margin-top: auto; padding-top: 24px; font-family: var(--sans); font-size: 15.5px; line-height: 1.6; color: var(--paper); }
+
+/* ---------- articles ---------- */
+.ow-articles { list-style: none; border-top: 1.5px solid var(--ink); }
+.ow-articles li { display: grid; grid-template-columns: 120px 1fr; gap: 32px; padding: 34px 0; border-bottom: 1px solid var(--rule); }
+.ow-art-n { font-family: var(--serif); font-style: italic; font-size: 56px; line-height: 0.9; color: var(--red); font-variation-settings: "opsz" 144, "SOFT" 100; }
+.ow-articles h3 { font-family: var(--serif); font-weight: 500; font-size: 28px; line-height: 1.15; letter-spacing: -0.02em; }
+.ow-articles p { margin-top: 10px; max-width: 40em; font-size: 16.5px; color: var(--ink-2); }
+
+/* ---------- ways to run ---------- */
+.ow-ways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.ow-ways article { display: flex; flex-direction: column; gap: 16px; padding: 28px; background: var(--card); border: 1px solid var(--rule); border-radius: 14px; }
+.ow-way-n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
+.ow-ways h3 { font-family: var(--serif); font-weight: 500; font-size: 24px; line-height: 1.15; letter-spacing: -0.02em; }
+.ow-ways p { font-size: 15px; color: var(--ink-2); }
+.ow-ways .ow-link { margin-top: auto; }
+.ow-code { margin: 0; padding: 14px 16px; border-radius: 8px; background: var(--ink); color: var(--paper); font: 13.5px/1.7 var(--mono); overflow-x: auto; }
+.ow-chat { display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.45; }
+.ow-chat p { max-width: 88%; padding: 9px 13px; border-radius: 14px; }
+.ow-chat .me { align-self: flex-end; background: var(--ink); color: var(--paper); border-bottom-right-radius: 4px; }
+.ow-chat .bot { align-self: flex-start; background: var(--paper-2); color: var(--ink); border-bottom-left-radius: 4px; }
+
+/* ---------- comparison ---------- */
+.ow-table-wrap { overflow-x: auto; }
+.ow-table { width: 100%; border-collapse: collapse; font-size: 16px; min-width: 620px; }
+.ow-table th,
+.ow-table td { text-align: left; padding: 18px 16px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.ow-table thead th { font-family: var(--mono); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); border-bottom: 1.5px solid var(--ink); }
+.ow-table thead th:last-child { color: var(--red); }
+.ow-table tbody th { font-weight: 500; width: 28%; }
+.ow-table td { color: var(--ink-3); }
+.ow-table td:last-child { color: var(--ink); font-weight: 500; }
+
+/* ---------- close ---------- */
+.ow-close { background: var(--ink); color: var(--paper); padding: 112px 0; }
+.ow-close-in { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.ow-close h2 { max-width: 14em; margin-top: 28px; }
+.ow-close .ow-actions { justify-content: center; }
+
+/* ---------- footer ---------- */
+.ow-foot { padding: 64px 0 32px; }
+.ow-foot-grid { display: grid; grid-template-columns: 1.6fr repeat(3, 1fr); gap: 32px; }
+.ow-foot-note { margin-top: 14px; max-width: 28em; font-size: 14px; color: var(--ink-3); }
+.ow-foot nav { display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+.ow-foot nav a:hover { color: var(--red); }
+.ow-foot h4 { margin: 0 0 4px; font-family: var(--mono); font-weight: 500; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+.ow-foot-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-3); }
+.ow-foot-bottom a:hover { color: var(--ink); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 980px) {
+  .ow-hero-grid { grid-template-columns: 1fr; gap: 56px; }
+  .ow-oath { max-width: 520px; transform: rotate(0.8deg); }
+  .ow-ways { grid-template-columns: 1fr; }
+  .wd { grid-template-columns: 1fr; }
+  .ow-foot-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .ow-wrap { padding: 0 16px; }
+  .ow-actions .ow-btn { flex: 1 1 100%; }
+  .ow-oath { padding: 22px 18px 20px; box-shadow: 6px 6px 0 var(--ink); transform: none; }
+  .ow-sig { font-size: 21px; }
+  .ow-sec { padding: 72px 0; }
+  .ow-head { margin-bottom: 36px; }
+  .ow-articles li { grid-template-columns: 1fr; gap: 10px; padding: 26px 0; }
+  .ow-art-n { font-size: 40px; }
+  .ow-articles h3 { font-size: 23px; }
+  .wd-verdict { font-size: 42px; }
+  .ow-table { min-width: 0; }
+  .ow-table thead { display: none; }
+  .ow-table tr { display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+  .ow-table tbody th { grid-column: 1 / -1; width: auto; padding: 0 0 8px; border: 0; }
+  .ow-table td { padding: 0; border: 0; font-size: 15px; }
+  .ow-table td::before { display: block; font-family: var(--mono); font-size: 10.5px; font-weight: 400; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); }
+  .ow-table td:nth-of-type(1)::before { content: "Platform"; }
+  .ow-table td:nth-of-type(2)::before { content: "oathwall"; color: var(--red); }
+  .ow-close { padding: 80px 0; }
+  .ow-foot-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ow-home * { transition: none !important; }
+}

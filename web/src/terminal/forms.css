@@ -50,7 +50,7 @@
 .terminal-form-page .mm-chips .mm-toggle { margin:0; }
 .terminal-form-page .mm-chips button,.terminal-form-page .cap,.terminal-form-page .copy-btn,.terminal-form-page .mm-btn { padding:10px 14px; min-height:40px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--tx); font:inherit; font-size:13px; cursor:pointer; }
 .terminal-form-page .cap.on,.terminal-form-page button[aria-pressed=true] { border-color:var(--tx-2); background:var(--line); }
-.terminal-form-page .mm-btn.primary,.terminal-form-page .grant-btn { padding:14px 22px; border:0; border-radius:12px; background:var(--tx); color:var(--ink); font:inherit; font-size:14px; font-weight:600; min-height:46px; cursor:pointer; }
+.terminal-form-page .mm-btn.primary,.terminal-form-page .grant-btn { padding:14px 22px; border:0; border-radius:12px; background:var(--solid); color:var(--ink); font:inherit; font-size:14px; font-weight:600; min-height:46px; cursor:pointer; }
 .terminal-form-page button:disabled { opacity:.45; cursor:not-allowed; }
 .terminal-form-page .mm-advanced { border-top:1px solid var(--line); margin:32px 0; padding:20px 0; }
 .terminal-form-page summary { cursor:pointer; font-size:16px; padding:8px 0; }
@@ -64,7 +64,7 @@
 .terminal-form-page .gw-node { display:flex; gap:8px; align-items:center; }
 .terminal-form-page .gw-node.on { color:var(--tx); }
 .terminal-form-page .gw-dot { border:1px solid var(--line); width:22px; height:22px; display:grid; place-items:center; border-radius:50%; }
-.terminal-form-page .gw-node.on .gw-dot { background:var(--tx); color:var(--ink); }
+.terminal-form-page .gw-node.on .gw-dot { background:var(--solid); color:var(--ink); }
 .terminal-form-page .gw-chain { font-size:12px; color:var(--tx-2); white-space:nowrap; }
 .terminal-form-page .grant-panel { padding:24px 0; border-top:1px solid var(--line); }
 .terminal-form-page .grant-title { font-size:23px; font-weight:600; letter-spacing:-.03em; margin:0 0 12px; }

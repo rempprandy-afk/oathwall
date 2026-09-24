@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 // All routed screens share the terminal design. Standalone offline and desktop
 // startup documents keep their styles inline so they work without the app.
@@ -22,6 +22,10 @@ import { RegisterSW } from "@/components/RegisterSW";
  */
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
+// The terminal's reading faces, shared with oathwall.dev: Inter for text,
+// JetBrains Mono for anything the chain would print.
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const jbMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jb-mono", display: "swap" });
 const geistPixel = localFont({
   src: [
     { path: "./fonts/GeistPixel-latin.woff2", weight: "400", style: "normal" },
@@ -92,7 +96,7 @@ export const viewport: Viewport = {
   // Matches --mm-bg. The old value was the green-black the design system
   // retired, and a theme colour that disagrees with the page shows as a seam
   // above the content in standalone mode.
-  themeColor: "#000000",
+  themeColor: "#03060c",
   // `viewport-fit=cover` lets the layout reach under the notch; the CSS then
   // pays that back with safe-area padding, which is why both halves are needed.
   viewportFit: "cover",
@@ -104,7 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${geist.variable} ${geistMono.variable} ${geistPixel.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${geistPixel.variable} ${inter.variable} ${jbMono.variable}`}
     >
       <body style={{margin:0}}>
         {children}

@@ -10,6 +10,8 @@ import {
   DesktopHeader,
   DesktopSidebar,
   DesktopPortfolio,
+  DesktopTicker,
+  DesktopDeck,
   type SidebarSection,
 } from "./Desktop";
 import {
@@ -276,27 +278,25 @@ export function App() {
           header and the desktop rail — and with them a second `AccountEntry`,
           which polls and fetches like the visible one. Display:none hides a
           component; it does not stop it running. */}
-      {desktop && <DesktopHeader hasAgent={!!mine} mine={displayMine} onScreen={openScreen} onTab={goTab} />}
-      {desktop && (
-        <DesktopSidebar
-          reads={live.reads}
-          mine={displayMine}
-          hasAgent={!!mine}
-          tokens={live.tokens}
-          agents={live.agents}
-          theses={live.theses}
-          screen={screen}
-          section={sidebarSection}
-          onSection={setSidebarSection}
-          onScreen={openScreen}
-          onTab={goTab}
-        />
-      )}
+      {desktop && <DesktopHeader hasAgent={!!mine} mine={displayMine} activeTab={screen.kind === "tab" ? activeTab : undefined} onScreen={openScreen} onTab={goTab} />}
+      {desktop && <DesktopTicker tokens={live.tokens} onScreen={openScreen} />}
       <div
         ref={bodyRef}
         className={screen.kind === "token" ? "body token-body" : "body"}
       >
         {loadError && <p className="flow-error" role="alert">{loadError} <button onClick={refreshAccount}>Try again</button></p>}
+        {desktop && screen.kind === "tab" && screen.tab === "home" && (
+          <DesktopDeck
+            mine={mine}
+            theses={live.theses}
+            agents={live.agents}
+            reads={live.reads}
+            perTrade={perTrade}
+            perDay={perDay}
+            onScreen={openScreen}
+            onTab={goTab}
+          />
+        )}
         <FirstVisit account={account} screen={requestedScreen} replies={turns.length} onScreen={openScreen} onQuestion={()=>{setChatDraft("Explain my strategy and trading limits. Am I using paper or live trading?");goTab("agent");}}/>
         {!mine && !desktop && screen.kind !== "create" && <AccountEntry account={account} onRefresh={refreshAccount}/>}
         {screen.kind === "create" && <CreateAgent account={account} onRefresh={refreshAccount} onBack={()=>goTab("home")} onDone={()=>{refreshAccount();goTab("agent");}} onFund={grant=>{setAccount(current=>current?{...current,status:{...current.status,exists:true,grant}}:current);openScreen({kind:"deposit"});}}/>}
@@ -454,25 +454,45 @@ export function App() {
           <LimitsPanel account={account} onClose={()=>goTab(tab)}/>
         )}
       </div>
-      {desktop && money ? (
-        <aside
-          className="desktop-money-panel"
-          aria-label={money === "withdraw" ? "Withdraw funds" : "Add funds"}
-        >
-          {account && <FundingPanel key={money} mode={money} account={account} onClose={()=>goTab(tab)}/>}
-        </aside>
-      ) : desktop && mine ? (
-        <DesktopPortfolio
-          selectedToken={token}
-          mine={mine}
-          tokens={live.tokens}
-          stopped={stopped}
-          perTrade={perTrade}
-          perDay={perDay}
-          onScreen={openScreen}
-          onTab={goTab}
-        />
-      ) : desktop ? <aside className="desktop-portfolio">{screen.kind === "create" ? <section className="hosted-entry"><h2>Make it yours.</h2><p>Pick a strategy, set its limits, and save your wallet’s recovery key.</p><p>You can start in paper mode and follow your agent before adding real funds.</p></section> : <AccountEntry account={account} onRefresh={refreshAccount}/>}</aside> : null}
+      {/* THE SIDE COLUMN. The command deck keeps one column beside the body:
+          your agent (or the money panel over it) on top, and under it the
+          explore tabs that used to be a rail of their own on the left. */}
+      {desktop && (
+        <div className="desktop-side">
+          {money ? (
+            <aside
+              className="desktop-money-panel"
+              aria-label={money === "withdraw" ? "Withdraw funds" : "Add funds"}
+            >
+              {account && <FundingPanel key={money} mode={money} account={account} onClose={()=>goTab(tab)}/>}
+            </aside>
+          ) : mine ? (
+            <DesktopPortfolio
+              selectedToken={token}
+              mine={mine}
+              tokens={live.tokens}
+              stopped={stopped}
+              perTrade={perTrade}
+              perDay={perDay}
+              onScreen={openScreen}
+              onTab={goTab}
+            />
+          ) : <aside className="desktop-portfolio">{screen.kind === "create" ? <section className="hosted-entry"><h2>Make it yours.</h2><p>Pick a strategy, set its limits, and save your wallet’s recovery key.</p><p>You can start in paper mode and follow your agent before adding real funds.</p></section> : <AccountEntry account={account} onRefresh={refreshAccount}/>}</aside>}
+          <DesktopSidebar
+            reads={live.reads}
+            mine={displayMine}
+            hasAgent={!!mine}
+            tokens={live.tokens}
+            agents={live.agents}
+            theses={live.theses}
+            screen={screen}
+            section={sidebarSection}
+            onSection={setSidebarSection}
+            onScreen={openScreen}
+            onTab={goTab}
+          />
+        </div>
+      )}
       {screen.kind !== "deposit" &&
         screen.kind !== "withdraw" &&
         screen.kind !== "limits" && (

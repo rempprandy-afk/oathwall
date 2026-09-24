@@ -321,7 +321,7 @@ export function TabIcon({ id }: { id: import("./live").Tab }) {
 export function TopBar({ onSearch, onDeposit }: { onSearch: () => void; onDeposit: () => void }) {
   return (
     <div className="top-row">
-      <LogoMark size={26} />
+      <LogoMark size={30} tile />
       <div className="top-actions">
         <button type="button" className="icon-btn" aria-label="Search" onClick={onSearch}>
           <SearchIcon />
@@ -343,37 +343,39 @@ function SearchIcon() {
   );
 }
 
-export function LogoMark({ size = 22 }: { size?: number }) {
-  const w = Math.round(size * (940 / 630));
+/**
+ * The oathwall mark, shared with oathwall.dev — the split O: an O (the oath)
+ * held apart by a wall down its middle, the limit nothing passes.
+ *
+ * Bare (the tab bar), it takes currentColor so it follows the bar's active
+ * state. With `tile` it is the full-colour mark on the navy square the site
+ * uses beside the wordmark. Flat — no gradients or filters — so it is crisp
+ * at 16px and any number of copies share a page without id collisions.
+ */
+export function LogoMark({ size = 22, tile = false }: { size?: number; tile?: boolean }) {
   return (
     <svg
       className="logo-mark"
-      width={w}
+      width={size}
       height={size}
-      viewBox="0 0 940 630"
-      fill="currentColor"
+      viewBox="0 0 32 32"
+      fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
     >
-      <rect x="280" y="1" width="324" height="47" rx="23.5" />
-      <rect x="403" y="72" width="258" height="49" rx="24.5" />
-      <rect x="138" y="137" width="51" height="54" rx="25.5" />
-      <rect x="473" y="137" width="227" height="54" rx="27" />
-      <rect x="742" y="137" width="50" height="54" rx="25" />
-      <rect x="64" y="212" width="199" height="48" rx="24" />
-      <rect x="516" y="212" width="204" height="48" rx="24" />
-      <rect x="766" y="212" width="109" height="48" rx="24" />
-      <rect x="0" y="288" width="126" height="48" rx="24" />
-      <rect x="161" y="288" width="582" height="48" rx="24" />
-      <rect x="812" y="288" width="128" height="48" rx="24" />
-      <rect x="64" y="366" width="199" height="47" rx="23.5" />
-      <rect x="518" y="366" width="202" height="47" rx="23.5" />
-      <rect x="766" y="366" width="109" height="47" rx="23.5" />
-      <rect x="138" y="436" width="51" height="48" rx="24" />
-      <rect x="473" y="436" width="227" height="48" rx="24" />
-      <rect x="742" y="436" width="51" height="48" rx="24" />
-      <rect x="403" y="510" width="259" height="48" rx="24" />
-      <rect x="280" y="582" width="324" height="47" rx="23.5" />
+      {tile && (
+        <>
+          <rect width="32" height="32" rx="8" fill="#0c1a33" />
+          <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" stroke="#cfe6ff" strokeOpacity="0.16" />
+        </>
+      )}
+      <path
+        d="M12.6 8.1a8.6 8.6 0 0 0 0 15.8M19.4 8.1a8.6 8.6 0 0 1 0 15.8"
+        stroke={tile ? "#cfe6ff" : "currentColor"}
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <rect x="14.6" y="5.5" width="2.8" height="21" rx="1.4" fill={tile ? "#6cb6ff" : "currentColor"} />
     </svg>
   );
 }
