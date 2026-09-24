@@ -273,7 +273,7 @@ export function classifyDrop(dropped: string): string {
 const R: Readonly<Record<string, string>> = Object.freeze({
   "per-trade-cap": "past the per-trade cap",
   "daily-cap": "past today's spending cap",
-  "ops-cap": "past today's number of trades",
+  "ops-cap": "past its daily limit on the number of trades",
   "drawdown-breaker": "the drawdown breaker was tripped",
   "asset-allowlist": "that asset is not in its signed permissions",
   "target-allowlist": "that venue is not in its signed permissions",

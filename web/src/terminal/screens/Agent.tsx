@@ -20,6 +20,7 @@ import { strategyName } from "../strategy";
 import { Coin, Empty, Face } from "../ui";
 import { BalanceFigure } from "../studio";
 import { TradeTokenCard } from "../TradeTokenCard";
+import { ruleInWords, tradesWord, type OwnerLimits } from "../rules";
 
 /**
  * How many recent moves the agent is shown.
@@ -39,15 +40,23 @@ const TAPE_SHOWN = 8;
  * exactly how a tester's agent came to report a months-old `no-gas` as its
  * current state. `movesShown`/`movesTotal` go beside it so the agent can say
  * "the last 8 of 30" rather than implying it saw everything.
+ *
+ * A REFUSAL TRAVELS IN WORDS, NOT AS A SLUG. The raw rule (`ops-cap`) went to
+ * the model as-is and came back to the owner as-is — "refused by the ops-cap" —
+ * a code nobody had been told the meaning of. `refusedBecause` is the owner's
+ * sentence, with their own numbers, from rules.ts. `paper` travels too: a paper
+ * fill is a trade, and without the flag the agent told an owner holding three
+ * paper positions that it had not traded at all.
  */
-const tapeFor = (moves: LiveMine["moves"]) =>
+const tapeFor = (moves: LiveMine["moves"], limits: OwnerLimits) =>
   moves.slice(-TAPE_SHOWN).map((m) => ({
     at: m.at,
     action: m.action,
     symbol: m.symbol,
     sizeUsdg: m.sizeUsdg,
     outcome: m.outcome,
-    outcomeText: m.outcomeText,
+    paper: m.paper,
+    refusedBecause: m.outcome === "refused" || m.outcome === "reverted" ? ruleInWords(m.outcomeText, limits) : undefined,
   }));
 
 const ASKS = [
@@ -61,6 +70,7 @@ export function Agent({
   tokens,
   perTrade,
   perDay,
+  tradesPerDay,
   stopped,
   turns,
   draft: ask,
@@ -76,6 +86,7 @@ export function Agent({
   tokens: LiveToken[];
   perTrade: string;
   perDay: string;
+  tradesPerDay: string;
   stopped: boolean;
   turns: ChatTurn[];
   draft: string;
@@ -157,13 +168,18 @@ export function Agent({
     (t) => t.symbol.toUpperCase() === latest?.symbol?.toUpperCase(),
   );
   const change = dailyChange(mine);
+  const limits: OwnerLimits = {
+    perTradeUsd: Number(perTrade) || null,
+    perDayUsd: Number(perDay) || null,
+    tradesPerDay: Number(tradesPerDay) || null,
+  };
   const send = async (question: string) => {
     if (!question.trim() || sending) return;
     setSending(true);setChatError("");
     follow.current = true;
     try {
       const settings = await fetch("/api/settings", {signal:AbortSignal.timeout(5000)}).then(r=>r.ok?r.json():null).catch(()=>null);
-      const response = await fetch("/api/chat", {method:"POST",headers:{"Content-Type":"application/json"},signal:AbortSignal.timeout(45000),body:JSON.stringify({message:question.trim(),state:JSON.stringify({name:mine.name,equity:mine.equity,strategy:settings?.values?.strategy ?? settings?.defaults?.strategy ?? mine.glance.id,paperTradingEnabled:settings?.values?.paperTradingEnabled ?? settings?.defaults?.paperTradingEnabled ?? null,workerStatus:mine.statusLabel ?? "Unknown",positions:mine.glance,moves:tapeFor(mine.moves),movesShown:Math.min(mine.moves.length,TAPE_SHOWN),movesTotal:mine.moves.length,perTrade,perDay,stopped}),history:turns.flatMap(t=>[{role:"user",content:t.question},{role:"assistant",content:t.answer}]).slice(-8)})});
+      const response = await fetch("/api/chat", {method:"POST",headers:{"Content-Type":"application/json"},signal:AbortSignal.timeout(45000),body:JSON.stringify({message:question.trim(),state:JSON.stringify({name:mine.name,equity:mine.equity,strategy:settings?.values?.strategy ?? settings?.defaults?.strategy ?? mine.glance.id,paperTradingEnabled:settings?.values?.paperTradingEnabled ?? settings?.defaults?.paperTradingEnabled ?? null,workerStatus:mine.statusLabel ?? "Unknown",positions:mine.glance,moves:tapeFor(mine.moves,limits),movesShown:Math.min(mine.moves.length,TAPE_SHOWN),movesTotal:mine.moves.length,perTrade,perDay,tradesPerDay,stopped}),history:turns.flatMap(t=>[{role:"user",content:t.question},{role:"assistant",content:t.answer}]).slice(-8)})});
       const data = await response.json();
       if(!response.ok || !data.reply) throw new Error(response.status===401 ? "Sign in again to chat with your agent." : data.why === "no-llm" ? "Chat is not configured yet. Open Settings to connect an AI provider." : "Your agent could not reply. Try sending again.");
       onTurn({question:question.trim(),answer:data.reply});
@@ -329,6 +345,11 @@ export function Agent({
                       <strong>{money(t.sizeUsdg)}</strong>
                     </div>
                     <p>{t.reason ?? "No explanation available."}</p>
+                    {(t.outcome === "refused" || t.outcome === "reverted") && ruleInWords(t.outcomeText, limits) && (
+                      <p className="desk-refusal">
+                        {t.outcome === "refused" ? "Refused" : "Reverted"} — {ruleInWords(t.outcomeText, limits)}.
+                      </p>
+                    )}
                     <small>
                       {ageOf(t)} ago · {t.outcome ?? "Recorded"}
                       {t.paper ? " · Paper trade" : ""}
@@ -344,7 +365,8 @@ export function Agent({
             >
               Trading limits{" "}
               <span>
-                {money(Number(perTrade))} / trade{" "}
+                {money(Number(perTrade))} / trade
+                {Number(tradesPerDay) > 0 ? ` · ${tradesWord(Number(tradesPerDay))} / day` : ""}{" "}
                 <ArrowUpRight size={14} aria-hidden="true" />
               </span>
             </button>

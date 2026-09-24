@@ -114,6 +114,7 @@ export function App() {
   const [tokenTab, setTokenTab] = useState<TokenTab>("buys");
   const perTrade = String(account?.status.grant?.caps.perTradeUsdg ?? "");
   const perDay = String(account?.status.grant?.caps.dailyUsdg ?? "");
+  const tradesPerDay = String(account?.status.grant?.caps.maxOpsPerDay ?? "");
   const stopped = account?.status.mode !== "live" && account?.status.mode !== "paper";
   const [chatDraft, setChatDraft] = useState("");
   const [turns, setTurns] = useState<ChatTurn[]>([]);
@@ -293,6 +294,7 @@ export function App() {
             reads={live.reads}
             perTrade={perTrade}
             perDay={perDay}
+            tradesPerDay={tradesPerDay}
             onScreen={openScreen}
             onTab={goTab}
           />
@@ -340,6 +342,7 @@ export function App() {
             onTurn={(turn) => setTurns((previous) => [...previous, turn])}
             perTrade={perTrade}
             perDay={perDay}
+            tradesPerDay={tradesPerDay}
             onToken={(id) => openScreen({ kind: "token", id })}
             onDeposit={() => openScreen({ kind: "deposit" })}
             onWithdraw={() => openScreen({ kind: "withdraw" })}
@@ -364,6 +367,7 @@ export function App() {
             stopped={stopped}
             perTrade={perTrade}
             perDay={perDay}
+            tradesPerDay={tradesPerDay}
             mine={mine}
           />
         )}
@@ -474,6 +478,7 @@ export function App() {
               stopped={stopped}
               perTrade={perTrade}
               perDay={perDay}
+              tradesPerDay={tradesPerDay}
               onScreen={openScreen}
               onTab={goTab}
             />

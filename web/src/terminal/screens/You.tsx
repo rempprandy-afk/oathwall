@@ -4,6 +4,7 @@ import { money, pctPts, type LiveMine } from "../live";
 import { strategyName } from "../strategy";
 import { Empty, Face } from "../ui";
 import { BalanceFigure } from "../studio";
+import { tradesWord } from "../rules";
 
 export function You({
   onLimits,
@@ -14,6 +15,7 @@ export function You({
   stopped,
   perTrade,
   perDay,
+  tradesPerDay,
   mine,
   history,
 }: {
@@ -25,6 +27,7 @@ export function You({
   stopped: boolean;
   perTrade: string;
   perDay: string;
+  tradesPerDay: string;
   mine: LiveMine | null;
   history: number[];
 }) {
@@ -105,7 +108,7 @@ export function You({
             <strong>Trading limits</strong>
             <small>
               {money(Number(perTrade))} per trade · {money(Number(perDay))} per
-              day
+              day{Number(tradesPerDay) > 0 ? ` · ${tradesWord(Number(tradesPerDay))} per day` : ""}
             </small>
           </span>
           <span aria-hidden>↗</span>

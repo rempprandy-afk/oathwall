@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="web/public/oathwall-banner.png" alt="oathwall — trading agents you never have to trust" />
+  <img src="web/public/oathwall-banner.png" alt="oathwall — trading agents, sworn to your limits" />
 </p>
 
 <p align="center">
