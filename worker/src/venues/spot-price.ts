@@ -29,13 +29,20 @@ export const SPOT_MANAGERS = {
   uniswapV4: "0x28e2ea090877bf75740558f6bfb36a5ffee9e9df",
   /** PancakeSwap Infinity CL pool manager: answers getSlot0 / getLiquidity directly. */
   pancakeInfinityCl: "0xa0ffb9c1ce1fe56963b0321b32e7a0302114058b",
+  /**
+   * PancakeSwap v2 FACTORY. Not a singleton pool manager: each v2 pair is its
+   * own contract, so for these `poolId` is the PAIR ADDRESS. Priced from the
+   * pair's real reserves, which beat virtual reserves as a depth measure. v2
+   * launches outnumber everything else on BNB (~420 pairs an hour, 2026-09-25).
+   */
+  pancakeV2: "0xca143ce32fe78f1f7019d7d551a6402fc5350c73",
 } as const;
 
 export type SpotManager = (typeof SPOT_MANAGERS)[keyof typeof SPOT_MANAGERS];
 
 export function isSpotManager(address: string): address is SpotManager {
   const a = address.toLowerCase();
-  return a === SPOT_MANAGERS.uniswapV4 || a === SPOT_MANAGERS.pancakeInfinityCl;
+  return a === SPOT_MANAGERS.uniswapV4 || a === SPOT_MANAGERS.pancakeInfinityCl || a === SPOT_MANAGERS.pancakeV2;
 }
 
 /** Where a discovered token's singleton pool lives. */
@@ -102,6 +109,58 @@ export function spotFromState(args: {
   return { price8, liquidityUsd };
 }
 
+const V2_PAIR_ABI = parseAbi([
+  "function getReserves() view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)",
+]);
+
+/**
+ * Pure: a v2 pair's reserves → the token's USD price and its REAL quote-side depth.
+ * Null when either side is empty or the token is not in the pair.
+ */
+export function spotFromReserves(args: {
+  reserve0: bigint;
+  reserve1: bigint;
+  pool: SpotPool;
+  token: `0x${string}`;
+  tokenDecimals: number;
+  quote: QuoteValue;
+}): SpotReading | null {
+  const { reserve0: r0, reserve1: r1, pool, quote } = args;
+  if (r0 <= 0n || r1 <= 0n) return null;
+  const tokenIs0 = args.token.toLowerCase() === pool.currency0.toLowerCase();
+  const tokenIs1 = args.token.toLowerCase() === pool.currency1.toLowerCase();
+  if (tokenIs0 === tokenIs1) return null;
+  const [tokenR, quoteR] = tokenIs0 ? [r0, r1] : [r1, r0];
+  const dToken = 10n ** BigInt(args.tokenDecimals);
+  const dQuote = 10n ** BigInt(quote.decimals);
+  const price8 = (quoteR * dToken * quote.usd8) / (tokenR * dQuote);
+  if (price8 <= 0n) return null;
+  return { price8, liquidityUsd: Number((quoteR * quote.usd8) / dQuote) / 1e8 };
+}
+
+async function readV2Reserves(client: PublicClient, pair: `0x${string}`): Promise<{ reserve0: bigint; reserve1: bigint }> {
+  const [reserve0, reserve1] = await client.readContract({ address: pair, abi: V2_PAIR_ABI, functionName: "getReserves" });
+  return { reserve0, reserve1 };
+}
+
+/**
+ * Has this pool been emptied — the rug signature the paper write-off acts on?
+ * A singleton pool with no in-range liquidity, or a v2 pair with an empty side.
+ * Null when the read failed: unknown is never "emptied".
+ */
+export async function readPoolEmptied(client: PublicClient, pool: SpotPool): Promise<boolean | null> {
+  try {
+    if (pool.manager === SPOT_MANAGERS.pancakeV2) {
+      const { reserve0, reserve1 } = await readV2Reserves(client, pool.poolId);
+      return reserve0 === 0n || reserve1 === 0n;
+    }
+    const state = await readSpotState(client, pool);
+    return state ? state.liquidity === 0n : null;
+  } catch {
+    return null;
+  }
+}
+
 /** The pool's current sqrtPrice and in-range liquidity, from whichever manager holds it. */
 export async function readSpotState(
   client: PublicClient,
@@ -144,6 +203,10 @@ export async function readSpotPrice(
   const quote = args.quotes.get(quoteAddr);
   if (!quote) return null;
   try {
+    if (args.pool.manager === SPOT_MANAGERS.pancakeV2) {
+      const reserves = await readV2Reserves(client, args.pool.poolId);
+      return spotFromReserves({ ...reserves, pool: args.pool, token: args.token, tokenDecimals: args.tokenDecimals, quote });
+    }
     const state = await readSpotState(client, args.pool);
     return state ? spotFromState({ ...state, pool: args.pool, token: args.token, tokenDecimals: args.tokenDecimals, quote }) : null;
   } catch {

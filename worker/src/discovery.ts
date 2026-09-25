@@ -28,9 +28,9 @@ import type { PublicClient } from "viem";
 import { parseAbi } from "viem";
 import { CASH, CASH_DECIMALS, cashToNumber, cashUnits, type TradableToken } from "../../packages/core/src/index";
 import { poolPriceUsable, readRoutedPrice } from "./venues/pool-price";
-import { readSpotPrice, readSpotQuotes, type SpotPool } from "./venues/spot-price";
+import { SPOT_MANAGERS, readSpotPrice, readSpotQuotes, type SpotPool } from "./venues/spot-price";
 import { readTokenStats } from "./venues/token-stats";
-import { recentPools, resolveBitquery, type BitqueryCreds, type NewPair } from "./venues/bitquery";
+import { recentPools, recentV2Pairs, resolveBitquery, type BitqueryCreds, type NewPair } from "./venues/bitquery";
 import { screenPools, type GeckoPool, type PoolFeed, type ScreenLimits } from "./venues/geckoterminal";
 import type { MemecoinScout } from "./strategist/memecoin-scout";
 import { scoutFieldsFor, type CoinResearch } from "./strategist/coin-research";
@@ -138,6 +138,11 @@ export interface DiscoveryDeps {
  * interrupt an agent that might need to sell.
  */
 let lastDiscoveryError: string | undefined;
+let lastV2Error: string | undefined;
+/** Newest v2 pairs read per pass: ~20 minutes of launches, against a 10-minute poll. */
+const V2_PAIRS_PER_PASS = 150;
+/** Below this depth a spot launch gets no FDV read: it cannot become a trencher entry. */
+export const SPOT_STATS_MIN_DEPTH_USD = 1_000;
 
 export async function discoverPools(deps: DiscoveryDeps): Promise<Discovery[]> {
   const res = await recentPools(deps.creds, { sinceMinutes: deps.sinceMinutes ?? 60, limit: 25 });
@@ -148,11 +153,19 @@ export async function discoverPools(deps: DiscoveryDeps): Promise<Discovery[]> {
   }
   lastDiscoveryError = res.ok ? undefined : res.error;
   if (!res.ok || !res.data) return [];
+  // PancakeSwap v2 launches, which never emit Initialize. A failure here is said
+  // once and costs only the v2 half; the Initialize half above still counts.
+  const v2 = await recentV2Pairs(deps.creds, { sinceMinutes: deps.sinceMinutes ?? 60, limit: V2_PAIRS_PER_PASS });
+  if (!v2.ok && v2.error !== lastV2Error) {
+    console.log(`[discovery] bitquery refused the v2 pair query: ${v2.error} — v2 launches are not seen until this clears`);
+  }
+  lastV2Error = v2.ok ? undefined : v2.error;
+  const pairs = [...res.data, ...(v2.ok ? (v2.data ?? []) : [])];
 
   const knownAddrs = new Set(deps.known.map((t) => t.address.toLowerCase()));
   const candidates: { token: `0x${string}`; poolKey?: NewPair["key"]; spot?: SpotPool }[] = [];
   const seenThisPass = new Set<string>();
-  for (const pair of res.data) {
+  for (const pair of pairs) {
     const token = newTokenOf(pair);
     if (!token) continue;
     const key = token.toLowerCase();
@@ -194,13 +207,18 @@ export async function discoverPools(deps: DiscoveryDeps): Promise<Discovery[]> {
     let fdvUsd: number | null = null;
     let spotOnly = false;
     try {
-      const routed = await readRoutedPrice(deps.client, {
-        token,
-        tokenDecimals: decimals,
-        cash: CASH.USD as `0x${string}`,
-        cashDecimals: CASH_DECIMALS,
-        weth: CASH.WBNB as `0x${string}`,
-      });
+      // A brand-new v2 pair has no v3 route, and asking costs ~20 calls a token
+      // across hundreds of v2 launches an hour; its reserves answer in one.
+      const routed =
+        spot?.manager === SPOT_MANAGERS.pancakeV2
+          ? null
+          : await readRoutedPrice(deps.client, {
+              token,
+              tokenDecimals: decimals,
+              cash: CASH.USD as `0x${string}`,
+              cashDecimals: CASH_DECIMALS,
+              weth: CASH.WBNB as `0x${string}`,
+            });
       if (!routed && spot) {
         // A singleton-pool launch has no v3 route by construction. Its SPOT price
         // is not a guarded one, so `priceable` stays false (nothing live may rely
@@ -212,7 +230,12 @@ export async function discoverPools(deps: DiscoveryDeps): Promise<Discovery[]> {
           liquidityUsdg = cashUnits(reading.liquidityUsd);
           spotOnly = true;
           reason = "spot price only (no TWAP in its pool) — paper trading can use it, live can't";
-          const stats = await readTokenStats(deps.client, { token, price8: reading.price8, decimals });
+          // FDV only where it can matter: most launches are born empty, and a
+          // supply read per empty one is RPC spent on a candidate nobody enters.
+          const stats =
+            reading.liquidityUsd >= SPOT_STATS_MIN_DEPTH_USD
+              ? await readTokenStats(deps.client, { token, price8: reading.price8, decimals })
+              : null;
           fdvUsd = stats?.fdvExBurnedUsd ?? null;
           price8 = reading.price8;
         }

@@ -28,7 +28,7 @@
 
 import { OATHWALL_GATEWAY_ORIGIN } from "../../../packages/core/src/index";
 import { readBoundedJson } from "../bounded-read";
-import { isSpotManager, type SpotPool } from "./spot-price";
+import { SPOT_MANAGERS, isSpotManager, type SpotPool } from "./spot-price";
 
 /** Bitquery's V2 (streaming) GraphQL endpoint — the one carrying EVM(network:). */
 export const BITQUERY_DEFAULT_ENDPOINT = "https://streaming.bitquery.io/graphql";
@@ -296,6 +296,75 @@ export async function recentPools(
     if (parsed) out.push(parsed);
   }
   return { ok: true, data: out };
+}
+
+/**
+ * PancakeSwap v2 pairs created in the last `sinceMinutes`, newest first.
+ *
+ * `Initialize` (recentPools) is emitted by v3 pools and the singleton managers,
+ * never by a v2 pair, and v2 is where most BNB launches happen: ~420 pairs an
+ * hour on 2026-09-25 against ~90 Initialize events. OWN KEY ONLY: the gateway
+ * answers a fixed catalogue of named queries and has no v2 one, so a gateway
+ * caller gets an empty list rather than an error.
+ */
+export async function recentV2Pairs(
+  creds: BitqueryCreds,
+  opts: { sinceMinutes?: number; limit?: number } = {},
+): Promise<BitqueryResult<NewPair[]>> {
+  if (creds.viaGateway) return { ok: true, data: [] };
+  const limit = Math.min(opts.limit ?? 150, 500);
+  const since = new Date(Date.now() - (opts.sinceMinutes ?? 60) * 60_000).toISOString();
+  const q = `query ($since: DateTime, $limit: Int) {
+    EVM(network: ${BITQUERY_NETWORK}) {
+      Events(
+        limit: {count: $limit}
+        orderBy: {descending: Block_Time}
+        where: {Log: {SmartContract: {is: "${SPOT_MANAGERS.pancakeV2}"}, Signature: {Name: {is: "PairCreated"}}}, Block: {Time: {after: $since}}}
+      ) {
+        Block { Time }
+        Transaction { Hash }
+        Arguments { Name Value { ... on EVM_ABI_Address_Value_Arg { address } } }
+      }
+    }
+  }`;
+  const r = await bitqueryQuery<{ EVM?: { Events?: unknown[] } }>(creds, q, { since, limit });
+  if (!r.ok) return { ok: false, error: r.error };
+  const out: NewPair[] = [];
+  for (const ev of r.data?.EVM?.Events ?? []) {
+    const parsed = parseV2PairEvent(ev);
+    if (parsed) out.push(parsed);
+  }
+  return { ok: true, data: out };
+}
+
+/** Pure, exported for tests: a v2 PairCreated event → a NewPair whose spot pool is the pair. */
+export function parseV2PairEvent(ev: unknown): NewPair | null {
+  if (!ev || typeof ev !== "object") return null;
+  const e = ev as {
+    Block?: { Time?: string };
+    Transaction?: { Hash?: string };
+    Arguments?: { Name?: string; Value?: { address?: string } }[];
+  };
+  const addr = (name: string): `0x${string}` | null => {
+    const v = e.Arguments?.find((a) => a?.Name === name)?.Value?.address;
+    return typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v) ? (v.toLowerCase() as `0x${string}`) : null;
+  };
+  const token0 = addr("token0");
+  const token1 = addr("token1");
+  const pair = addr("pair");
+  if (!token0 || !token1 || !pair || token0 === token1) return null;
+  const time = e.Block?.Time ? Math.floor(new Date(e.Block.Time).getTime() / 1000) : 0;
+  if (!Number.isFinite(time) || time <= 0) return null;
+  return {
+    token: token0,
+    symbol: "",
+    decimals: 18,
+    quote: token1,
+    protocol: "pancake-v2",
+    createdAt: time,
+    txHash: typeof e.Transaction?.Hash === "string" ? e.Transaction.Hash : "",
+    spot: { manager: SPOT_MANAGERS.pancakeV2, poolId: pair, currency0: token0, currency1: token1 },
+  };
 }
 
 /** Pure, exported for tests: third-party JSON → a NewPair, or null. */

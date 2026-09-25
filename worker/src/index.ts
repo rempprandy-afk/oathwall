@@ -136,7 +136,7 @@ import {
 import { BUILTIN_STRATEGIES, buildStrategy, isCircleStrategy, watchTokensFor } from "./strategies/registry";
 import { TRENCHER_DEFAULTS, TRENCHER_PAPER, type Candidate, type OpenPosition } from "./strategies/trencher";
 import { createPoolPriceReader } from "./venues/pool-prices";
-import { SPOT_MANAGERS, isSpotManager, readSpotPrice, readSpotQuotes, readSpotState } from "./venues/spot-price";
+import { SPOT_MANAGERS, isSpotManager, readPoolEmptied, readSpotPrice, readSpotQuotes } from "./venues/spot-price";
 import { customStrategiesDir, resolveStrategyFile } from "./strategies/custom";
 import type { Holding, Snapshot, Strategy } from "./strategies/types";
 import { isPaused, startTelegram } from "./telegram/service";
@@ -155,6 +155,7 @@ import { positionValueUsdg, readPositions, type Position } from "./positions";
 import { quarantineOf } from "./quarantine";
 import {
   describeDiscovery,
+  SPOT_STATS_MIN_DEPTH_USD,
   describeTrending,
   discoverPools,
   discoverTrending,
@@ -1749,13 +1750,13 @@ async function main() {
             // drain exit writes it off (paper.ts sells a $0 mark as a write-off).
             const key = t.address.toLowerCase();
             if (!paperHeldTokens.has(key)) continue;
-            const state = await readSpotState(mainnetClient(), {
+            const emptied = await readPoolEmptied(mainnetClient(), {
               manager: p.manager,
               poolId: p.poolId as `0x${string}`,
               currency0: p.currency0 as `0x${string}`,
               currency1: p.currency1 as `0x${string}`,
-            }).catch(() => null);
-            if (!state || state.liquidity !== 0n) continue;
+            });
+            if (emptied !== true) continue;
             prices.set(t.symbol, {
               price8: 0n,
               stale: false,
@@ -1772,7 +1773,7 @@ async function main() {
             price8: reading.price8,
             stale: false,
             source: "spot",
-            detail: `spot · ${p.manager === SPOT_MANAGERS.uniswapV4 ? "Uniswap v4" : "PancakeSwap Infinity"} · ~$${Math.round(reading.liquidityUsd).toLocaleString()} deep · paper only`,
+            detail: `spot · ${p.manager === SPOT_MANAGERS.uniswapV4 ? "Uniswap v4" : p.manager === SPOT_MANAGERS.pancakeV2 ? "PancakeSwap v2" : "PancakeSwap Infinity"} · ~$${Math.round(reading.liquidityUsd).toLocaleString()} deep · paper only`,
             liquidityUsdg: cashUnits(reading.liquidityUsd),
           });
           lastLiquidityUsd.set(t.address.toLowerCase(), reading.liquidityUsd);
@@ -2155,6 +2156,12 @@ async function main() {
         // The singleton pool, for the paper trencher's spot pricing.
         ...(d.spot ? { spot: d.spot } : {}),
       });
+      // Recorded, never announced: v2 sees hundreds of pairs an hour and most
+      // are born empty, so announcing each would bury the feed in noise.
+      const emptyV2 =
+        d.spot?.manager === SPOT_MANAGERS.pancakeV2 &&
+        (d.liquidityUsdg === null || cashToNumber(d.liquidityUsdg) < SPOT_STATS_MIN_DEPTH_USD);
+      if (emptyV2) continue;
       const line = describeDiscovery(d);
       console.log(`[discovery] ${line}`);
       await addEvent(

@@ -90,3 +90,39 @@ test("an Initialize from an unknown contract (a v3 pool) carries no spot pool", 
   assert.ok(p);
   assert.equal(p.spot, undefined);
 });
+
+describe_v2();
+function describe_v2() {
+  const WBNB = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c" as const;
+  const bnb = { usd8: 600n * 100_000_000n, decimals: 18 };
+  const v2: SpotPool = { manager: SPOT_MANAGERS.pancakeV2, poolId: "0x00000000000000000000000000000000000000aa", currency0: MEME, currency1: WBNB };
+
+  test("a v2 pair prices from its real reserves: 10 BNB against 1M tokens at $600/BNB is $0.006", async () => {
+    const { spotFromReserves } = await import("./spot-price");
+    const r = spotFromReserves({ reserve0: 10n ** 24n, reserve1: 10n * 10n ** 18n, pool: v2, token: MEME, tokenDecimals: 18, quote: bnb });
+    assert.equal(r?.price8, 600_000n);
+    assert.equal(Math.round(r!.liquidityUsd), 6_000, "depth is the BNB side, $6,000");
+  });
+
+  test("an emptied side is no price, never a zero one", async () => {
+    const { spotFromReserves } = await import("./spot-price");
+    assert.equal(spotFromReserves({ reserve0: 10n ** 24n, reserve1: 0n, pool: v2, token: MEME, tokenDecimals: 18, quote: bnb }), null);
+  });
+
+  test("a PairCreated event becomes a v2 spot pool keyed by the pair address", async () => {
+    const { parseV2PairEvent } = await import("./bitquery");
+    const p = parseV2PairEvent({
+      Block: { Time: "2026-09-25T20:56:33Z" },
+      Transaction: { Hash: "0xc393" },
+      Arguments: [
+        { Name: "token0", Value: { address: MEME } },
+        { Name: "token1", Value: { address: WBNB } },
+        { Name: "pair", Value: { address: "0xE73EF500D5DBAB2B079E1D907609BD129A7F0A32" } },
+      ],
+    });
+    assert.equal(p?.spot?.manager, SPOT_MANAGERS.pancakeV2);
+    assert.equal(p?.spot?.poolId, "0xe73ef500d5dbab2b079e1d907609bd129a7f0a32");
+    assert.equal(p?.protocol, "pancake-v2");
+    assert.equal(parseV2PairEvent({ Block: { Time: "2026-09-25T20:56:33Z" }, Arguments: [] }), null);
+  });
+}
