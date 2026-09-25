@@ -384,6 +384,14 @@ async function main() {
   let watchTokens = watchTokensFor(cfg.basketSymbols, cfg.customTokens);
   /** The owner's own watch set — never the paper-only discoveries. Live limits are built from this. */
   const baseWatchTokens = () => watchTokensFor(cfg.basketSymbols, cfg.customTokens);
+  /**
+   * The trencher rules for THIS tick: paper or live, then the owner's tuning on
+   * top. Read fresh each call, so a settings change applies within one tick.
+   */
+  const trencherCfgNow = () => {
+    const base = paperActive() ? TRENCHER_PAPER : TRENCHER_DEFAULTS;
+    return cfg.trencherTuning ? { ...base, ...cfg.trencherTuning } : base;
+  };
 
   // ── paper trading plumbing ────────────────────────────────────────────
   /**
@@ -492,7 +500,7 @@ async function main() {
       trench: {
         // Looser rules on paper only, decided each tick with the same answer the
         // execution fork acts on. Live always gets TRENCHER_DEFAULTS.
-        cfg: () => (paperActive() ? TRENCHER_PAPER : TRENCHER_DEFAULTS),
+        cfg: trencherCfgNow,
         usdgToken: CASH.USD as `0x${string}`,
         candidates: trenchCandidates,
         open: trenchOpen,
@@ -1935,7 +1943,7 @@ async function main() {
         // entry floor is not worth pricing every minute.
         else if (
           nowSec - c.firstSeen <= TRENCHER_DEFAULTS.maxAgeSec &&
-          c.liquidityUsd >= TRENCHER_PAPER.minLiquidityUsd / 2
+          c.liquidityUsd >= trencherCfgNow().minLiquidityUsd / 2
         ) {
           fresh.push(token);
         }

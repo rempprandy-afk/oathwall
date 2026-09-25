@@ -10,6 +10,8 @@ import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import {
   HOUSE_KEY_FIELDS,
   SETTINGS_DEFAULTS,
+  sanitizeTrencherTuning,
+  type TrencherTuning,
   SLIPPAGE_BPS_MAX,
   TRADABLE_TOKENS,
   bnbChain,
@@ -77,6 +79,8 @@ export interface ResolvedConfig {
   discoveryIntervalMin: number;
   /** Scout mode: may the agent buy tokens it cannot price? Off by default. */
   trencherLiveEnabled: boolean;
+  /** Per-agent trencher overrides; undefined keeps the built-in rules. */
+  trencherTuning: TrencherTuning | undefined;
   sponsorGasEnabled: boolean;
   sponsorshipPolicyId?: string;
   /** Read flows from USDG Transfer logs rather than inferring them. */
@@ -304,6 +308,9 @@ export function mergeSettings(
     discoveryEnabled: bool(file.discoveryEnabled, env.OATHWALL_DISCOVERY_ENABLED, d.discoveryEnabled),
     discoveryIntervalMin: num(file.discoveryIntervalMin, env.OATHWALL_DISCOVERY_INTERVAL_MIN, d.discoveryIntervalMin, 1, 1440),
     trencherLiveEnabled: bool(file.trencherLiveEnabled, env.OATHWALL_TRENCHER_LIVE, d.trencherLiveEnabled),
+    // An invalid blob is dropped whole, never partly applied: half a risk rule
+    // is not the one the owner set. The settings API refuses it before it gets here.
+    trencherTuning: sanitizeTrencherTuning(file.trencherTuning).tuning,
     sponsorGasEnabled: bool(file.sponsorGasEnabled, env.OATHWALL_SPONSOR_GAS, d.sponsorGasEnabled),
     sponsorshipPolicyId: str(file.sponsorshipPolicyId, env.OATHWALL_SPONSORSHIP_POLICY_ID),
     depositScanEnabled: bool(file.depositScanEnabled, env.OATHWALL_DEPOSIT_SCAN, d.depositScanEnabled),

@@ -270,6 +270,13 @@ export interface OathwallSettings {
    */
   trencherLiveEnabled?: boolean;
   /**
+   * Per-agent overrides of the trencher's entry and exit rules, applied on top
+   * of whichever set the agent is on (paper or live) every tick. Absent fields
+   * keep the default. Bounded by TRENCHER_TUNING_BOUNDS, and the grant's caps
+   * still bound every trade whatever this says.
+   */
+  trencherTuning?: TrencherTuning;
+  /**
    * Pay this agent's gas from a sponsor, so the owner funds USDG only.
    *
    * HOUSE-OWNED (see HOUSE_KEY_FIELDS) because hosted it spends OUR money, not
@@ -596,4 +603,62 @@ export const SETTINGS_DEFAULTS = {
  */
 export function resolveSwapVenue(v: string | undefined): "pancakeswap" | "rialto" {
   return v === "rialto" ? "rialto" : "pancakeswap";
+}
+
+/** The trencher rules an owner may tune. Keys match TrencherConfig in the worker. */
+export interface TrencherTuning {
+  minLiquidityUsd?: number;
+  minFdvUsd?: number;
+  maxFdvUsd?: number;
+  minAgeSec?: number;
+  stopLossBps?: number;
+  takeProfitBps?: number;
+  maxHoldSec?: number;
+  reentryCooldownSec?: number;
+}
+
+/**
+ * The inclusive range each tunable may take. The floors are the point: a pool
+ * under $1,000 cannot be left, a launch under 5 minutes old is the rug window
+ * the age rule exists for, and a stop-loss under 5% fires on noise.
+ */
+export const TRENCHER_TUNING_BOUNDS: Record<keyof TrencherTuning, readonly [number, number]> = {
+  minLiquidityUsd: [1_000, 10_000_000],
+  minFdvUsd: [1_000, 1_000_000_000],
+  maxFdvUsd: [10_000, 10_000_000_000],
+  minAgeSec: [300, 86_400],
+  stopLossBps: [500, 9_500],
+  takeProfitBps: [500, 100_000],
+  maxHoldSec: [600, 7 * 86_400],
+  reentryCooldownSec: [0, 7 * 86_400],
+};
+
+/**
+ * Validate a tuning blob. PURE, and shared by the settings API and the worker so
+ * the two cannot disagree about what is allowed. `null`/`undefined` means "no
+ * tuning". Unknown keys and out-of-range values are errors, never clamped: a
+ * silently adjusted risk rule is not the rule the owner set.
+ */
+export function sanitizeTrencherTuning(v: unknown): { tuning: TrencherTuning | undefined; errors: string[] } {
+  if (v === null || v === undefined) return { tuning: undefined, errors: [] };
+  if (typeof v !== "object" || Array.isArray(v)) return { tuning: undefined, errors: ["must be an object"] };
+  const errors: string[] = [];
+  const out: TrencherTuning = {};
+  for (const [k, raw] of Object.entries(v as Record<string, unknown>)) {
+    const bounds = TRENCHER_TUNING_BOUNDS[k as keyof TrencherTuning];
+    if (!bounds) {
+      errors.push(`unknown field ${k}`);
+      continue;
+    }
+    if (typeof raw !== "number" || !Number.isFinite(raw) || raw < bounds[0] || raw > bounds[1]) {
+      errors.push(`${k} must be a number from ${bounds[0]} to ${bounds[1]}`);
+      continue;
+    }
+    out[k as keyof TrencherTuning] = raw;
+  }
+  if (out.minFdvUsd !== undefined && out.maxFdvUsd !== undefined && out.minFdvUsd >= out.maxFdvUsd) {
+    errors.push("minFdvUsd must be below maxFdvUsd");
+  }
+  if (errors.length) return { tuning: undefined, errors };
+  return { tuning: Object.keys(out).length ? out : undefined, errors: [] };
 }

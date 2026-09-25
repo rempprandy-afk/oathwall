@@ -478,3 +478,12 @@ describe("a trench entry's depth basis survives a restart", () => {
     assert.match(src, /if \(entry\.depthBasis\) trenchEntryBasis\.set\(t\.address\.toLowerCase\(\), entry\.depthBasis\);/);
   });
 });
+
+describe("per-agent trencher tuning reaches the trencher every tick", () => {
+  it("the trencher and the paper watch floor both read the tuned rules", () => {
+    const src = readFileSync("worker/src/index.ts", "utf8");
+    assert.match(src, /return cfg\.trencherTuning \? \{ \.\.\.base, \.\.\.cfg\.trencherTuning \} : base;/);
+    assert.match(src, /cfg: trencherCfgNow,/);
+    assert.match(src, /c\.liquidityUsd >= trencherCfgNow\(\)\.minLiquidityUsd \/ 2/);
+  });
+});

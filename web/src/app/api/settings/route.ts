@@ -21,6 +21,7 @@ import {
   TRADABLE_TOKENS,
   isHostedMode,
   isValidCustomToken,
+  sanitizeTrencherTuning,
   type LlmProviderInfo,
   type OathwallSettings,
 } from "@oathwall/core";
@@ -356,6 +357,13 @@ export async function PUT(req: Request) {
     }
   }
 
+  if ("trencherTuning" in body) {
+    // Validated by the same function the worker applies it with, so a value
+    // saved here is exactly the value that trades. null clears it.
+    const r = sanitizeTrencherTuning(body.trencherTuning);
+    if (r.errors.length) errors.push(...r.errors.map((e) => `trencherTuning: ${e}`));
+    else setOrClear("trencherTuning", r.tuning);
+  }
   if ("strategy" in body) {
     const v = body.strategy;
     if (v === "" || v === null || v === undefined) {
