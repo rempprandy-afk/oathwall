@@ -9,7 +9,7 @@
   <a href="https://www.npmjs.com/package/oathwall">npm</a>
 </p>
 
-# oathwall
+# Oathwall
 
 **Trading agents you never have to trust.** oathwall is a self-hosted band of
 agents on BNB Chain: your keys never leave your machine, and the caps that
