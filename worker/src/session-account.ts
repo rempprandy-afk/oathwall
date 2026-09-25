@@ -69,6 +69,7 @@ import {
   assertDerivedAccount,
   derivationOf,
   derivationUnreachable,
+  RATE_LIMIT_POLICY_WITH_RESET,
   type Derivation,
 } from "../../packages/core/src/index";
 
@@ -80,7 +81,7 @@ import {
  * with a package that has already surprised us once.
  */
 interface SerializedParams {
-  permissionParams: { policies?: { policyParams: { type: string } }[]; permissionId?: Hex };
+  permissionParams: { policies?: { policyParams: { type: string; policyAddress?: string } }[]; permissionId?: Hex };
   action: unknown;
   validityData: Record<string, unknown>;
   accountParams: { initCode: Hex; accountAddress: `0x${string}` };
@@ -137,7 +138,8 @@ async function policyFromParams(policy: { policyParams: { type: string } }) {
     case "timestamp":
       return toTimestampPolicy(policy.policyParams as never);
     case "rate-limit":
-      // Legacy only. Nothing signs one any more; see wall.ts.
+      // Both kinds: the refilling singleton the wall seals on BNB today, and
+      // the legacy lifetime one grantHasDeadRateLimit flags. See wall.ts.
       return toRateLimitPolicy(policy.policyParams as never);
     default:
       throw new Error(
@@ -153,11 +155,18 @@ async function policyFromParams(policy: { policyParams: { type: string } }) {
  * at an address with no bytecode on this chain, so validation has nothing to
  * call. The owner needs to re-sign, and needs to be told so in words rather
  * than by watching every trade fail.
+ *
+ * ONLY THE LEGACY ONE. Since the BNB migration the wall seals the REFILLING
+ * singleton on purpose (it has code on 56), so "carries a rate-limit policy"
+ * stopped meaning "dead" — flagging by type alone put every new wallet on
+ * paper forever under `dead-policy`. Dead means any other address.
  */
 export function grantHasDeadRateLimit(serialized: string): boolean {
   try {
     return (decodeParams(serialized).permissionParams.policies ?? []).some(
-      (p) => p.policyParams.type === "rate-limit",
+      (p) =>
+        p.policyParams.type === "rate-limit" &&
+        p.policyParams.policyAddress?.toLowerCase() !== RATE_LIMIT_POLICY_WITH_RESET,
     );
   } catch {
     return false;

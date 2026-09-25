@@ -22,6 +22,7 @@
 import type { TradeIntent } from "../policy";
 import type { Snapshot, Strategy, Tick } from "./types";
 import type { Why } from "./reasons";
+import { cashUnits } from "../../../packages/core/src/index";
 
 /** What the tick knows about a token it might enter. All chain-derived. */
 export interface Candidate {
@@ -82,7 +83,9 @@ export interface TrencherConfig {
 }
 
 export const TRENCHER_DEFAULTS: TrencherConfig = {
-  perEntryUsdg: 5_000_000n, // $5
+  // In CASH units, never a literal. This was `5_000_000n`, the cash exponent of
+  // 6dp USDG; on 18dp USDT that is $0.000000000005, so every entry was dust.
+  perEntryUsdg: cashUnits(5),
   minLiquidityUsd: 25_000,
   minFdvUsd: 50_000,
   maxFdvUsd: 5_000_000,
@@ -92,6 +95,29 @@ export const TRENCHER_DEFAULTS: TrencherConfig = {
   takeProfitBps: 10_000, // +100%
   liquidityDrainFraction: 0.5,
   maxHoldSec: 3 * 24 * 3600,
+};
+
+/**
+ * PAPER ONLY: looser, so practice mode shows the trencher actually trading.
+ *
+ * With the defaults above, 1 of 86 BNB launches qualified in a day (2026-09-25).
+ * These let ~10 through, and close positions within hours instead of days, so a
+ * paper book shows full buy→sell round trips. Never used live: the worker picks
+ * this only while the agent is on paper (see `cfgNow` in index.ts). The entry
+ * size is unchanged, and the grant's caps still bound every fill.
+ */
+export const TRENCHER_PAPER: TrencherConfig = {
+  ...TRENCHER_DEFAULTS,
+  minLiquidityUsd: 5_000,
+  minFdvUsd: 10_000,
+  maxFdvUsd: 50_000_000,
+  // minAgeSec stays at the default 10 minutes, deliberately. Paper ran at 2 for
+  // an hour on 2026-09-25 and bought two launches (Pairpad, MuseFi) whose pools
+  // were emptied within minutes of opening; at 10 both were already drained and
+  // would have been skipped. The age floor is the rug filter.
+  stopLossBps: 2_000, // -20%
+  takeProfitBps: 3_000, // +30%
+  maxHoldSec: 6 * 3600,
 };
 
 export type EntryVerdict = { enter: true } | { enter: false; why: string };
@@ -176,6 +202,8 @@ export function priceMoveBps(entry8: bigint, now8: bigint): number {
 
 export interface TrencherDeps {
   cfg: TrencherConfig;
+  /** When set, the config for THIS tick (paper vs live). Falls back to `cfg`. */
+  cfgNow?: () => TrencherConfig;
   swapRouter: `0x${string}`;
   usdgToken: `0x${string}`;
   /** Candidates the discovery pass surfaced and the tick could price. */
@@ -210,6 +238,7 @@ export function makeTrencher(deps: TrencherDeps): Strategy {
       const nowSec = Math.floor(Date.now() / 1000);
       const intents: TradeIntent[] = [];
       const why: (Why | null)[] = [];
+      const cfg = deps.cfgNow?.() ?? deps.cfg;
       if (!snap.chainLive) return { intents, why };
 
       // ── exits first, always ────────────────────────────────────────────
@@ -236,7 +265,7 @@ export function makeTrencher(deps: TrencherDeps): Strategy {
             liquidityUsd: deps.liquidityOf(pos.token),
             nowSec,
           },
-          deps.cfg,
+          cfg,
         );
         if (!verdict.exit) continue;
         deps.onNote?.("warn", `trencher: selling ${pos.symbol} — ${verdict.why}`);
@@ -266,12 +295,12 @@ export function makeTrencher(deps: TrencherDeps): Strategy {
       for (const c of await deps.candidates()) {
         if (heldSymbols.has(c.symbol)) continue;
         if (snap.pausedTokens.has(c.token.toLowerCase())) continue;
-        const size = deps.cfg.perEntryUsdg;
+        const size = cfg.perEntryUsdg;
         // Respect the daily headroom as a sizing hint, exactly as other
         // strategies do — the wall still refuses anything over, this just stops
         // the same oversized intent being re-proposed every tick forever.
         if (size > snap.spendHeadroomUsdg || size > snap.perTradeCapUsdg) continue;
-        const verdict = shouldEnter(c, deps.cfg, nowSec);
+        const verdict = shouldEnter(c, cfg, nowSec);
         if (!verdict.enter) {
           deps.onNote?.("ok", `trencher: passing on ${c.symbol} — ${verdict.why}`);
           continue;

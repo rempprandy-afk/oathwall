@@ -300,6 +300,19 @@ const SQLITE_ALTERS: string[] = [
     "ALTER TABLE discovered_pools ADD COLUMN pool_fee INTEGER",
     "ALTER TABLE discovered_pools ADD COLUMN pool_tick_spacing INTEGER",
     "ALTER TABLE discovered_pools ADD COLUMN pool_hooks TEXT",
+    // The SINGLETON pool a launch lives in (Uniswap v4 / PancakeSwap Infinity),
+    // for paper-only spot pricing — see worker/src/venues/spot-price.ts. Kept
+    // apart from the five pool_* key columns above: an Infinity pool has no
+    // tickSpacing, and those five are all-or-nothing by rule. All four set together.
+    // What a trench entry's depth baseline MEASURED (PriceQuote.depthBasis), so
+    // the drain exit never compares two different routes — including after a
+    // restart, which is when an in-memory copy lost it and sold BNC4 on a false
+    // "100% drained" (2026-09-25). NULL for rows written before this column.
+    "ALTER TABLE trench_positions ADD COLUMN depth_basis TEXT",
+    "ALTER TABLE discovered_pools ADD COLUMN spot_manager TEXT",
+    "ALTER TABLE discovered_pools ADD COLUMN spot_pool_id TEXT",
+    "ALTER TABLE discovered_pools ADD COLUMN spot_currency0 TEXT",
+    "ALTER TABLE discovered_pools ADD COLUMN spot_currency1 TEXT",
     // Brokerage orders. A broker fill has an order id and no tx hash, and it
     // fills asynchronously — 'status' stays our coarse verdict enum, while
     // settlement_status carries the BROKER'S OWN state word verbatim
@@ -1064,7 +1077,7 @@ export async function readJournal(agentId: string, epoch: number): Promise<Journ
  * so the narrow window is closed at the call site instead, where the answer is
  * known synchronously and never absent.
  */
-async function modeOf(agentId: string): Promise<string | null> {
+export async function modeOf(agentId: string): Promise<string | null> {
   try {
     const row = (await getDb().prepare("SELECT mode FROM agents WHERE smart_account = ?").get(agentId)) as
       | { mode: string | null }
@@ -2691,6 +2704,8 @@ export interface PoolCandidate {
   liquidityUsd: number;
   fdvUsd: number;
   firstSeen: number;
+  /** The singleton pool, for paper-only spot pricing — all four fields or absent. */
+  spot?: { manager: string; poolId: string; currency0: string; currency1: string };
   /** The v4 PoolKey when discovery captured one — all five fields or absent. */
   key?: {
     currency0: string;
@@ -2754,8 +2769,9 @@ export async function recordCandidate(c: PoolCandidate): Promise<void> {
         // lastLiquidityUsd and only falls back to this value.
         `INSERT INTO discovered_pools (address, symbol, decimals, liquidity_usd, fdv_usd,
                                        pool_currency0, pool_currency1, pool_fee, pool_tick_spacing, pool_hooks,
-                                       curve, quote_token, graduation_threshold)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                       curve, quote_token, graduation_threshold,
+                                       spot_manager, spot_pool_id, spot_currency0, spot_currency1)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(address) DO UPDATE SET
            symbol = excluded.symbol, decimals = excluded.decimals,
            liquidity_usd = CASE WHEN excluded.liquidity_usd > 0 THEN excluded.liquidity_usd ELSE liquidity_usd END,
@@ -2767,7 +2783,11 @@ export async function recordCandidate(c: PoolCandidate): Promise<void> {
            pool_hooks = COALESCE(excluded.pool_hooks, pool_hooks),
            curve = COALESCE(excluded.curve, curve),
            quote_token = COALESCE(excluded.quote_token, quote_token),
-           graduation_threshold = COALESCE(excluded.graduation_threshold, graduation_threshold)`,
+           graduation_threshold = COALESCE(excluded.graduation_threshold, graduation_threshold),
+           spot_manager = COALESCE(excluded.spot_manager, spot_manager),
+           spot_pool_id = COALESCE(excluded.spot_pool_id, spot_pool_id),
+           spot_currency0 = COALESCE(excluded.spot_currency0, spot_currency0),
+           spot_currency1 = COALESCE(excluded.spot_currency1, spot_currency1)`,
       )
       .run(
         c.address.toLowerCase(),
@@ -2783,6 +2803,10 @@ export async function recordCandidate(c: PoolCandidate): Promise<void> {
         c.curve ? c.curve.curve.toLowerCase() : null,
         c.curve ? c.curve.quoteToken.toLowerCase() : null,
         c.curve ? c.curve.graduationThresholdRaw : null,
+        c.spot ? c.spot.manager : null,
+        c.spot ? c.spot.poolId : null,
+        c.spot ? c.spot.currency0.toLowerCase() : null,
+        c.spot ? c.spot.currency1.toLowerCase() : null,
       );
   } catch (e) {
     console.error("[store] candidate upsert failed:", e);
@@ -2896,14 +2920,20 @@ export async function recentCandidates(
  * instead — that ledger already tracks exactly what was paid per raw unit, and
  * a second copy could disagree with it after a partial fill.
  */
-export async function setTrenchEntry(agentId: string, mode: BasisMode, symbol: string, liquidityUsd: number): Promise<void> {
+export async function setTrenchEntry(
+  agentId: string,
+  mode: BasisMode,
+  symbol: string,
+  liquidityUsd: number,
+  depthBasis: string | null = null,
+): Promise<void> {
   try {
     await getDb()
       .prepare(
-        `INSERT INTO trench_positions (agent_id, mode, symbol, entry_liquidity_usd)
-         VALUES (?, ?, ?, ?) ON CONFLICT(agent_id, mode, symbol) DO NOTHING`,
+        `INSERT INTO trench_positions (agent_id, mode, symbol, entry_liquidity_usd, depth_basis)
+         VALUES (?, ?, ?, ?, ?) ON CONFLICT(agent_id, mode, symbol) DO NOTHING`,
       )
-      .run(agentId, mode, symbol, liquidityUsd);
+      .run(agentId, mode, symbol, liquidityUsd, depthBasis);
   } catch (e) {
     console.error("[store] trench entry insert failed:", e);
   }
@@ -2933,15 +2963,16 @@ export async function upgradeTrenchEntry(
   mode: BasisMode,
   symbol: string,
   liquidityUsd: number,
+  depthBasis: string | null = null,
 ): Promise<boolean> {
   if (!(liquidityUsd > 0)) return false;
   try {
     const res = await getDb()
       .prepare(
-        `UPDATE trench_positions SET entry_liquidity_usd = ?
+        `UPDATE trench_positions SET entry_liquidity_usd = ?, depth_basis = ?
          WHERE agent_id = ? AND mode = ? AND symbol = ? AND entry_liquidity_usd <= 0`,
       )
-      .run(liquidityUsd, agentId, mode, symbol);
+      .run(liquidityUsd, depthBasis, agentId, mode, symbol);
     return (res as { changes?: number }).changes === undefined || (res as { changes?: number }).changes! > 0;
   } catch (e) {
     console.error("[store] trench entry upgrade failed:", e);
@@ -2953,12 +2984,14 @@ export async function getTrenchEntry(
   agentId: string,
   mode: BasisMode,
   symbol: string,
-): Promise<{ liquidityUsd: number; entrySec: number } | null> {
+): Promise<{ liquidityUsd: number; entrySec: number; depthBasis: string | null } | null> {
   try {
     const row = await getDb()
-      .prepare("SELECT entry_liquidity_usd, entry_sec FROM trench_positions WHERE agent_id = ? AND mode = ? AND symbol = ?")
-      .get(agentId, mode, symbol) as { entry_liquidity_usd: number; entry_sec: number } | undefined;
-    return row ? { liquidityUsd: Number(row.entry_liquidity_usd), entrySec: Number(row.entry_sec) } : null;
+      .prepare("SELECT entry_liquidity_usd, entry_sec, depth_basis FROM trench_positions WHERE agent_id = ? AND mode = ? AND symbol = ?")
+      .get(agentId, mode, symbol) as { entry_liquidity_usd: number; entry_sec: number; depth_basis: string | null } | undefined;
+    return row
+      ? { liquidityUsd: Number(row.entry_liquidity_usd), entrySec: Number(row.entry_sec), depthBasis: row.depth_basis ?? null }
+      : null;
   } catch {
     return null;
   }
@@ -3086,4 +3119,35 @@ export async function saveTriggerState(agentId: string, state: unknown): Promise
   } catch (e) {
     console.error("[brain] trigger state write failed:", e);
   }
+}
+
+/**
+ * The singleton pools of these tokens, for the paper trencher's spot pricing.
+ * Only rows with all four spot columns set; lowercased address → pool.
+ */
+export async function spotPoolsFor(
+  addresses: readonly string[],
+): Promise<Map<string, { manager: string; poolId: string; currency0: string; currency1: string }>> {
+  const out = new Map<string, { manager: string; poolId: string; currency0: string; currency1: string }>();
+  if (!addresses.length) return out;
+  try {
+    const rows = (await getDb()
+      .prepare(
+        `SELECT address, spot_manager, spot_pool_id, spot_currency0, spot_currency1 FROM discovered_pools
+         WHERE address IN (${addresses.map(() => "?").join(",")})
+           AND spot_manager IS NOT NULL AND spot_pool_id IS NOT NULL
+           AND spot_currency0 IS NOT NULL AND spot_currency1 IS NOT NULL`,
+      )
+      .all(...addresses.map((a) => a.toLowerCase()))) as {
+      address: string; spot_manager: string; spot_pool_id: string; spot_currency0: string; spot_currency1: string;
+    }[];
+    for (const r of rows) {
+      out.set(r.address.toLowerCase(), {
+        manager: r.spot_manager, poolId: r.spot_pool_id, currency0: r.spot_currency0, currency1: r.spot_currency1,
+      });
+    }
+  } catch {
+    // no spot columns yet, or a read failure: nothing is spot-priced this pass
+  }
+  return out;
 }

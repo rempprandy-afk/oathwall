@@ -382,3 +382,97 @@ describe("both call sites obey the pairing rule", () => {
     assert.match(guarded, /lastCashUsdg -= intent\.amountUsdg/, "so is the baseline decrement");
   });
 });
+
+describe("a restarted paper agent does not book its simulated book as a withdrawal", () => {
+  // Observed 2026-09-25: every restart of a paper agent wrote `out` flows of
+  // 925.01 and 600.04 USDG — the whole paper cash, differenced against the real
+  // (empty) account on the first tick, when null balances make the mode read live.
+  const src = readFileSync("worker/src/index.ts", "utf8");
+
+  it("reads the persisted mode at arm, before the first heartbeat can overwrite it", () => {
+    assert.match(src, /const agentId = await ensureAgent\(grant\);\s*const resumedOnPaper = \(await modeOf\(agentId\)\) === "paper";/);
+  });
+
+  it("takes no paper cash reading as the 'changed while stopped' baseline", () => {
+    assert.match(src, /const prior = active\?\.resumedOnPaper \? null : await lastKnownCashUsdg\(agentId\);/);
+  });
+});
+
+describe("trencher with no discovery feed says so instead of idling in silence", () => {
+  const src = readFileSync("worker/src/index.ts", "utf8");
+  const body = src.slice(src.indexOf("async function runDiscovery("), src.indexOf("const nowSec", src.indexOf("async function runDiscovery(")));
+
+  it("warns on both empty-feed paths: discovery off, and no credentials", () => {
+    assert.match(body, /if \(!cfg\.discoveryEnabled\) \{\s*announceNoTrencherFeed\(/);
+    assert.match(body, /if \(!creds\) \{[\s\S]*?announceNoTrencherFeed\([\s\S]*?Bitquery/);
+  });
+
+  it("only for trencher, and only once", () => {
+    assert.match(src, /if \(cfg\.strategy !== "trencher" \|\| trencherFeedAnnounced\) return;\s*trencherFeedAnnounced = true;/);
+  });
+});
+
+describe("trencher's discoveries are tradable on PAPER and never widen the live wall", () => {
+  const src = readFileSync("worker/src/index.ts", "utf8");
+
+  it("discoveries join the watch set only on paper, running trencher", () => {
+    assert.match(src, /if \(cfg\.strategy === "trencher" && paperActive\(\)\) \{/);
+  });
+
+  it("live limits are built from the owner's own tokens, never the widened watch set", () => {
+    assert.doesNotMatch(src, /limitsFromGrant\([^,]+, watchTokens,/);
+    assert.equal((src.match(/limitsFromGrant\([^,]+, baseWatchTokens\(\),/g) ?? []).length, 2);
+  });
+
+  it("only the paper rail sees the widened limits, and the fork refuses paper-only tokens anywhere else", () => {
+    assert.match(src, /policyLimitsFor\(limits, paperOnlyIntent && execMode\(\)\.mode === "paper"\)/);
+    assert.match(src, /if \(paperOnlyIntent && execRail\.mode !== "paper"\) \{[\s\S]*?reject_rule: "paper-only-asset"/);
+  });
+
+  it("held positions are kept watched ahead of fresh launches, so an exit is never stranded", () => {
+    assert.match(src, /watchTokensFor\(cfg\.basketSymbols, \[\.\.\.cfg\.customTokens, \.\.\.held, \.\.\.fresh\]\)/);
+  });
+});
+
+describe("trencher sizes in cash units and never compares depths from different routes", () => {
+  it("the $5 entry is $5 in the cash token's own decimals, not a 6dp literal", async () => {
+    const { TRENCHER_DEFAULTS } = await import("./strategies/trencher");
+    const { cashUnits, cashToNumber } = await import("../../packages/core/src/index");
+    assert.equal(TRENCHER_DEFAULTS.perEntryUsdg, cashUnits(5));
+    assert.equal(cashToNumber(TRENCHER_DEFAULTS.perEntryUsdg), 5);
+  });
+
+  it("the drain exit sees no reading when this tick's depth basis differs from the entry's", () => {
+    const src = readFileSync("worker/src/index.ts", "utf8");
+    assert.match(src, /if \(entry !== undefined && entry !== now\) return null;/);
+    assert.match(src, /if \(entry === undefined && now === "spot"\) return null;/);
+    const quotes = readFileSync("worker/src/venues/pool-prices.ts", "utf8");
+    assert.match(quotes, /depthBasis: r\.route,/);
+  });
+});
+
+describe("a trench position's entry price is read in the cash token's own decimals", () => {
+  it("scales cost by 10^8 / 10^CASH_DECIMALS, not by the old 6dp `* 100n`", () => {
+    const src = readFileSync("worker/src/index.ts", "utf8");
+    assert.doesNotMatch(src, /basis\.costUsdg \* 10n \*\* BigInt\(t\.decimals \?\? 18\) \* 100n/);
+    assert.match(src, /\(basis\.qtyRaw \* 10n \*\* BigInt\(CASH_DECIMALS\)\)/);
+  });
+});
+
+describe("a trench entry's depth basis survives a restart", () => {
+  it("is written with the baseline and read back with it", async () => {
+    const { setTrenchEntry, getTrenchEntry, upgradeTrenchEntry } = await import("./store");
+    await setTrenchEntry("0xagent", "paper", "BNC4", 3_622_449, "weth");
+    assert.deepEqual((await getTrenchEntry("0xagent", "paper", "BNC4"))?.depthBasis, "weth");
+    await setTrenchEntry("0xagent", "paper", "NEW", 0, null);
+    assert.equal(await upgradeTrenchEntry("0xagent", "paper", "NEW", 50_000, "spot"), true);
+    const up = await getTrenchEntry("0xagent", "paper", "NEW");
+    assert.equal(up?.liquidityUsd, 50_000);
+    assert.equal(up?.depthBasis, "spot");
+  });
+
+  it("trenchOpen reloads it into the drain guard", () => {
+    const src = readFileSync("worker/src/index.ts", "utf8");
+    assert.match(src, /if \(entry\.depthBasis\) trenchEntryBasis\.set\(t\.address\.toLowerCase\(\), entry\.depthBasis\);/);
+  });
+});

@@ -26,8 +26,9 @@
 
 import type { PublicClient } from "viem";
 import { parseAbi } from "viem";
-import { CASH, CASH_DECIMALS, cashToNumber, type TradableToken } from "../../packages/core/src/index";
+import { CASH, CASH_DECIMALS, cashToNumber, cashUnits, type TradableToken } from "../../packages/core/src/index";
 import { poolPriceUsable, readRoutedPrice } from "./venues/pool-price";
+import { readSpotPrice, readSpotQuotes, type SpotPool } from "./venues/spot-price";
 import { readTokenStats } from "./venues/token-stats";
 import { recentPools, resolveBitquery, type BitqueryCreds, type NewPair } from "./venues/bitquery";
 import { screenPools, type GeckoPool, type PoolFeed, type ScreenLimits } from "./venues/geckoterminal";
@@ -67,6 +68,10 @@ export interface Discovery {
    * keeps a captured key even when later sightings are keyless.
    */
   key?: NewPair["key"];
+  /** The singleton pool this launched in, when a known manager emitted it. */
+  spot?: SpotPool;
+  /** Depth, price and FDV came from that pool's SPOT price: usable on paper only. */
+  spotOnly?: boolean;
   /**
    * Set when this came from the Pons LAUNCHPAD rather than a Uniswap pool.
    *
@@ -132,12 +137,20 @@ export interface DiscoveryDeps {
  * a trading loop, and a data provider having a bad minute must never be able to
  * interrupt an agent that might need to sell.
  */
+let lastDiscoveryError: string | undefined;
+
 export async function discoverPools(deps: DiscoveryDeps): Promise<Discovery[]> {
   const res = await recentPools(deps.creds, { sinceMinutes: deps.sinceMinutes ?? 60, limit: 25 });
+  // A refused query and an empty hour look identical from here, so the refusal
+  // is said — once per distinct reason, since this runs every few minutes.
+  if (!res.ok && res.error !== lastDiscoveryError) {
+    console.log(`[discovery] bitquery refused the pool query: ${res.error} — the trencher sees no candidates until this clears`);
+  }
+  lastDiscoveryError = res.ok ? undefined : res.error;
   if (!res.ok || !res.data) return [];
 
   const knownAddrs = new Set(deps.known.map((t) => t.address.toLowerCase()));
-  const candidates: { token: `0x${string}`; poolKey?: NewPair["key"] }[] = [];
+  const candidates: { token: `0x${string}`; poolKey?: NewPair["key"]; spot?: SpotPool }[] = [];
   const seenThisPass = new Set<string>();
   for (const pair of res.data) {
     const token = newTokenOf(pair);
@@ -145,12 +158,16 @@ export async function discoverPools(deps: DiscoveryDeps): Promise<Discovery[]> {
     const key = token.toLowerCase();
     if (deps.seen.has(key) || knownAddrs.has(key) || seenThisPass.has(key)) continue;
     seenThisPass.add(key);
-    candidates.push({ token, poolKey: pair.key });
+    candidates.push({ token, poolKey: pair.key, spot: pair.spot });
   }
   if (!candidates.length) return [];
+  // Only fetched when a singleton-pool launch needs valuing, and once per pass.
+  const spotQuotes = candidates.some((c) => c.spot)
+    ? await readSpotQuotes(deps.client, Math.floor(Date.now() / 1000))
+    : new Map();
 
   const out: Discovery[] = [];
-  for (const { token, poolKey } of candidates) {
+  for (const { token, poolKey, spot } of candidates) {
     // Read identity from the CONTRACT, never from the indexer. A symbol is
     // attacker-chosen text that will be shown to a human and could be picked to
     // impersonate a real ticker; taking it from the chain at least means it's
@@ -175,6 +192,7 @@ export async function discoverPools(deps: DiscoveryDeps): Promise<Discovery[]> {
     let reason: string | undefined;
     let price8: bigint | null = null;
     let fdvUsd: number | null = null;
+    let spotOnly = false;
     try {
       const routed = await readRoutedPrice(deps.client, {
         token,
@@ -183,7 +201,22 @@ export async function discoverPools(deps: DiscoveryDeps): Promise<Discovery[]> {
         cashDecimals: CASH_DECIMALS,
         weth: CASH.WBNB as `0x${string}`,
       });
-      if (!routed) {
+      if (!routed && spot) {
+        // A singleton-pool launch has no v3 route by construction. Its SPOT price
+        // is not a guarded one, so `priceable` stays false (nothing live may rely
+        // on it) and the figures are recorded for the paper trencher only.
+        const reading = await readSpotPrice(deps.client, { pool: spot, token, tokenDecimals: decimals, quotes: spotQuotes });
+        if (!reading) {
+          reason = "no liquidity in its pool, or paired with something I can't value";
+        } else {
+          liquidityUsdg = cashUnits(reading.liquidityUsd);
+          spotOnly = true;
+          reason = "spot price only (no TWAP in its pool) — paper trading can use it, live can't";
+          const stats = await readTokenStats(deps.client, { token, price8: reading.price8, decimals });
+          fdvUsd = stats?.fdvExBurnedUsd ?? null;
+          price8 = reading.price8;
+        }
+      } else if (!routed) {
         reason = "no route to USDG yet";
       } else {
         liquidityUsdg = routed.liquidityUsdg;
@@ -203,7 +236,12 @@ export async function discoverPools(deps: DiscoveryDeps): Promise<Discovery[]> {
       reason = "couldn't read its pool";
     }
 
-    out.push({ token, symbol, decimals, createdAt: 0, liquidityUsdg, priceable, reason, price8, fdvUsd, ...(poolKey ? { key: poolKey } : {}) });
+    out.push({
+      token, symbol, decimals, createdAt: 0, liquidityUsdg, priceable, reason, price8, fdvUsd,
+      ...(poolKey ? { key: poolKey } : {}),
+      ...(spot ? { spot } : {}),
+      ...(spotOnly ? { spotOnly } : {}),
+    });
   }
   return out;
 }
@@ -282,7 +320,9 @@ export function describeDiscovery(d: Discovery): string {
   const fdv = d.fdvUsd === null ? "" : ` · FDV ${Math.round(d.fdvUsd).toLocaleString()}`;
   const verdict = d.priceable
     ? "deep enough for me to price"
-    : `I can't price it yet — ${d.reason ?? "guards refused it"}`;
+    : d.spotOnly
+      ? "spot price only (no TWAP in its pool) — paper can trade it, live can't"
+      : `I can't price it yet — ${d.reason ?? "guards refused it"}`;
   // A launchpad token is a different KIND of sighting and says so. "new pair"
   // would be wrong twice over: there is no pair, and there is no pool — the
   // token trades only on its own curve until it graduates. The progress figure

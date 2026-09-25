@@ -204,6 +204,7 @@ export function createPoolPriceReader(opts?: { ttlSec?: number }): PoolPriceRead
           // The number itself, not the sentence. describeRoute stays the human
           // string; this is what any guard or exit actually reads.
           liquidityUsdg: r.liquidityUsdg,
+          depthBasis: r.route,
         });
       }
 

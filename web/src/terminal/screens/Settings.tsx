@@ -690,7 +690,7 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
               </span>
               <span className="mm-hint">
                 Needs a Bitquery key above (or the Oathwall Circle brain, whose token works for both).
-                Without one this does nothing and says nothing.
+                Without one this does nothing — and if trencher is your strategy, it warns you once.
               </span>
             </label>
             {/* THE FLAG THAT MADE TRENCHER LOOK BROKEN.

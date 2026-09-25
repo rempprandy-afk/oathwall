@@ -237,3 +237,23 @@ test("a stale grant is DETECTED, so its owner is told rather than left guessing"
   assert.match(idx, /grantHasDeadRateLimit\(grant\.serialized\)/);
   assert.match(idx, /Re-signing is free/);
 });
+
+test("only the LEGACY rate-limit policy reads as dead — the refilling one the wall seals today does not", async () => {
+  const { grantHasDeadRateLimit } = await import("./session-account");
+  const { RATE_LIMIT_POLICY_WITH_RESET } = await import("../../packages/core/src/index");
+  const blob = (policies: { policyParams: Record<string, unknown> }[]) =>
+    Buffer.from(JSON.stringify({ permissionParams: { policies } }), "utf8").toString("base64");
+  const call = { policyParams: { type: "call" } };
+  const ts = { policyParams: { type: "timestamp", policyAddress: "0xB9f8f524bE6EcD8C945b1b87f9ae5C192FdCE20F" } };
+
+  // A grant minted on BNB after 2026-09-09 carries this, and it must be able to go live.
+  const fresh = { policyParams: { type: "rate-limit", policyAddress: "0x6A06358E6b283921DeCeaBE7E8a3741D506cCa9B" } };
+  assert.equal(RATE_LIMIT_POLICY_WITH_RESET, "0x6a06358e6b283921deceabe7e8a3741d506cca9b");
+  assert.equal(grantHasDeadRateLimit(blob([ts, fresh, call])), false);
+
+  // Any other rate-limit address (the pre-2026-08-30 grants), and one with no address at all, stay dead.
+  const legacy = { policyParams: { type: "rate-limit", policyAddress: "0x000000000000000000000000000000000000dEaD" } };
+  assert.equal(grantHasDeadRateLimit(blob([ts, legacy, call])), true);
+  assert.equal(grantHasDeadRateLimit(blob([ts, { policyParams: { type: "rate-limit" } }, call])), true);
+  assert.equal(grantHasDeadRateLimit(blob([ts, call])), false);
+});

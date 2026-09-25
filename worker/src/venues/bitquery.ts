@@ -28,12 +28,19 @@
 
 import { OATHWALL_GATEWAY_ORIGIN } from "../../../packages/core/src/index";
 import { readBoundedJson } from "../bounded-read";
+import { isSpotManager, type SpotPool } from "./spot-price";
 
 /** Bitquery's V2 (streaming) GraphQL endpoint — the one carrying EVM(network:). */
 export const BITQUERY_DEFAULT_ENDPOINT = "https://streaming.bitquery.io/graphql";
 
-/** This chain's identifier in Bitquery's EVM schema. */
-export const BITQUERY_NETWORK = "robinhood";
+/**
+ * This chain's identifier in Bitquery's EVM schema.
+ *
+ * Was "robinhood" until 2026-09-25, a leftover the BNB migration moved
+ * in the gateway (gateway/lib/core.mjs) but not here — so every owner's OWN key
+ * asked for Robinhood Chain pools and the trencher's feed stayed empty on BNB.
+ */
+export const BITQUERY_NETWORK = "bsc";
 
 /**
  * The shared holder gateway. A agent with an Oathwall Circle token needs no
@@ -194,12 +201,14 @@ export async function bitqueryPing(creds: BitqueryCreds): Promise<BitqueryResult
   const raw = r.data?.EVM?.Blocks?.[0]?.Block?.Number;
   const blockHeight = Number(raw);
   if (!Number.isFinite(blockHeight) || blockHeight <= 0) {
-    return { ok: false, error: "bitquery answered but returned no Robinhood Chain blocks" };
+    return { ok: false, error: "bitquery answered but returned no BNB Chain blocks" };
   }
   return { ok: true, data: { blockHeight } };
 }
 
 export interface NewPair {
+  /** The singleton pool (Uniswap v4 or PancakeSwap Infinity) this launched in, when known. See spot-price.ts. */
+  spot?: SpotPool;
   /** The non-cash token in the pair, lowercased. */
   token: `0x${string}`;
   symbol: string;
@@ -263,13 +272,14 @@ export async function recentPools(
       ) {
         Block { Time }
         Transaction { Hash }
-        Log { Signature { Name } }
+        Log { Signature { Name } SmartContract }
         Arguments {
           Name
           Value {
             ... on EVM_ABI_Address_Value_Arg { address }
             ... on EVM_ABI_Integer_Value_Arg { integer }
             ... on EVM_ABI_BigInt_Value_Arg { bigInteger }
+            ... on EVM_ABI_Bytes_Value_Arg { hex }
           }
         }
       }
@@ -294,7 +304,8 @@ export function parsePoolEvent(ev: unknown): NewPair | null {
   const e = ev as {
     Block?: { Time?: string };
     Transaction?: { Hash?: string };
-    Arguments?: { Name?: string; Value?: { address?: string; integer?: number | string; bigInteger?: string } }[];
+    Log?: { SmartContract?: string };
+    Arguments?: { Name?: string; Value?: { address?: string; integer?: number | string; bigInteger?: string; hex?: string } }[];
   };
   const addrs: string[] = [];
   // BY NAME where the names exist. The v4 Initialize event's arguments are
@@ -302,7 +313,7 @@ export function parsePoolEvent(ev: unknown): NewPair | null {
   // what survive an argument being reordered or a fragment being added. The
   // positional addrs[] walk stays as the fallback the gateway path and older
   // shapes still need.
-  const byName = new Map<string, { address?: string; integer?: number | string; bigInteger?: string }>();
+  const byName = new Map<string, { address?: string; integer?: number | string; bigInteger?: string; hex?: string }>();
   for (const a of e.Arguments ?? []) {
     const v = a?.Value?.address;
     if (typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v)) addrs.push(v.toLowerCase());
@@ -353,6 +364,16 @@ export function parsePoolEvent(ev: unknown): NewPair | null {
     key = { currency0, currency1, fee, tickSpacing, hooks };
   }
 
+  // THE SINGLETON POOL, when a known manager emitted this. Its id is all a spot
+  // read needs, and the one thing a PancakeSwap Infinity pool cannot give the
+  // five-field key above (it has `parameters` where v4 has tickSpacing).
+  let spot: NewPair["spot"];
+  const manager = e.Log?.SmartContract?.toLowerCase();
+  const idHex = byName.get("id")?.hex?.replace(/^0x/, "");
+  if (manager && isSpotManager(manager) && idHex && /^[0-9a-fA-F]{64}$/.test(idHex) && currency0 && currency1) {
+    spot = { manager, poolId: `0x${idHex.toLowerCase()}`, currency0, currency1 };
+  }
+
   return {
     token: addrs[0] as `0x${string}`,
     symbol: "",
@@ -362,5 +383,6 @@ export function parsePoolEvent(ev: unknown): NewPair | null {
     createdAt: time,
     txHash: hash,
     ...(key ? { key } : {}),
+    ...(spot ? { spot } : {}),
   };
 }

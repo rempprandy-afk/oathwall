@@ -134,8 +134,9 @@ import {
   type ResolvedConfig,
 } from "./settings";
 import { BUILTIN_STRATEGIES, buildStrategy, isCircleStrategy, watchTokensFor } from "./strategies/registry";
-import { TRENCHER_DEFAULTS, type Candidate, type OpenPosition } from "./strategies/trencher";
+import { TRENCHER_DEFAULTS, TRENCHER_PAPER, type Candidate, type OpenPosition } from "./strategies/trencher";
 import { createPoolPriceReader } from "./venues/pool-prices";
+import { SPOT_MANAGERS, isSpotManager, readSpotPrice, readSpotQuotes, readSpotState } from "./venues/spot-price";
 import { customStrategiesDir, resolveStrategyFile } from "./strategies/custom";
 import type { Holding, Snapshot, Strategy } from "./strategies/types";
 import { isPaused, startTelegram } from "./telegram/service";
@@ -204,6 +205,8 @@ import {
   hasEpochOneHistory,
   lastKnownEquityUsdg,
   lastKnownCashUsdg,
+  modeOf,
+  spotPoolsFor,
   openNextEpoch,
   poolKeysFor,
   getOpsToday,
@@ -329,6 +332,15 @@ interface ActiveAgent {
    */
   deadPolicy: boolean;
   /**
+   * Was the last process's final heartbeat on paper?
+   *
+   * Read once at arm, BEFORE this process beats: the heartbeat rewrites
+   * `agents.mode` every tick, and on the first tick both balances are still
+   * null so it writes "live" for a paper agent. Read later, the column has
+   * already forgotten the answer the restart needs.
+   */
+  resumedOnPaper: boolean;
+  /**
    * Does the smart account have bytecode on the grant chain?
    *
    * `false` is the ordinary state of an account that has never operated, and
@@ -369,6 +381,8 @@ async function main() {
   let connKey = connectionKey(cfg);
   let stratKey = strategyKey(cfg);
   let watchTokens = watchTokensFor(cfg.basketSymbols, cfg.customTokens);
+  /** The owner's own watch set — never the paper-only discoveries. Live limits are built from this. */
+  const baseWatchTokens = () => watchTokensFor(cfg.basketSymbols, cfg.customTokens);
 
   // ── paper trading plumbing ────────────────────────────────────────────
   /**
@@ -475,10 +489,24 @@ async function main() {
       // leg a strategy can actually trade rather than a balance it can only see.
       universe: watchTokensFor(c.basketSymbols, c.customTokens),
       trench: {
+        // Looser rules on paper only, decided each tick with the same answer the
+        // execution fork acts on. Live always gets TRENCHER_DEFAULTS.
+        cfg: () => (paperActive() ? TRENCHER_PAPER : TRENCHER_DEFAULTS),
         usdgToken: CASH.USD as `0x${string}`,
         candidates: trenchCandidates,
         open: trenchOpen,
-        liquidityOf: (token) => lastLiquidityUsd.get(token.toLowerCase()) ?? null,
+        liquidityOf: (token) => {
+          const k = token.toLowerCase();
+          const entry = trenchEntryBasis.get(k);
+          const now = lastDepthBasis.get(k);
+          if (entry !== undefined && entry !== now) return null;
+          // A baseline with no recorded basis (a row from before depth_basis)
+          // is never compared against a SPOT reading: spot only answers when
+          // the v3 read failed, and a thin singleton pool against a v3 baseline
+          // is exactly the false drain this guard exists for.
+          if (entry === undefined && now === "spot") return null;
+          return lastLiquidityUsd.get(k) ?? null;
+        },
         unpriceable: () => lastUnpricedSymbols,
       },
       usdg6: usdg,
@@ -623,7 +651,7 @@ async function main() {
       watchTokens = watchTokensFor(next.basketSymbols, next.customTokens);
       console.log(`[settings] strategy settings applied — ${strategy.name}, venue ${next.swapVenue}`);
       if (active) {
-        active.limits = limitsFromGrant(active.grant, watchTokens, (await knownCurves()) ?? undefined);
+        active.limits = limitsFromGrant(active.grant, baseWatchTokens(), (await knownCurves()) ?? undefined);
         await addEvent(active.agentId, "ok", `settings applied — strategy ${strategy.name}, venue ${next.swapVenue}`);
       }
       stratKey = nextStrat;
@@ -1167,7 +1195,13 @@ async function main() {
         if (equityUsdg > 0n && highWaterMarkUsdg === 0n) {
           await record(equityUsdg, "opening balance");
         } else {
-          const prior = await lastKnownCashUsdg(agentId);
+          // A PAPER READING IS NOT A BASELINE. On this tick both balances are
+          // still null, so `paperActive()` answers live and record()'s paper
+          // guard cannot fire — while the last persisted cash is the SIMULATED
+          // book. Differencing the two booked the whole paper book as a
+          // withdrawal on every restart of a paper agent. A real deposit made
+          // across that downtime is left to the chain scan, which has receipts.
+          const prior = active?.resumedOnPaper ? null : await lastKnownCashUsdg(agentId);
           if (prior !== null) {
             await record(cashUsdg - usdg(prior), "changed while the worker was stopped");
           }
@@ -1643,6 +1677,8 @@ async function main() {
       const q = quotes.get(t.symbol);
       if (q?.liquidityUsdg === undefined) continue;
       lastLiquidityUsd.set(t.address.toLowerCase(), cashToNumber(q.liquidityUsdg));
+      if (q.depthBasis) lastDepthBasis.set(t.address.toLowerCase(), q.depthBasis);
+      else lastDepthBasis.delete(t.address.toLowerCase());
     }
 
     // Anything the POOL pricer could not reach, try on the launchpad.
@@ -1676,7 +1712,77 @@ async function main() {
     // The `curve` and `v4` PriceQuote sources went with these two. Nothing
     // emits them now; see the note on PriceQuote.source in packages/core.
 
-    poolRefusals = new Map(refused.map((r) => [r.symbol, r.reason]));
+    // ── PAPER-ONLY SPOT, for launches that live in a singleton pool ─────────
+    //
+    // Only for paperOnlyTokens, which exist only on paper running trencher, and
+    // only where the v3 reader had nothing. The quote is tagged "spot" so every
+    // surface says what it is (see spot-price.ts), and it is deliberately NOT
+    // held to the depth floor: the trencher applies its own $25k floor at entry,
+    // and a held position must stay priceable as its pool drains, or the drain
+    // exit could never fill.
+    const spotWanted = feedless.filter(
+      (t) => !prices.has(t.symbol) && paperOnlyTokens.has(t.address.toLowerCase()),
+    );
+    const spotPriced = new Set<string>();
+    if (spotWanted.length) {
+      const pools = await spotPoolsFor(spotWanted.map((t) => t.address));
+      if (pools.size) {
+        const quotes = await readSpotQuotes(mainnetClient(), Math.floor(Date.now() / 1000));
+        for (const t of spotWanted) {
+          const p = pools.get(t.address.toLowerCase());
+          if (!p || !isSpotManager(p.manager)) continue;
+          const reading = await readSpotPrice(mainnetClient(), {
+            pool: {
+              manager: p.manager,
+              poolId: p.poolId as `0x${string}`,
+              currency0: p.currency0 as `0x${string}`,
+              currency1: p.currency1 as `0x${string}`,
+            },
+            token: t.address,
+            tokenDecimals: t.decimals ?? 18,
+            quotes,
+          });
+          if (!reading) {
+            // A HELD token whose pool was emptied is worth $0, not "unknown".
+            // Left unpriced it drops out of the book (overstating it) and can
+            // never be sold; marked at zero the loss lands in equity and the
+            // drain exit writes it off (paper.ts sells a $0 mark as a write-off).
+            const key = t.address.toLowerCase();
+            if (!paperHeldTokens.has(key)) continue;
+            const state = await readSpotState(mainnetClient(), {
+              manager: p.manager,
+              poolId: p.poolId as `0x${string}`,
+              currency0: p.currency0 as `0x${string}`,
+              currency1: p.currency1 as `0x${string}`,
+            }).catch(() => null);
+            if (!state || state.liquidity !== 0n) continue;
+            prices.set(t.symbol, {
+              price8: 0n,
+              stale: false,
+              source: "spot",
+              detail: "spot · pool emptied (liquidity pulled) — marked at $0 · paper only",
+              liquidityUsdg: 0n,
+            });
+            lastLiquidityUsd.set(key, 0);
+            lastDepthBasis.set(key, "spot");
+            spotPriced.add(t.symbol);
+            continue;
+          }
+          prices.set(t.symbol, {
+            price8: reading.price8,
+            stale: false,
+            source: "spot",
+            detail: `spot · ${p.manager === SPOT_MANAGERS.uniswapV4 ? "Uniswap v4" : "PancakeSwap Infinity"} · ~$${Math.round(reading.liquidityUsd).toLocaleString()} deep · paper only`,
+            liquidityUsdg: cashUnits(reading.liquidityUsd),
+          });
+          lastLiquidityUsd.set(t.address.toLowerCase(), reading.liquidityUsd);
+          lastDepthBasis.set(t.address.toLowerCase(), "spot");
+          spotPriced.add(t.symbol);
+        }
+      }
+    }
+
+    poolRefusals = new Map(refused.filter((r) => !spotPriced.has(r.symbol)).map((r) => [r.symbol, r.reason]));
     // Key on the refusal KIND, never the prose. The reasons embed a live pool
     // balance and a divergence percentage, so a key built from them changes
     // every time anyone trades — and "tell the owner when this changes" would
@@ -1725,6 +1831,22 @@ async function main() {
   /** Depth per token from the last pool read — what an exit judges a drain against. */
   const lastLiquidityUsd = new Map<string, number>();
   /**
+   * What each lastLiquidityUsd reading measured (see PriceQuote.depthBasis), and
+   * what each trench position's ENTRY baseline measured.
+   *
+   * The drain exit compares the two, and it must not compare different routes:
+   * readRoutedPrice picks the deeper of the direct pool and the BNB route, and a
+   * rate-limited read of one BNB leg silently drops that route for a tick. Seen
+   * 2026-09-25 on DJTB — $2.97M via BNB at entry, $165k direct a tick later —
+   * a "94% drain" that sold the position, re-entered it, and sold it again.
+   * A reading on another basis is treated as no reading: the check skips that
+   * tick (null already means "skip" there), and a real drain on the same basis
+   * still fires at once. Entry bases live in memory, so after a restart the
+   * first comparison runs unguarded, as it always did.
+   */
+  const lastDepthBasis = new Map<string, string>();
+  const trenchEntryBasis = new Map<string, string>();
+  /**
    * Symbols HELD this tick that nobody could price.
    *
    * Published for the strategy layer, because a position absent from
@@ -1745,6 +1867,83 @@ async function main() {
    * Live trenching is reachable, it just costs the owner the same two deliberate
    * steps as any other token. That is the feature, not a limitation.
    */
+  /**
+   * PAPER-ONLY DISCOVERIES: fresh launches the trencher may trade on paper.
+   *
+   * A discovered token used to be un-priceable everywhere, because only
+   * watchTokens get priced, and watchTokens is the owner's own list. The note
+   * above calls paper "the one place a discovery feed can drive entries", yet
+   * no discovery could ever pass `priceable`, and no paper book ever held one.
+   *
+   * So on paper, running trencher, discoveries join the watch set exactly as a
+   * hand-added custom token would: priced by the same pool guards, valued the
+   * same way, sold by the same exits. What they never join is the LIVE limits.
+   * `active.limits` stays built from baseWatchTokens(), and only the paper rail
+   * widens its check (policyLimitsFor). A paper-only token that reaches the live
+   * rail is refused outright, since the signed key could not sell it.
+   *
+   * HELD FIRST. The trencher holds for up to maxHoldSec, well past the 24h the
+   * candidate window covers, and a holding dropped from the watch set can be
+   * neither valued nor sold. So anything the paper book still holds stays in,
+   * ahead of fresh launches, so a newer token squatting on its symbol cannot
+   * push it out (watchTokensFor keeps the first of a symbol).
+   */
+  let paperOnlyTokens: ReadonlySet<string> = new Set<string>();
+  /** Paper-only tokens the paper book HOLDS right now, lowercased. */
+  let paperHeldTokens: ReadonlySet<string> = new Set<string>();
+  async function refreshPaperDiscoveries(agentId: string): Promise<void> {
+    const held: { symbol: string; address: `0x${string}`; decimals: number }[] = [];
+    const fresh: typeof held = [];
+    if (cfg.strategy === "trencher" && paperActive()) {
+      const holding = new Set(
+        Object.values((await getPaperBook(agentId, cfg.paperStartUsdg)).shares)
+          .filter((v) => v.shares > 0)
+          .map((v) => v.token.toLowerCase()),
+      );
+      paperHeldTokens = holding;
+      const reach = TRENCHER_DEFAULTS.maxAgeSec + TRENCHER_DEFAULTS.maxHoldSec;
+      const nowSec = Math.floor(Date.now() / 1000);
+      for (const c of await recentCandidates(reach, 500, { poolsOnly: true })) {
+        const token = { symbol: c.symbol, address: c.address as `0x${string}`, decimals: c.decimals };
+        if (holding.has(c.address.toLowerCase())) held.push(token);
+        // ONLY LAUNCHES THAT COULD QUALIFY. Every watched token costs up to ~20
+        // pool reads a tick, and watching all ~75 of a day's launches made 1,100
+        // calls a tick against the public RPC, 75% of them failing — which read
+        // as "no pool" and blinded the trencher to the one launch that passed.
+        // Most launches are born empty; one discovery measured at under half the
+        // entry floor is not worth pricing every minute.
+        else if (
+          nowSec - c.firstSeen <= TRENCHER_DEFAULTS.maxAgeSec &&
+          c.liquidityUsd >= TRENCHER_PAPER.minLiquidityUsd / 2
+        ) {
+          fresh.push(token);
+        }
+      }
+    }
+    const base = baseWatchTokens();
+    const baseAddrs = new Set(base.map((t) => t.address.toLowerCase()));
+    watchTokens = watchTokensFor(cfg.basketSymbols, [...cfg.customTokens, ...held, ...fresh]);
+    const next = new Set(watchTokens.map((t) => t.address.toLowerCase()).filter((a) => !baseAddrs.has(a)));
+    if (next.size !== paperOnlyTokens.size) {
+      console.log(`[trencher] paper: ${next.size} discovered token(s) in the watch set (${held.length} held)`);
+    }
+    paperOnlyTokens = next;
+  }
+  const touchesPaperOnly = (intent: TradeIntent): boolean =>
+    intent.kind === "swap" &&
+    [intent.sellToken, intent.buyToken].some((t) => paperOnlyTokens.has(t.toLowerCase()));
+  /** The limits a PAPER fill is checked against: the live ones, plus this tick's discoveries. */
+  const policyLimitsFor = (limits: AgentLimits, paper: boolean): AgentLimits =>
+    paper && paperOnlyTokens.size > 0
+      ? {
+          ...limits,
+          allowedAssets: [...limits.allowedAssets, ...([...paperOnlyTokens] as `0x${string}`[])],
+          sellableAssets: limits.sellableAssets
+            ? [...limits.sellableAssets, ...paperOnlyTokens]
+            : limits.sellableAssets,
+        }
+      : limits;
+
   // Once per arm — a warning repeated every 60 seconds is a log nobody reads.
   let trencherRailAnnounced = false;
   async function trenchCandidates(): Promise<Candidate[]> {
@@ -1785,7 +1984,11 @@ async function main() {
     }
     const nowSec = Math.floor(Date.now() / 1000);
     const out: Candidate[] = [];
-    for (const c of await recentCandidates(TRENCHER_DEFAULTS.maxAgeSec, 25, { poolsOnly: true })) {
+    // THE WHOLE WINDOW, not the newest 25. BNB sees ~90 launches a day, mostly
+    // empty pools, so a cap of 25 dropped a qualifying launch out of view within
+    // hours (DJTB, 2026-09-25: the day's only pass, 52 launches back). Judging a
+    // candidate is in-memory; its price was already read with the watch set.
+    for (const c of await recentCandidates(TRENCHER_DEFAULTS.maxAgeSec, 200, { poolsOnly: true })) {
       // Look the price up by ADDRESS, not by the symbol alone. `lastPrices` is
       // symbol-keyed and filled only from watchTokens, while a candidate's
       // symbol is attacker-chosen text out of the launchpad — so a memecoin
@@ -1796,6 +1999,11 @@ async function main() {
       const sameToken = watchTokens.find(
         (t) => t.symbol === c.symbol && t.address.toLowerCase() === c.address.toLowerCase(),
       );
+      // On paper, a launch outside the watch set was left out ON PURPOSE (too
+      // thin at birth, see refreshPaperDiscoveries) and can never be priced;
+      // discovery already announced it, so it is skipped rather than logged as
+      // "can't be priced" once a minute for a day.
+      if (!sameToken && paperActive()) continue;
       const quote = sameToken ? lastPrices.get(c.symbol) : undefined;
       out.push({
         symbol: c.symbol,
@@ -1829,20 +2037,28 @@ async function main() {
       if (basis.qtyRaw <= 0n || basis.costUsdg <= 0n) continue;
       const entry = await getTrenchEntry(active.agentId, mode, t.symbol);
       if (!entry) continue; // not a trench entry — another strategy's position
+      // The recorded basis survives restarts; the in-memory map is only its cache.
+      if (entry.depthBasis) trenchEntryBasis.set(t.address.toLowerCase(), entry.depthBasis);
       // Fill in a baseline that was stamped unknown, now that depth is
       // readable. Only ever upgrades a zero, and never moves a real one: the
       // drain check measures against depth AT ENTRY, so re-anchoring it later
       // would make a drain that already happened stop counting as one.
       if (entry.liquidityUsd <= 0) {
         const now = lastLiquidityUsd.get(t.address.toLowerCase());
-        if (now !== undefined && now > 0 && (await upgradeTrenchEntry(active.agentId, mode, t.symbol, now))) {
+        const nowBasis = lastDepthBasis.get(t.address.toLowerCase()) ?? null;
+        if (now !== undefined && now > 0 && (await upgradeTrenchEntry(active.agentId, mode, t.symbol, now, nowBasis))) {
+          if (nowBasis) trenchEntryBasis.set(t.address.toLowerCase(), nowBasis);
           entry.liquidityUsd = now;
           console.log(`[trench] ${t.symbol} baseline filled in at $${Math.round(now).toLocaleString()}`);
         }
       }
-      // costUsdg(6dp) / qty(10^dec) → USD per whole token at 8dp.
+      // cost (CASH_DECIMALS) / qty (10^dec) → USD per whole token at 8dp. This
+      // was `* 100n`, the 6dp→8dp step of USDG; on 18dp USDT that put every
+      // entry 10^12 too high, so every position read "down 100%" and was
+      // stop-lossed the tick after it opened.
       const entryPrice8 =
-        (basis.costUsdg * 10n ** BigInt(t.decimals ?? 18) * 100n) / basis.qtyRaw;
+        (basis.costUsdg * 10n ** BigInt(t.decimals ?? 18) * 10n ** 8n) /
+        (basis.qtyRaw * 10n ** BigInt(CASH_DECIMALS));
       out.push({
         symbol: t.symbol,
         token: t.address,
@@ -1857,8 +2073,32 @@ async function main() {
   }
 
   let lastDiscoveryAt = 0;
+  /**
+   * The trencher's other empty feed, SAID ONCE.
+   *
+   * Discovery is the trencher's only source of candidates, and without a key it
+   * returns in silence — right for everyone else, whose strategy never reads it.
+   * For a trencher owner that silence is an agent that never trades and never
+   * says why, which is the same shape the live-rail warning above was written
+   * to end.
+   */
+  let trencherFeedAnnounced = false;
+  function announceNoTrencherFeed(agentId: string, why: string, remedy: string): void {
+    if (cfg.strategy !== "trencher" || trencherFeedAnnounced) return;
+    trencherFeedAnnounced = true;
+    console.log(`[trencher] ${why}, so the candidate feed is empty. ${remedy}`);
+    void addEvent(
+      agentId,
+      "warn",
+      `trencher is running but ${why}, so it sees no new launches and will never open a position. ${remedy}`,
+    );
+  }
+
   async function runDiscovery(agentId: string): Promise<void> {
-    if (!cfg.discoveryEnabled) return;
+    if (!cfg.discoveryEnabled) {
+      announceNoTrencherFeed(agentId, "discovery is turned off", "Turn on discovery in settings.");
+      return;
+    }
     const creds = resolveBitquery({
       bitqueryApiKey: cfg.bitqueryApiKey,
       // The holder token doubles as the gateway credential — the same one the
@@ -1868,7 +2108,15 @@ async function main() {
       // discovery must not force choosing it for thinking as well.
       oathwallToken: cfg.oathwallToken ?? (cfg.llmProvider === "oathwall" ? cfg.llmApiKey : undefined),
     });
-    if (!creds) return; // no key, no discovery — honest silence, not an error
+    if (!creds) {
+      // No key, no discovery — silence for every strategy but the one that depends on it.
+      announceNoTrencherFeed(
+        agentId,
+        "discovery has no Bitquery key",
+        "Add a Bitquery API key in settings, or an oathwall holder token (it covers discovery too).",
+      );
+      return;
+    }
     const nowSec = Math.floor(Date.now() / 1000);
     if (nowSec - lastDiscoveryAt < cfg.discoveryIntervalMin * 60) return;
     lastDiscoveryAt = nowSec;
@@ -1904,6 +2152,8 @@ async function main() {
         // The PoolKey rides along when the Initialize event carried one — this
         // is the moment a hooked pool becomes routable, and the only one.
         ...(d.key ? { key: d.key } : {}),
+        // The singleton pool, for the paper trencher's spot pricing.
+        ...(d.spot ? { spot: d.spot } : {}),
       });
       const line = describeDiscovery(d);
       console.log(`[discovery] ${line}`);
@@ -2334,6 +2584,7 @@ async function main() {
           })
         : undefined;
     const agentId = await ensureAgent(grant);
+    const resumedOnPaper = (await modeOf(agentId)) === "paper";
 
     // THE PEAK COMES BACK IMMEDIATELY AFTER THE ROW EXISTS, and before anything
     // that can fail.
@@ -2677,10 +2928,11 @@ async function main() {
       // The provenance set for the curve-trade rule. Read once at arm time,
       // alongside every other grant-derived bound, so a curve the agent never
       // saw launch cannot be traded even though the wall cannot pin it.
-      limits: limitsFromGrant(grant, watchTokens, (await knownCurves()) ?? undefined),
+      limits: limitsFromGrant(grant, baseWatchTokens(), (await knownCurves()) ?? undefined),
       // Read once here, with every other grant-derived bound, because deciding
       // it per-tick would re-parse a serialized signature that cannot change.
       deadPolicy,
+      resumedOnPaper,
       accountDeployed,
       breakerLive,
       v4AdapterLive,
@@ -2850,6 +3102,9 @@ async function main() {
       const tok = watchTokens.find((t) => t.symbol === f.symbol);
       if (f.side === "buy" && tok) {
         const depth = lastLiquidityUsd.get(tok.address.toLowerCase());
+        const basis = lastDepthBasis.get(tok.address.toLowerCase());
+        if (basis) trenchEntryBasis.set(tok.address.toLowerCase(), basis);
+        else trenchEntryBasis.delete(tok.address.toLowerCase());
         // ALWAYS stamp a row, even with an unknown baseline.
         //
         // This reverses a change that was half right. The original bug was real
@@ -2865,7 +3120,7 @@ async function main() {
         // The row goes in with 0 when depth is unknown, which the drain guard
         // already reads as "no baseline, this check is off" — and
         // upgradeTrenchEntry fills it in the first tick a real reading arrives.
-        await setTrenchEntry(agentId, mode, f.symbol, depth ?? 0);
+        await setTrenchEntry(agentId, mode, f.symbol, depth ?? 0, basis ?? null);
         if (depth === undefined) {
           console.log(`[trench] no depth reading for ${f.symbol} — baseline stamped unknown, will fill in later`);
         }
@@ -3083,7 +3338,15 @@ async function main() {
       equityKnown,
       nowSec: Math.floor(Date.now() / 1000),
     };
-    const verdict = checkPolicy(intent, limits, state, await scoutContextFor(intent));
+    // A paper-only token is checked against the widened limits ONLY on the paper
+    // rail, and the fork below refuses it on any other, so the two can never meet.
+    const paperOnlyIntent = touchesPaperOnly(intent);
+    const verdict = checkPolicy(
+      intent,
+      policyLimitsFor(limits, paperOnlyIntent && execMode().mode === "paper"),
+      state,
+      await scoutContextFor(intent),
+    );
     const notional =
       intent.kind === "swap" || intent.kind === "equity-order" || intent.kind === "curve-trade"
         ? intent.notionalUsdg
@@ -3253,6 +3516,22 @@ async function main() {
     // trading off, a wrong-chain or empty account previously fell THROUGH this
     // block to the live rail and built a swap against a dead chain.
     const execRail = execMode();
+    if (paperOnlyIntent && execRail.mode !== "paper") {
+      // The rail moved between the policy check and here (a balance read landed
+      // mid-intent). This token was only ever admitted for simulation; the
+      // signed key cannot sell it, so a live buy would strand the position.
+      console.log(`[policy] refused ${intent.kind} — discovered token is paper-only, and this agent is no longer on paper`);
+      await recordTrade({
+        agent_id: agentId,
+        kind: intent.kind,
+        target: tradeTarget,
+        ...tokenLegs(intent),
+        amount_usdg: usdgNum(notional),
+        status: "rejected",
+        reject_rule: "paper-only-asset",
+      });
+      return;
+    }
     if (execRail.mode === "refuse") {
       console.log(`[policy] approved ${intent.kind} — not executed (${execRail.rule})`);
       // Leave a trace. This used to return with only a console line, so
@@ -4365,6 +4644,7 @@ async function main() {
 
     await refreshConfig();
     const armed = await syncGrant();
+    if (active) await refreshPaperDiscoveries(active.agentId);
 
     const market = await readMarketSafety();
     // Beat again WITH the height once the chain has answered, so the file still
@@ -4719,8 +4999,14 @@ async function main() {
       // (or charge fees) against money that never existed. The paper book
       // keeps its own HWM so the drawdown breaker still works in practice.
       //
+      // THE UNORACLED-MARK GUARD, BACK FOR SPOT. positions.ts records what would
+      // require it: a price source with no oracle behind it. A spot mark is one
+      // (see spot-price.ts), and a pumped launch would otherwise set a peak the
+      // paper breaker then measures the unwind from. So while any holding is
+      // spot-marked the peak holds where it was; it resumes once they are gone.
+      const spotMarked = positions.some((p) => p.priceSource === "spot");
       const bookRow = await getPaperBook(agentId, cfg.paperStartUsdg);
-      if (usdgNum(equityUsdg) > bookRow.hwmUsdg) {
+      if (!spotMarked && usdgNum(equityUsdg) > bookRow.hwmUsdg) {
         bookRow.hwmUsdg = usdgNum(equityUsdg);
         await setPaperBook(agentId, bookRow);
       }
@@ -5038,7 +5324,7 @@ async function main() {
               qtyRaw: String(pp.rawBalance),
               valueUsdg: Number(pp.valueUsdg),
               costBasisUsdg: null,
-              priceSource: pp.priceSource === "pool" ? "pool" : "chainlink",
+              priceSource: pp.priceSource === "chainlink" ? "chainlink" : "pool",
               quarantined: false,
             })),
             // NULL SURVIVES AS NULL all the way to Brain, which refuses on it.

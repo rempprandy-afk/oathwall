@@ -13,7 +13,7 @@ import { makeCustomStrategy } from "./custom";
 import { steadyBasketTick, type SteadyBasketConfig } from "./steady-basket";
 import { evenKeelTick, type EvenKeelConfig } from "./even-keel";
 import { makeDipHunter, type DipHunterConfig } from "./dip-hunter";
-import { makeTrencher, TRENCHER_DEFAULTS, type Candidate, type OpenPosition } from "./trencher";
+import { makeTrencher, TRENCHER_DEFAULTS, type Candidate, type OpenPosition, type TrencherConfig } from "./trencher";
 import type { Strategy } from "./types";
 
 /** Free, open strategies — available to everyone. */
@@ -88,6 +88,8 @@ export interface StrategyBuildOpts {
     open: () => readonly OpenPosition[] | Promise<readonly OpenPosition[]>;
     liquidityOf: (token: `0x${string}`) => number | null;
     unpriceable?: () => ReadonlySet<string>;
+    /** The trencher config for this tick; defaults to TRENCHER_DEFAULTS. */
+    cfg?: () => TrencherConfig;
   };
 }
 
@@ -215,6 +217,7 @@ export function buildStrategy(name: string, opts: StrategyBuildOpts): Strategy {
     const t = opts.trench;
     return makeTrencher({
       cfg: TRENCHER_DEFAULTS,
+      ...(t?.cfg ? { cfgNow: t.cfg } : {}),
       swapRouter: opts.swapRouter,
       usdgToken: t?.usdgToken ?? (CASH.USD as `0x${string}`),
       candidates: t?.candidates ?? (() => []),
