@@ -37,7 +37,7 @@ import { builtinGrantTargets, type GrantCaps } from "./grant";
  * and a library version bump that moves the address must fail the probe loudly
  * rather than quietly follow it into a different contract.
  */
-const RATE_LIMIT_POLICY_WITH_RESET = "0x6a06358e6b283921deceabe7e8a3741d506cca9b" as Address;
+export const RATE_LIMIT_POLICY_WITH_RESET = "0x6a06358e6b283921deceabe7e8a3741d506cca9b" as Address;
 
 /**
  * Cash conversion lives in ./cash now, and this re-export is the migration

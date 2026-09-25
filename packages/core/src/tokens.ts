@@ -121,7 +121,13 @@ export interface PriceQuote {
    * to match the writer would send a historical bonding-curve mark through the
    * default arm — and the default arm means Chainlink-grade.
    */
-  source: "chainlink" | "pool";
+  source: "chainlink" | "pool" | "spot";
+  /**
+   * "spot" = the INSTANTANEOUS price of a singleton pool (Uniswap v4 /
+   * PancakeSwap Infinity), which keeps no oracle — no TWAP, no divergence band,
+   * one trade can move it. Produced ONLY for the paper trencher's discoveries
+   * (worker/src/venues/spot-price.ts) and never for anything live.
+   */
   /** For pool prices: route + depth, so a human can judge the number. */
   detail?: string;
   /**
@@ -135,6 +141,14 @@ export interface PriceQuote {
    * liquidation. Never write 0n to mean unknown.
    */
   liquidityUsdg?: bigint;
+  /**
+   * WHAT `liquidityUsdg` MEASURED: "direct" (the token's own cash pool), "weth"
+   * (the thinner leg of the BNB route) or "spot" (a singleton pool's reserve).
+   * Two depths on different bases are not comparable, and a route can flip
+   * between ticks when one leg's read fails, so the trencher's drain exit uses
+   * this to refuse to compare them. Absent when unknown.
+   */
+  depthBasis?: "direct" | "weth" | "spot";
 }
 
 /** Reject anything that isn't a plausible ERC-20 entry before it can reach a
@@ -318,6 +332,8 @@ export function priceSourceTag(source: string): string {
       return "pool px";
     case "v4":
       return "v4 px";
+    case "spot":
+      return "spot px";
     case "broker":
       return "broker px";
     case "curve":
@@ -344,6 +360,8 @@ export function priceSourceNote(source: string): string {
       return "v4 px = read off a concentrated-liquidity pool with no vanilla oracle, so no divergence check was possible — it passed depth, fee and round-trip cost checks instead.";
     case "broker":
       return "broker px = the venue's own last-trade print, not a Chainlink feed.";
+    case "spot":
+      return "spot px = the instantaneous price of a brand-new pool with no oracle — no time average and no divergence check, so one trade can move it. Used only for paper trading.";
     case "curve":
       return "curve px = read straight off a bonding curve. There is no oracle behind it and no divergence check — the reserves are the entire market, so one trade can move it a long way.";
     default:

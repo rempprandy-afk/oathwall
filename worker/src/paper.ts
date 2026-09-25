@@ -126,7 +126,12 @@ export function applyPaperIntent(
   const stockToken = (buyingStock ? intent.buyToken : intent.sellToken) as `0x${string}`;
   const px = opts.priceUsdOf(stockToken);
   const symbol = opts.symbolOf(stockToken);
-  if (!px || !symbol || px.priceUsd <= 0) {
+  // A $0 mark is a real price for exactly one thing: SELLING a holding whose
+  // pool was emptied (a rug), which the spot reader marks at zero. The sale
+  // writes the position off at $0 so the loss lands in the book instead of the
+  // holding sitting unvalued forever. Buying at $0 is never a fill.
+  const writeOff = !!px && px.priceUsd === 0 && !buyingStock;
+  if (!px || !symbol || (px.priceUsd <= 0 && !writeOff)) {
     return { ok: false, reason: `no live price for ${symbol ?? stockToken} — paper fill refused`, book, positions };
   }
   // "px stale", not "px 24/5". The old tag told an owner the feed was asleep
@@ -158,6 +163,17 @@ export function applyPaperIntent(
 
   // selling stock for USDG
   if (!held || held.shares <= 0) return { ok: false, reason: `no paper ${symbol} to sell`, book, positions };
+  if (writeOff) {
+    const gone = held.shares;
+    held.shares = 0;
+    return {
+      ok: true,
+      book: next,
+      positions: pos.filter((p) => p.shares > 1e-9),
+      receipt: `paper write-off: −${gone.toFixed(4)} ${symbol} @ $0 (pool emptied)`,
+      fill: { side: "sell", symbol, token: stockToken, shares: gone, priceUsd: 0, cashUsdg: 0 },
+    };
+  }
   const want = n / px.priceUsd;
   const soldUi = Math.min(want, held.shares);
   const proceeds = soldUi * px.priceUsd * (1 - slip);

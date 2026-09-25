@@ -82,3 +82,26 @@ describe("paper fills — the loop with zero funds", () => {
  *
  * No BNB token has a multiplier, so `shares` is now simply the balance.
  */
+
+describe("a rugged holding is written off at $0, never bought at $0", () => {
+  const RUG = "0x0000000000000000000000000000000000007777" as `0x${string}`;
+  const zero = { ...OPTS, priceUsdOf: (t: `0x${string}`) => (t === RUG ? { priceUsd: 0, stale: false } : null), symbolOf: (t: `0x${string}`) => (t === RUG ? "RUG" : null), notionalUsdg: 0 };
+
+  it("sells the whole holding for nothing and books it as a write-off", () => {
+    const held: PaperPosition[] = [{ symbol: "RUG", token: RUG, shares: 86_918 }];
+    const sell: TradeIntent = { kind: "swap", target: ROUTER, sellToken: RUG, buyToken: USDG, sellAmountRaw: 0n, notionalUsdg: 0n };
+    const r = applyPaperIntent(sell, book(), held, zero);
+    assert.equal(r.ok, true);
+    assert.equal(r.positions.length, 0);
+    assert.equal(r.book.cashUsdg, 1000, "no proceeds");
+    assert.equal(r.fill?.cashUsdg, 0);
+    assert.match(r.receipt!, /write-off/);
+  });
+
+  it("refuses to BUY at a $0 mark", () => {
+    const b: TradeIntent = { kind: "swap", target: ROUTER, sellToken: USDG, buyToken: RUG, sellAmountRaw: 0n, notionalUsdg: 0n };
+    const r = applyPaperIntent(b, book(), [], { ...zero, notionalUsdg: 5 });
+    assert.equal(r.ok, false);
+    assert.match(r.reason!, /no live price/);
+  });
+});

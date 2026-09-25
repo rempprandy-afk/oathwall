@@ -360,9 +360,12 @@ export async function readPoolPrice(
       client.readContract({ address: best.pool, abi: POOL_ABI, functionName: "slot0" }) as Promise<
         readonly [bigint, number, number, number, number, number, boolean]
       >,
-      client
-        .readContract({ address: best.pool, abi: POOL_ABI, functionName: "liquidity" })
-        .catch(() => 0n) as Promise<bigint>,
+      // NO `.catch(() => 0n)` HERE. A failed read is not an empty pool: under
+      // load the public RPC drops calls, and each dropped one became "$0 deep",
+      // refused as too thin — DJTB ($991k deep) read as $0 for an hour on
+      // 2026-09-25 and fell out of the book. Throwing lands in the catch below
+      // as null, so the price cache keeps its last good route (and ages it out).
+      client.readContract({ address: best.pool, abi: POOL_ABI, functionName: "liquidity" }) as Promise<bigint>,
     ]);
     const tokenIsToken0 = token0.toLowerCase() === args.token.toLowerCase();
     const shape = {

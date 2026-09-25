@@ -164,8 +164,14 @@ export function DesktopSidebar({
   const [filter, setFilter] = useState("all");
   const watchlist = useWatchlist();
   const [sort, setSort] = useState<"name" | "change">("name");
-  const held = new Set(positionsOf(mine).map((p) => p.symbol));
+  const positions = positionsOf(mine);
+  const held = new Set(positions.map((p) => p.symbol));
   const list = tokens.filter((t) => filter === "held" ? held.has(t.symbol) : filter === "watch" ? watchlist.ids.includes(t.id) : true);
+  // Held tokens the market list does not carry (a new launch the agent bought).
+  // The list above is the registry, so filtering it alone said "No tokens held
+  // yet" while the agent held four. They show as plain rows: there is no market
+  // page to open for a token nobody listed.
+  const unlistedHeld = filter === "held" ? positions.filter((p) => !tokens.some((t) => t.symbol === p.symbol)) : [];
   list.sort((a, b) =>
     sort === "name"
       ? a.symbol.localeCompare(b.symbol)
@@ -220,7 +226,7 @@ export function DesktopSidebar({
       >
         <div className="desktop-market-heading">
           <h2>{bnbChain.name}</h2>
-          <span>{list.length} {list.length === 1 ? "token" : "tokens"}</span>
+          <span>{list.length + unlistedHeld.length} {list.length + unlistedHeld.length === 1 ? "token" : "tokens"}</span>
         </div>
         <div className="desktop-market-tabs">
           <button
@@ -273,12 +279,25 @@ export function DesktopSidebar({
               </span>
             </button>
           ))}
+          {unlistedHeld.map((p) => (
+            <div key={`held-${p.symbol}`} className="desktop-market-row" title="Held by your agent — a new launch, not in the market list">
+              <Coin symbol={p.symbol} logo="" />
+              <span>
+                <strong>{p.symbol}</strong>
+                <small>New launch · not listed</small>
+              </span>
+              <span>
+                <strong>{p.detail}</strong>
+                <small>held</small>
+              </span>
+            </div>
+          ))}
           {/* "Markets are unavailable" is a claim about the venue; "we have not
               asked yet" and "we asked and could not be told" are claims about
               us. The list is seeded from the canonical registry, so an empty
               one under the "all" filter really does mean a failed read — but it
               still has to say which kind. */}
-          {!list.length && (
+          {!list.length && !unlistedHeld.length && (
             <p className="meta">
               {filter === "watch"
                 ? "Watch a token to find it here."
