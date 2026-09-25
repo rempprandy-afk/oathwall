@@ -430,7 +430,9 @@ describe("trencher's discoveries are tradable on PAPER and never widen the live 
   });
 
   it("held positions are kept watched ahead of fresh launches, so an exit is never stranded", () => {
-    assert.match(src, /watchTokensFor\(cfg\.basketSymbols, \[\.\.\.cfg\.customTokens, \.\.\.held, \.\.\.fresh\]\)/);
+    assert.match(src, /watchTokensFor\(cfg\.basketSymbols, \[\.\.\.cfg\.customTokens, \.\.\.held, \.\.\.fresh\.slice\(0, PAPER_WATCH_FRESH_MAX\)\]\)/);
+    // v2 launches never go through the v3 reader: their reserves are read directly.
+    assert.match(src, /tokens: feedless\.filter\(\(t\) => !v2Only\.has\(t\.symbol\)\),/);
   });
 });
 

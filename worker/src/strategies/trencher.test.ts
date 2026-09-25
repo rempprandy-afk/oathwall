@@ -298,3 +298,29 @@ describe("the paper age floor is the rug filter", () => {
     assert.equal(shouldEnter(young, TRENCHER_PAPER, 0).enter, false);
   });
 });
+
+describe("a sold token is not bought back inside the cooldown", () => {
+  it("sells, then passes on the same launch next tick even though it still qualifies", async () => {
+    const { makeTrencher } = await import("./trencher");
+    const TOKEN = "0x00000000000000000000000000000000000000c1" as const;
+    let open: OpenPosition[] = [position({ symbol: "CATE", token: TOKEN, qtyRaw: 7n * 10n ** 18n })];
+    const s = makeTrencher({
+      cfg: { ...TRENCHER_DEFAULTS, reentryCooldownSec: 6 * 3600 },
+      swapRouter: "0x00000000000000000000000000000000000000f0",
+      usdgToken: "0x00000000000000000000000000000000000000aa",
+      candidates: async () => [candidate({ token: TOKEN })],
+      open: async () => open,
+      liquidityOf: () => null,
+      unpriceable: () => new Set(open.length ? ["CATE"] : []),
+    });
+    const snap = {
+      cashUsdg: 10n ** 30n, vaultUsdg: 0n, holdings: new Map(), prices: new Map(),
+      pausedTokens: new Set<string>(), staleFeeds: new Set<string>(), chainLive: true,
+      spendHeadroomUsdg: 10n ** 30n, perTradeCapUsdg: 10n ** 30n,
+    } as unknown as Snapshot;
+    const first = await run(s, snap);
+    assert.equal(first.length, 1, "the unpriceable position is sold");
+    open = [];
+    assert.equal((await run(s, snap)).length, 0, "and not bought straight back");
+  });
+});

@@ -304,6 +304,15 @@ export async function POST(req: Request) {
   // grant.json holds the owner + session PRIVATE KEYS — owner-only perms (0600).
   await writeFile(GRANT_FILE, JSON.stringify(grant, null, 2), { encoding: "utf8", mode: 0o600 });
   await chmod(GRANT_FILE, 0o600).catch(() => {});
+  // SELF-HOSTED GETS A PUBLIC ID TOO. Only the hosted branch minted one, and the
+  // feed renders a post only when its agent has a slug — so a self-hosted
+  // agent's own trades were recorded and then never shown ("Quiet."). The owner
+  // is the tenant here: there is no login, and it is the key the account is for.
+  try {
+    await getIdentityStore().ensure(grant.owner, grant.smartAccount as `0x${string}`);
+  } catch (e) {
+    console.error("[grants] could not mint a public id:", e instanceof Error ? e.message : e);
+  }
   return NextResponse.json({ ok: true });
 }
 

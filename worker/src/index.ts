@@ -1651,11 +1651,23 @@ async function main() {
       lastRefusalKey = null;
       return;
     }
+    // PAPER v2 LAUNCHES SKIP THE v3 READER. A v2 pair has no v3 pool, and asking
+    // cost ~20 calls a token: with v2 discovery on, ~900 wasted calls a tick,
+    // 67% of all calls failing, and ticks stretching past two minutes. Their
+    // reserves are read in the spot pass below instead, one call each.
+    const paperPools = paperOnlyTokens.size
+      ? await spotPoolsFor(feedless.filter((t) => paperOnlyTokens.has(t.address.toLowerCase())).map((t) => t.address))
+      : new Map<string, { manager: string; poolId: string; currency0: string; currency1: string }>();
+    const v2Only = new Set(
+      feedless
+        .filter((t) => paperPools.get(t.address.toLowerCase())?.manager === SPOT_MANAGERS.pancakeV2)
+        .map((t) => t.symbol),
+    );
     const { quotes, refused } = await poolPrices.read({
       // Pools live on MAINNET, like the feeds — a testnet grant still values its
       // book against the real market rather than against nothing.
       client: mainnetClient(),
-      tokens: feedless,
+      tokens: feedless.filter((t) => !v2Only.has(t.symbol)),
       guard: {
         minLiquidityUsdg: usdg(cfg.minPoolLiquidityUsdg),
         maxDivergenceBps: cfg.maxPriceDivergenceBps,
@@ -1726,12 +1738,14 @@ async function main() {
     );
     const spotPriced = new Set<string>();
     if (spotWanted.length) {
-      const pools = await spotPoolsFor(spotWanted.map((t) => t.address));
+      const pools = paperPools;
       if (pools.size) {
         const quotes = await readSpotQuotes(mainnetClient(), Math.floor(Date.now() / 1000));
-        for (const t of spotWanted) {
+        // In parallel: one read a token, and ~20 tokens read in sequence was a
+        // tick-length wait on a slow RPC.
+        await Promise.all(spotWanted.map(async (t) => {
           const p = pools.get(t.address.toLowerCase());
-          if (!p || !isSpotManager(p.manager)) continue;
+          if (!p || !isSpotManager(p.manager)) return;
           const reading = await readSpotPrice(mainnetClient(), {
             pool: {
               manager: p.manager,
@@ -1749,14 +1763,14 @@ async function main() {
             // never be sold; marked at zero the loss lands in equity and the
             // drain exit writes it off (paper.ts sells a $0 mark as a write-off).
             const key = t.address.toLowerCase();
-            if (!paperHeldTokens.has(key)) continue;
+            if (!paperHeldTokens.has(key)) return;
             const emptied = await readPoolEmptied(mainnetClient(), {
               manager: p.manager,
               poolId: p.poolId as `0x${string}`,
               currency0: p.currency0 as `0x${string}`,
               currency1: p.currency1 as `0x${string}`,
             });
-            if (emptied !== true) continue;
+            if (emptied !== true) return;
             prices.set(t.symbol, {
               price8: 0n,
               stale: false,
@@ -1767,7 +1781,7 @@ async function main() {
             lastLiquidityUsd.set(key, 0);
             lastDepthBasis.set(key, "spot");
             spotPriced.add(t.symbol);
-            continue;
+            return;
           }
           prices.set(t.symbol, {
             price8: reading.price8,
@@ -1779,7 +1793,7 @@ async function main() {
           lastLiquidityUsd.set(t.address.toLowerCase(), reading.liquidityUsd);
           lastDepthBasis.set(t.address.toLowerCase(), "spot");
           spotPriced.add(t.symbol);
-        }
+        }));
       }
     }
 
@@ -1892,8 +1906,14 @@ async function main() {
   let paperOnlyTokens: ReadonlySet<string> = new Set<string>();
   /** Paper-only tokens the paper book HOLDS right now, lowercased. */
   let paperHeldTokens: ReadonlySet<string> = new Set<string>();
+  /**
+   * Fresh launches watched at once, deepest first. With v2 discovery a day can
+   * leave ~50 qualifying launches, and every watched token is priced every tick
+   * against a public RPC; held tokens are always watched on top of this.
+   */
+  const PAPER_WATCH_FRESH_MAX = 20;
   async function refreshPaperDiscoveries(agentId: string): Promise<void> {
-    const held: { symbol: string; address: `0x${string}`; decimals: number }[] = [];
+    const held: { symbol: string; address: `0x${string}`; decimals: number; depth: number }[] = [];
     const fresh: typeof held = [];
     if (cfg.strategy === "trencher" && paperActive()) {
       const holding = new Set(
@@ -1905,7 +1925,7 @@ async function main() {
       const reach = TRENCHER_DEFAULTS.maxAgeSec + TRENCHER_DEFAULTS.maxHoldSec;
       const nowSec = Math.floor(Date.now() / 1000);
       for (const c of await recentCandidates(reach, 500, { poolsOnly: true })) {
-        const token = { symbol: c.symbol, address: c.address as `0x${string}`, decimals: c.decimals };
+        const token = { symbol: c.symbol, address: c.address as `0x${string}`, decimals: c.decimals, depth: c.liquidityUsd };
         if (holding.has(c.address.toLowerCase())) held.push(token);
         // ONLY LAUNCHES THAT COULD QUALIFY. Every watched token costs up to ~20
         // pool reads a tick, and watching all ~75 of a day's launches made 1,100
@@ -1923,7 +1943,8 @@ async function main() {
     }
     const base = baseWatchTokens();
     const baseAddrs = new Set(base.map((t) => t.address.toLowerCase()));
-    watchTokens = watchTokensFor(cfg.basketSymbols, [...cfg.customTokens, ...held, ...fresh]);
+    fresh.sort((a, b) => b.depth - a.depth);
+    watchTokens = watchTokensFor(cfg.basketSymbols, [...cfg.customTokens, ...held, ...fresh.slice(0, PAPER_WATCH_FRESH_MAX)]);
     const next = new Set(watchTokens.map((t) => t.address.toLowerCase()).filter((a) => !baseAddrs.has(a)));
     if (next.size !== paperOnlyTokens.size) {
       console.log(`[trencher] paper: ${next.size} discovered token(s) in the watch set (${held.length} held)`);

@@ -80,6 +80,14 @@ export interface TrencherConfig {
   liquidityDrainFraction: number;
   /** Exit regardless after this long — a trench position isn't an investment. */
   maxHoldSec: number;
+  /**
+   * After selling a token, don't buy it back for this long. Without it a
+   * stop-loss was followed by a re-entry the next tick (BUL, 2026-09-25: out at
+   * -20%, back in a minute later), paying the loss again and again. 0 turns it
+   * off, and off is the default: the same BUL re-entry then closed at +44%, so
+   * the cooldown blocks rebounds as well as churn. An owner's choice, not ours.
+   */
+  reentryCooldownSec: number;
 }
 
 export const TRENCHER_DEFAULTS: TrencherConfig = {
@@ -95,6 +103,7 @@ export const TRENCHER_DEFAULTS: TrencherConfig = {
   takeProfitBps: 10_000, // +100%
   liquidityDrainFraction: 0.5,
   maxHoldSec: 3 * 24 * 3600,
+  reentryCooldownSec: 0,
 };
 
 /**
@@ -232,6 +241,9 @@ export interface TrencherDeps {
  * always more urgent than getting in.
  */
 export function makeTrencher(deps: TrencherDeps): Strategy {
+  // Token → when it was last sold. In memory: a restart forgets it, which costs
+  // at most one early re-entry per token.
+  const soldAt = new Map<string, number>();
   return {
     name: "trencher",
     async tick(snap: Snapshot): Promise<Tick> {
@@ -269,6 +281,7 @@ export function makeTrencher(deps: TrencherDeps): Strategy {
         );
         if (!verdict.exit) continue;
         deps.onNote?.("warn", `trencher: selling ${pos.symbol} — ${verdict.why}`);
+        soldAt.set(pos.token.toLowerCase(), nowSec);
         intents.push({
           kind: "swap",
           target: deps.swapRouter,
@@ -294,6 +307,8 @@ export function makeTrencher(deps: TrencherDeps): Strategy {
       const heldSymbols = new Set(openNow.map((p) => p.symbol));
       for (const c of await deps.candidates()) {
         if (heldSymbols.has(c.symbol)) continue;
+        const sold = soldAt.get(c.token.toLowerCase());
+        if (sold !== undefined && nowSec - sold < cfg.reentryCooldownSec) continue;
         if (snap.pausedTokens.has(c.token.toLowerCase())) continue;
         const size = cfg.perEntryUsdg;
         // Respect the daily headroom as a sizing hint, exactly as other
