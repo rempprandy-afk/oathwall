@@ -16,6 +16,7 @@ import {
   type ChatTurn,
 } from "../account";
 import { ageOf, money, pctPts, type LiveMine, type LiveToken } from "../live";
+import { isActive, summarizeActivity, type ActivityRow } from "../activity";
 import { strategyName } from "../strategy";
 import { Coin, Empty, Face } from "../ui";
 import { BalanceFigure } from "../studio";
@@ -102,7 +103,7 @@ export function Agent({
   const [sending,setSending]=useState(false);
   const [chatError,setChatError]=useState("");
   const [expanded, setExpanded] = useState(false);
-  const [view, setView] = useState<"positions" | "trades">("positions");
+  const [view, setView] = useState<"positions" | "trades" | "activity">("positions");
   const viewport = useRef<HTMLElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const portfolio = useRef<HTMLDialogElement>(null);
@@ -168,6 +169,9 @@ export function Agent({
     (t) => t.symbol.toUpperCase() === latest?.symbol?.toUpperCase(),
   );
   const change = dailyChange(mine);
+  const nowSec = Date.now() / 1000;
+  const activity = summarizeActivity(mine.activity, nowSec);
+  const active = isActive(activity, nowSec);
   const limits: OwnerLimits = {
     perTradeUsd: Number(perTrade) || null,
     perDayUsd: Number(perDay) || null,
@@ -236,6 +240,17 @@ export function Agent({
             )}
           </div>
         }
+        <button
+          type="button"
+          className={`agent-activity-line ${active ? "" : "idle"}`}
+          onClick={() => {
+            setView("activity");
+            setExpanded(true);
+          }}
+        >
+          <i aria-hidden="true" />
+          {activityLine(activity, active, nowSec)}
+        </button>
         <dialog
           ref={portfolio}
           className="portfolio-dialog"
@@ -287,8 +302,34 @@ export function Agent({
               >
                 Trades · {trades.length}
               </button>
+              <button
+                type="button"
+                aria-pressed={view === "activity"}
+                onClick={() => setView("activity")}
+              >
+                Activity
+              </button>
             </div>
-            {view === "positions" ? (
+            {view === "activity" ? (
+              <div className="desk-trades">
+                <p className="desk-muted">
+                  {activity.lastAt === null
+                    ? "Nothing recorded in the last day."
+                    : `Last hour: ${activity.discovered} new ${activity.discovered === 1 ? "launch" : "launches"} found · ` +
+                      `${activity.checked} checked · ${activity.bought} bought · ${activity.sold} sold`}
+                </p>
+                {activity.rows.map((r, i) => (
+                  <article className="desk-trade" key={`${r.at}-${i}`}>
+                    <div>
+                      <strong>{rowTitle(r)}</strong>
+                      {r.count > 1 && <small>×{r.count}</small>}
+                    </div>
+                    <p>{r.detail}</p>
+                    <small>{ageSec(nowSec - r.at)} ago</small>
+                  </article>
+                ))}
+              </div>
+            ) : view === "positions" ? (
               <>
                 {positions.length === 0 && (
                   <p className="desk-muted">No positions reported yet.</p>
@@ -524,6 +565,46 @@ export function Agent({
       </div>
     </div>
   );
+}
+
+/** One line for the agent screen: is it working, and what has it been doing. */
+function activityLine(
+  a: ReturnType<typeof summarizeActivity>,
+  active: boolean,
+  nowSec: number,
+): string {
+  if (a.lastAt === null) return "No activity recorded yet";
+  const last = `last check ${ageSec(nowSec - a.lastAt)} ago`;
+  if (!active) return `Quiet · ${last}`;
+  const parts = [`${a.checked} ${a.checked === 1 ? "launch" : "launches"} checked in the last hour`];
+  if (a.bought) parts.push(`${a.bought} bought`);
+  if (a.sold) parts.push(`${a.sold} sold`);
+  return `Scanning · ${parts.join(" · ")} · ${last}`;
+}
+
+function rowTitle(r: ActivityRow): string {
+  const sym = r.symbol ?? "";
+  switch (r.kind) {
+    case "buy":
+      return `Bought ${sym}`;
+    case "sell":
+      return `Sold ${sym}`;
+    case "pass":
+      return `Passed on ${sym}`;
+    case "found":
+      return `New launch: ${sym}`;
+    default:
+      return r.level === "err" ? "Error" : r.level === "warn" ? "Heads up" : "Note";
+  }
+}
+
+function ageSec(s: number): string {
+  const n = Math.max(0, Math.round(s));
+  if (n < 60) return `${n}s`;
+  const m = Math.round(n / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.round(m / 60);
+  return h < 48 ? `${h}h` : `${Math.round(h / 24)}d`;
 }
 
 function CopyReply({ text }: { text: string }) {

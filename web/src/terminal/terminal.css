@@ -7792,3 +7792,37 @@
   font-size: 12px;
   line-height: 1.5;
 }
+
+/* The agent's activity line: proof of life for an agent that has not traded. */
+:where(.terminal-host) .agent-activity-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  color: var(--tx-2);
+  text-align: left;
+  cursor: pointer;
+}
+:where(.terminal-host) .agent-activity-line i {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--up);
+}
+:where(.terminal-host) .agent-activity-line.idle i {
+  background: var(--tx-2);
+}
+:where(.terminal-host) .agent-activity-line:hover {
+  color: var(--tx);
+}
+@media (min-width: 1100px) {
+  :where(.terminal-host) .agent-activity-line {
+    font-size: 13px;
+  }
+}

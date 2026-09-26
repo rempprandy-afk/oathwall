@@ -266,7 +266,7 @@ export function App() {
   // not zero. `equity:0, cashUsd:0` rendered "$0.00" in the header and the
   // sidebar for somebody who has no account at all, which is a balance we have
   // never read for a book that does not exist.
-  const emptyMine = {name:"Your agent",slug:null,handle:null,owner:null,equity:null,chg24:null,mode:null,thesis:null,moves:[],glance:{id:"custom" as const,label:"",cashUsd:undefined}};
+  const emptyMine = {name:"Your agent",slug:null,handle:null,owner:null,equity:null,chg24:null,mode:null,thesis:null,moves:[],activity:[],glance:{id:"custom" as const,label:"",cashUsd:undefined}};
   const displayMine = mine ?? emptyMine;
 
   return (

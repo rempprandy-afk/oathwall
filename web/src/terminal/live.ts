@@ -2,6 +2,7 @@ import { loadTokenQuotes, applyTokenQuotes } from "./quotes";
 import { TRADABLE_TOKENS, type TokenKind } from "@oathwall/core";
 import { parseStrategy, strategyLabel, type StrategyGlance } from "./strategy";
 import { whyLine } from "./why";
+import type { ActivityEvent } from "./activity";
 
 /**
  * THE FIVE THINGS THE BAR CAN BE ON.
@@ -192,6 +193,8 @@ export interface LiveMine {
   thesis: string | null;
   moves: Thesis[];
   glance: StrategyGlance;
+  /** The last day of the agent's own event log, for the activity view. */
+  activity: ActivityEvent[];
 }
 
 export interface LiveState {
@@ -747,6 +750,7 @@ function mineOf(feed: Feed | null, theses: Thesis[]): LiveMine | null {
         outcomeText:t.reject_rule ?? null,
       };
     }),
+    activity: feed.activity ?? [],
     glance: {
       id: parseStrategy(mode), label: strategyLabel(parseStrategy(mode)),
       // NULL WHEN THE ROW DID NOT CARRY IT. `?? 0` published "you have no
@@ -941,4 +945,5 @@ interface Feed {
   }[];
   equity?: { equity_usdg: number; cash_usdg?: number; vault_usdg?: number; at?: string }[];
   positions?: {symbol:string; value_usdg:number; price_stale?:number}[];
+  activity?: ActivityEvent[];
 }

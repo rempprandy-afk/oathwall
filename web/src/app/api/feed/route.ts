@@ -35,6 +35,10 @@ const DEFAULT_BASKET = [...SETTINGS_DEFAULTS.basketSymbols];
  */
 const TAPE_WINDOW_SEC = 7 * 24 * 3600;
 
+/** The activity view: a day back, capped so a busy trencher can't bloat the payload. */
+const ACTIVITY_WINDOW_SEC = 24 * 3600;
+const ACTIVITY_LIMIT = 200;
+
 export const dynamic = "force-dynamic";
 
 export interface FeedEvent {
@@ -88,9 +92,22 @@ export interface AgentIdentity {
   strategy: string;
   basket: string[];
 }
+/** An event for the owner's activity view — unix seconds, so the client can bucket by time. */
+export interface ActivityEvent {
+  level: FeedEvent["level"];
+  message: string;
+  at: number;
+}
 export interface FeedResponse {
   source: "sqlite" | "none";
   events: FeedEvent[];
+  /**
+   * The last day of events, deeper than `events`. A trencher writes a verdict
+   * for every launch it looks at, every tick, so 40 rows is a few minutes —
+   * too short to say what the agent has been doing. `events` stays at 40
+   * because the You screen reads its newest error off it.
+   */
+  activity: ActivityEvent[];
   equity: EquityPoint[];
   positions: PositionRow[];
   trades: TradeRecord[];
@@ -202,6 +219,7 @@ async function emptyFeed(tenant: `0x${string}` | null = null): Promise<FeedRespo
   return {
     source: "none",
     events: [],
+    activity: [],
     equity: [],
     positions: [],
     trades: [],
@@ -244,6 +262,7 @@ export async function GET(req: Request) {
   return withReadDb(async (db) => {
     if (!db) return NextResponse.json(await emptyFeed(tenant));
     let events: FeedEvent[] = [];
+    let activity: ActivityEvent[] = [];
     let equity: EquityPoint[] = [];
     let positions: PositionRow[] = [];
     let trades: TradeRecord[] = [];
@@ -317,6 +336,19 @@ export async function GET(req: Request) {
         )
         .all(scope)) as { level: FeedEvent["level"]; message: string; created_at: number }[];
       events = rows.map((r) => ({ level: r.level, message: r.message, created_at: fmtEpoch(r.created_at) }));
+    } catch {
+      /* table not created yet */
+    }
+    try {
+      const since = Math.floor(Date.now() / 1000) - ACTIVITY_WINDOW_SEC;
+      const rows = (await db
+        .prepare(
+          `SELECT level, message, created_at
+           FROM events WHERE agent_id = ? AND created_at >= ?
+           ORDER BY created_at DESC, id DESC LIMIT ${ACTIVITY_LIMIT}`,
+        )
+        .all(scope, since)) as { level: FeedEvent["level"]; message: string; created_at: number }[];
+      activity = rows.map((r) => ({ level: r.level, message: r.message, at: Number(r.created_at) }));
     } catch {
       /* table not created yet */
     }
@@ -470,6 +502,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       source: "sqlite",
       events,
+      activity,
       equity,
       positions,
       trades,
