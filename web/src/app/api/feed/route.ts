@@ -12,6 +12,7 @@ import { tenantOf } from "@/lib/auth";
 import { withReadDb, fmtEpoch } from "@/lib/ledger";
 import { getIdentityStore } from "@oathwall/identity-store";
 import { hostedAgentFor } from "@/lib/agent-for";
+import { SUMMARY_WINDOW_SEC, summarizeActivity, type ActivitySummary } from "@/terminal/activity";
 
 // The basket the WORKER actually defaults to when none is configured.
 // TRADEABLE_SYMBOLS (14) was the registry of what CAN be traded, not the
@@ -35,9 +36,13 @@ const DEFAULT_BASKET = [...SETTINGS_DEFAULTS.basketSymbols];
  */
 const TAPE_WINDOW_SEC = 7 * 24 * 3600;
 
-/** The activity view: a day back, capped so a busy trencher can't bloat the payload. */
-const ACTIVITY_WINDOW_SEC = 24 * 3600;
-const ACTIVITY_LIMIT = 200;
+/**
+ * How many of the last hour's events the activity summary reads. A busy
+ * trencher writes ~4,300 an hour (one verdict per launch per tick), so the
+ * summary is computed here over the whole hour and only the folded result is
+ * sent — a client-side cap would have covered three minutes.
+ */
+const ACTIVITY_SCAN_LIMIT = 5000;
 
 export const dynamic = "force-dynamic";
 
@@ -92,22 +97,17 @@ export interface AgentIdentity {
   strategy: string;
   basket: string[];
 }
-/** An event for the owner's activity view — unix seconds, so the client can bucket by time. */
-export interface ActivityEvent {
-  level: FeedEvent["level"];
-  message: string;
-  at: number;
-}
 export interface FeedResponse {
   source: "sqlite" | "none";
   events: FeedEvent[];
   /**
-   * The last day of events, deeper than `events`. A trencher writes a verdict
-   * for every launch it looks at, every tick, so 40 rows is a few minutes —
-   * too short to say what the agent has been doing. `events` stays at 40
-   * because the You screen reads its newest error off it.
+   * The last hour of events, summarised (terminal/activity.ts). A trencher
+   * writes a verdict for every launch it looks at, every tick, so the 40 rows
+   * of `events` are a few minutes — too short to say what the agent has been
+   * doing. `events` stays at 40 because the You screen reads its newest error
+   * off it.
    */
-  activity: ActivityEvent[];
+  activity: ActivitySummary | null;
   equity: EquityPoint[];
   positions: PositionRow[];
   trades: TradeRecord[];
@@ -219,7 +219,7 @@ async function emptyFeed(tenant: `0x${string}` | null = null): Promise<FeedRespo
   return {
     source: "none",
     events: [],
-    activity: [],
+    activity: null,
     equity: [],
     positions: [],
     trades: [],
@@ -262,7 +262,7 @@ export async function GET(req: Request) {
   return withReadDb(async (db) => {
     if (!db) return NextResponse.json(await emptyFeed(tenant));
     let events: FeedEvent[] = [];
-    let activity: ActivityEvent[] = [];
+    let activity: ActivitySummary | null = null;
     let equity: EquityPoint[] = [];
     let positions: PositionRow[] = [];
     let trades: TradeRecord[] = [];
@@ -340,15 +340,25 @@ export async function GET(req: Request) {
       /* table not created yet */
     }
     try {
-      const since = Math.floor(Date.now() / 1000) - ACTIVITY_WINDOW_SEC;
+      const nowSec = Math.floor(Date.now() / 1000);
       const rows = (await db
         .prepare(
           `SELECT level, message, created_at
            FROM events WHERE agent_id = ? AND created_at >= ?
-           ORDER BY created_at DESC, id DESC LIMIT ${ACTIVITY_LIMIT}`,
+           ORDER BY created_at DESC, id DESC LIMIT ${ACTIVITY_SCAN_LIMIT}`,
         )
-        .all(scope, since)) as { level: FeedEvent["level"]; message: string; created_at: number }[];
-      activity = rows.map((r) => ({ level: r.level, message: r.message, at: Number(r.created_at) }));
+        .all(scope, nowSec - SUMMARY_WINDOW_SEC)) as { level: FeedEvent["level"]; message: string; created_at: number }[];
+      activity = summarizeActivity(
+        rows.map((r) => ({ level: r.level, message: r.message, at: Number(r.created_at) })),
+        nowSec,
+      );
+      // The newest event may be older than the hour; a quiet agent still says when it last spoke.
+      if (activity.lastAt === null) {
+        const newest = (await db
+          .prepare(`SELECT created_at FROM events WHERE agent_id = ? ORDER BY created_at DESC, id DESC LIMIT 1`)
+          .get(scope)) as { created_at: number } | undefined;
+        if (newest) activity.lastAt = Number(newest.created_at);
+      }
     } catch {
       /* table not created yet */
     }

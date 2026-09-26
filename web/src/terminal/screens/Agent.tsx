@@ -16,7 +16,7 @@ import {
   type ChatTurn,
 } from "../account";
 import { ageOf, money, pctPts, type LiveMine, type LiveToken } from "../live";
-import { isActive, summarizeActivity, type ActivityRow } from "../activity";
+import { isActive, type ActivityRow, type ActivitySummary } from "../activity";
 import { strategyName } from "../strategy";
 import { Coin, Empty, Face } from "../ui";
 import { BalanceFigure } from "../studio";
@@ -170,8 +170,8 @@ export function Agent({
   );
   const change = dailyChange(mine);
   const nowSec = Date.now() / 1000;
-  const activity = summarizeActivity(mine.activity, nowSec);
-  const active = isActive(activity, nowSec);
+  const activity = mine.activity;
+  const active = activity !== null && isActive(activity, nowSec);
   const limits: OwnerLimits = {
     perTradeUsd: Number(perTrade) || null,
     perDayUsd: Number(perDay) || null,
@@ -313,12 +313,14 @@ export function Agent({
             {view === "activity" ? (
               <div className="desk-trades">
                 <p className="desk-muted">
-                  {activity.lastAt === null
-                    ? "Nothing recorded in the last day."
-                    : `Last hour: ${activity.discovered} new ${activity.discovered === 1 ? "launch" : "launches"} found · ` +
-                      `${activity.checked} checked · ${activity.bought} bought · ${activity.sold} sold`}
+                  {activity === null
+                    ? "Couldn't read the agent's activity."
+                    : activity.rows.length === 0
+                      ? "Nothing recorded in the last hour."
+                      : `Last hour: ${activity.discovered} new ${activity.discovered === 1 ? "launch" : "launches"} found · ` +
+                        `${activity.checked} checked · ${activity.bought} bought · ${activity.sold} sold`}
                 </p>
-                {activity.rows.map((r, i) => (
+                {(activity?.rows ?? []).map((r, i) => (
                   <article className="desk-trade" key={`${r.at}-${i}`}>
                     <div>
                       <strong>{rowTitle(r)}</strong>
@@ -568,11 +570,8 @@ export function Agent({
 }
 
 /** One line for the agent screen: is it working, and what has it been doing. */
-function activityLine(
-  a: ReturnType<typeof summarizeActivity>,
-  active: boolean,
-  nowSec: number,
-): string {
+function activityLine(a: ActivitySummary | null, active: boolean, nowSec: number): string {
+  if (a === null) return "Activity unavailable";
   if (a.lastAt === null) return "No activity recorded yet";
   const last = `last check ${ageSec(nowSec - a.lastAt)} ago`;
   if (!active) return `Quiet · ${last}`;
