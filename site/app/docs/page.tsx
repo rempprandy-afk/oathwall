@@ -37,7 +37,7 @@ export default function Docs() {
       <article className="doc-body">
         <h1>Documentation</h1>
         <p className="doc-lead">
-          oathwall is a self-hosted autonomous trading agent for Robinhood Chain. Everything
+          oathwall is a self-hosted autonomous trading agent for BNB Chain. Everything
           runs on your machine; your keys never leave it. This guide takes you from install to a
           named agent you chat with on Telegram.
         </p>

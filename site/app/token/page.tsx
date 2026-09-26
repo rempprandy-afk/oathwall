@@ -124,7 +124,7 @@ export default function TokenPage() {
 
         <h2>How to join</h2>
         <ol>
-          <li>Hold $OATHWALL in any wallet you control on Robinhood Chain.</li>
+          <li>Hold $OATHWALL in any wallet you control on BNB Chain.</li>
           <li>
             In the dashboard, open the <strong>Oathwall Circle</strong> panel and paste that wallet
             address (or set <code className="inline">holderAddress</code> in settings).
@@ -137,7 +137,7 @@ export default function TokenPage() {
 
         <h2>The token, on-chain</h2>
         <p>
-          $OATHWALL lives on Robinhood Chain — the same chain the agents trade — and was launched via
+          $OATHWALL lives on BNB Chain — the same chain the agents trade — and was launched via
           Virtuals. Verify it yourself:
         </p>
         <div style={{ margin: "16px 0 8px" }}>

@@ -18,7 +18,7 @@ const PROPOSALS = [
   {
     tag: "Basket",
     title: "Add a token to the default basket",
-    body: "Which Robinhood-Chain stock token should join the default equal-weight basket next — e.g. NVDA, TSLA, or an ETF like SPY?",
+    body: "Which BNB Chain token should join the default equal-weight basket next — e.g. NVDA, TSLA, or an ETF like SPY?",
   },
   {
     tag: "Strategy",

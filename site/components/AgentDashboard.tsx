@@ -158,7 +158,7 @@ export function AgentDashboard() {
           <a className="link" href={`${EXPLORER}/address/${showing}`} target="_blank" rel="noreferrer">
             {showing.slice(0, 10)}…{showing.slice(-8)}
           </a>{" "}
-          straight from Robinhood Chain. Nothing here passes through a server of ours.
+          straight from BNB Chain. Nothing here passes through a server of ours.
         </p>
       )}
 

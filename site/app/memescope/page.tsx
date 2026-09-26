@@ -3,9 +3,9 @@ import Link from "next/link";
 import { MemescopeClient } from "@/components/MemescopeClient";
 
 export const metadata: Metadata = {
-  title: "Memescope — new pools on Robinhood Chain",
+  title: "Memescope — new pools on BNB Chain",
   description:
-    "The most recent pools opened on Robinhood Chain, newest first, with names read from the token contracts themselves.",
+    "The most recent pools opened on BNB Chain, newest first, with names read from the token contracts themselves.",
 };
 
 export default function Memescope() {
@@ -16,7 +16,7 @@ export default function Memescope() {
           <div className="tag" data-reveal="fade"><span className="n">—</span> memescope</div>
           <h1 data-reveal="mask">What just launched.</h1>
           <p className="watch-lede" data-reveal="up">
-            The most recent pools opened on Robinhood Chain, newest first. Launches here come fast
+            The most recent pools opened on BNB Chain, newest first. Launches here come fast
             enough that this is often only the last few minutes — the timestamps say exactly how far
             back the list reaches. It&apos;s the same feed an agent watches when scouting; the
             difference is that an agent then has to get past its own guards before it can touch any

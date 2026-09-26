@@ -4,7 +4,7 @@ import { useState } from "react";
 
 /**
  * The $OATHWALL token contract address, verifiable on-chain. Launched via
- * Virtuals on Robinhood Chain (the same chain the agents trade). Factual only
+ * Virtuals on BNB Chain (the same chain the agents trade). Factual only
  * — no price, no "buy", no returns; the footer already carries the
  * not-financial-advice line.
  */
@@ -25,7 +25,7 @@ export function TokenCA() {
   return (
     <div className="token-ca">
       <span className="token-ca-label">
-        <b>$OATHWALL</b> token · Robinhood Chain
+        <b>$OATHWALL</b> token · BNB Chain
       </span>
       <code className="token-ca-addr" title={CA}>{CA}</code>
       <button type="button" className="token-ca-btn" onClick={copy}>
