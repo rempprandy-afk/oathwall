@@ -223,9 +223,15 @@ export interface LiveState {
   };
 }
 
-/** Company mark for a listed token. A memecoin with no logo of its own gets the Coin fallback. */
-const COMPANY = (symbol: string) =>
-  `https://financialmodelingprep.com/image-stock/${symbol}.png`;
+/**
+ * The mark for a basket token, served from this app (web/public/tokens, from
+ * Trust Wallet's MIT-licensed asset repo, keyed by the BNB contract address).
+ * These were a stock-logo service's images for tickers that happen to share a
+ * symbol with a BNB token. Anything not listed — every memecoin — gets "", which
+ * the Coin component draws as its fallback.
+ */
+const TOKEN_LOGOS = new Set(["WBNB", "BTCB", "ETH", "CAKE", "USDC", "USDT"]);
+const tokenLogo = (symbol: string) => (TOKEN_LOGOS.has(symbol) ? `/tokens/${symbol}.png` : "");
 
 export function compactUsd(n: number | null): string {
   if (n === null || !Number.isFinite(n)) return "—";
@@ -357,7 +363,7 @@ function registryTokens(): LiveToken[] {
     id: t.address.toLowerCase(),
     symbol: t.symbol,
     name: t.name,
-    logo: COMPANY(t.symbol),
+    logo: tokenLogo(t.symbol),
     priceUsd: null,
     change24hPct: null,
     fdvUsd: null,
@@ -443,7 +449,7 @@ export async function loadLive(onMine?: (mine: LiveMine | null) => void): Promis
       symbol: t.symbol,
       name: t.name,
       logo:
-        t.kind === "memecoin" ? t.logo : COMPANY(t.symbol),
+        t.kind === "memecoin" ? t.logo : tokenLogo(t.symbol),
       priceUsd: t.priceUsd,
       change24hPct: null,
       fdvUsd: null,

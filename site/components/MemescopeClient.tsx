@@ -2,17 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { EXPLORER, ageOf } from "@/lib/chain";
+import { EXPLORER, ageOf, quoteSymbol } from "@/lib/chain";
 import { fetchScope, type ScopePool } from "@/lib/gateway";
 
 /** Matches the gateway's shared-cache TTL — polling faster returns the same bytes. */
 const POLL_MS = 45_000;
 
-const USDG = "0x5fc5360d0400a0fd4f2af552add042d716f1d168";
-
-function quoteLabel(quote: string): string {
-  return quote.toLowerCase() === USDG ? "USDG" : "WETH";
-}
 
 function PoolRow({ p }: { p: ScopePool }) {
   const short = `${p.token.slice(0, 8)}…${p.token.slice(-6)}`;
@@ -22,7 +17,7 @@ function PoolRow({ p }: { p: ScopePool }) {
         {/* The gateway already stripped this to [A-Za-z0-9._-] and capped it —
             a token's name is written by whoever deployed it. */}
         {p.symbol ?? <span className="scope-unknown">unreadable</span>}
-        <span className="scope-pair">/{quoteLabel(p.quote)}</span>
+        <span className="scope-pair">/{quoteSymbol(p.quote)}</span>
       </div>
       <div className="scope-age">{ageOf(p.createdAt)}</div>
       <a className="scope-addr" href={`${EXPLORER}/token/${p.token}`} target="_blank" rel="noreferrer">

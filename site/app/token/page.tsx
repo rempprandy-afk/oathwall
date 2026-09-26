@@ -137,8 +137,8 @@ export default function TokenPage() {
 
         <h2>The token, on-chain</h2>
         <p>
-          $OATHWALL lives on BNB Chain — the same chain the agents trade — and was launched via
-          Virtuals. Verify it yourself:
+          $OATHWALL lives on BNB Chain — the same chain the agents trade. Once the contract address
+          is published you can verify it yourself:
         </p>
         <div style={{ margin: "16px 0 8px" }}>
           <TokenCA />

@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { EXPLORER, ageOf, fetchTrades, formatAmount, headBlock, isAddress, type Trade } from "@/lib/chain";
+import { EXPLORER, HISTORY_BLOCKS, LOGS_RPC_HOST, RPC_HOST, ageOf, fetchTrades, formatAmount, headBlock, isAddress, type Trade } from "@/lib/chain";
 
-const POLL_MS = 6_000;
+// ~33 BNB blocks. Every tick is several requests to a free public node, and
+// faster than this one viewer was enough to get the page rate-limited.
+const POLL_MS = 15_000;
 
 type Status = "idle" | "loading" | "live" | "error";
 
@@ -87,7 +89,7 @@ export function WatchClient() {
         if (h !== null) setHead(h);
         setTrades((prev) => {
           // Merge rather than replace so a row never flickers out and back while
-          // the explorer's page boundary shifts under a live feed.
+          // the read window slides forward under a live feed.
           const merged = new Map(prev.map((t) => [t.txHash, t]));
           for (const t of fresh) merged.set(t.txHash, t);
           return [...merged.values()].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0)).slice(0, 100);
@@ -160,7 +162,7 @@ export function WatchClient() {
 
       {watching && status === "live" && trades.length === 0 && (
         <p className="watch-empty">
-          No token movements on this account yet. A agent running in{" "}
+          No token movements on this account in the last half hour. An agent running in{" "}
           <strong>paper mode</strong> simulates its fills and never touches the chain, so it shows an
           empty tape by design — as does one that&apos;s funded but hasn&apos;t opened a position.
           That&apos;s the honest answer, not a failure.
@@ -176,13 +178,22 @@ export function WatchClient() {
       )}
 
       <p className="watch-foot">
-        History read from the chain&apos;s own block explorer at{" "}
-        <code className="inline">{EXPLORER.replace("https://", "")}</code>, block height from{" "}
-        <code className="inline">{RPC_HOST}</code>. No server of ours sits in between — open the
-        network tab and check.
+        Read straight from public BNB Chain nodes at <code className="inline">{RPC_HOST}</code> and{" "}
+        <code className="inline">{LOGS_RPC_HOST}</code>. No server of ours sits in between — open the
+        network tab and check. A free node only keeps
+        about the last {Math.round((HISTORY_BLOCKS * 0.45) / 60)} minutes of history, so that is
+        what this tape covers
+        {watching && (
+          <>
+            ; everything older is on{" "}
+            <a className="link" href={`${EXPLORER}/address/${watching}#tokentxns`} target="_blank" rel="noreferrer">
+              BscScan
+            </a>
+          </>
+        )}
+        .
       </p>
     </>
   );
 }
 
-const RPC_HOST = "rpc.mainnet.chain.robinhood.com";

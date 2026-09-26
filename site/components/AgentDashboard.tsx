@@ -88,7 +88,7 @@ export function AgentDashboard() {
       const msg = e instanceof Error ? e.message : String(e);
       setError(
         msg.includes("timed out") || msg.includes("abort")
-          ? "The explorer didn't answer in time. That happens on accounts holding thousands of airdropped tokens — try again, or check it on the explorer directly."
+          ? "The chain didn't answer in time. Try again, or check it on BscScan directly."
           : `Couldn't read the chain — ${msg}`,
       );
       setState("error");
@@ -120,7 +120,7 @@ export function AgentDashboard() {
   const p = snap?.portfolio;
   const rows = p?.holdings.slice(0, MAX_ROWS) ?? [];
   const hidden = Math.max(0, (p?.holdings.length ?? 0) - rows.length);
-  const gasEth = snap ? Number(snap.gasWei) / 1e18 : 0;
+  const gasBnb = snap ? Number(snap.gasWei) / 1e18 : 0;
 
   return (
     <div className="dash">
@@ -174,8 +174,8 @@ export function AgentDashboard() {
                   zero would report a smaller portfolio than the account has. */}
               {p!.unpricedCount > 0 && (
                 <div className="dash-note">
-                  plus {p!.unpricedCount} token{p!.unpricedCount === 1 ? "" : "s"} the explorer has no
-                  price for — not counted above, not worth nothing
+                  plus {p!.unpricedCount} token{p!.unpricedCount === 1 ? "" : "s"} with no price feed —
+                  not counted above, not worth nothing
                 </div>
               )}
             </div>
@@ -184,8 +184,8 @@ export function AgentDashboard() {
               <span className={`dash-chip ${snap.deployed ? "" : "dash-chip-warn"}`}>
                 {snap.deployed ? "account deployed" : "not deployed yet"}
               </span>
-              <span className={`dash-chip ${gasEth === 0 ? "dash-chip-warn" : ""}`}>
-                {gasEth.toFixed(6)} ETH for gas
+              <span className={`dash-chip ${gasBnb === 0 ? "dash-chip-warn" : ""}`}>
+                {gasBnb.toFixed(6)} BNB for gas
               </span>
             </div>
           </div>
@@ -200,9 +200,9 @@ export function AgentDashboard() {
               <strong>smart account</strong> rather than the owner address.
             </p>
           )}
-          {snap.deployed && gasEth === 0 && (
+          {snap.deployed && gasBnb === 0 && (
             <p className="dash-hint">
-              No ETH here. A smart account pays for its own transactions, so it cannot trade — or be
+              No BNB here. A smart account pays for its own transactions, so it cannot trade — or be
               swept — until someone sends it a little gas.
             </p>
           )}
@@ -256,9 +256,14 @@ export function AgentDashboard() {
           )}
 
           <p className="dash-note">
-            Prices come from the explorer, not from us, and a thin token&apos;s quoted rate can be far
-            from what it would actually sell for. This is what the account holds — for what your
-            agent <em>decided</em>, including the trades its caps refused, open your own dashboard.
+            Prices come from Chainlink&apos;s feeds on BNB Chain, not from us; a token without a feed
+            shows as unpriced. Without an indexer this lists the main tokens plus anything traded in
+            the last half hour — a memecoin bought earlier and still held is on{" "}
+            <a className="link" href={`${EXPLORER}/address/${showing}#asset-tokens`} target="_blank" rel="noreferrer">
+              BscScan
+            </a>
+            . This is what the account holds — for what your agent <em>decided</em>, including the
+            trades its caps refused, open your own dashboard.
           </p>
         </>
       )}
