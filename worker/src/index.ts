@@ -134,7 +134,7 @@ import {
   type ResolvedConfig,
 } from "./settings";
 import { BUILTIN_STRATEGIES, buildStrategy, isCircleStrategy, watchTokensFor } from "./strategies/registry";
-import { TRENCHER_DEFAULTS, TRENCHER_PAPER, type Candidate, type OpenPosition } from "./strategies/trencher";
+import { TRENCHER_DEFAULTS, TRENCHER_LOOSE, type Candidate, type OpenPosition } from "./strategies/trencher";
 import { createPoolPriceReader } from "./venues/pool-prices";
 import { SPOT_MANAGERS, isSpotManager, readPoolEmptied, readSpotPrice, readSpotQuotes } from "./venues/spot-price";
 import { customStrategiesDir, resolveStrategyFile } from "./strategies/custom";
@@ -385,13 +385,12 @@ async function main() {
   /** The owner's own watch set — never the paper-only discoveries. Live limits are built from this. */
   const baseWatchTokens = () => watchTokensFor(cfg.basketSymbols, cfg.customTokens);
   /**
-   * The trencher rules for THIS tick: paper or live, then the owner's tuning on
-   * top. Read fresh each call, so a settings change applies within one tick.
+   * The trencher rules for THIS tick: the loose set, paper and live alike, then
+   * the owner's tuning on top. Read fresh each call, so a settings change
+   * applies within one tick.
    */
-  const trencherCfgNow = () => {
-    const base = paperActive() ? TRENCHER_PAPER : TRENCHER_DEFAULTS;
-    return cfg.trencherTuning ? { ...base, ...cfg.trencherTuning } : base;
-  };
+  const trencherCfgNow = () =>
+    cfg.trencherTuning ? { ...TRENCHER_LOOSE, ...cfg.trencherTuning } : TRENCHER_LOOSE;
 
   // ── paper trading plumbing ────────────────────────────────────────────
   /**
@@ -498,8 +497,7 @@ async function main() {
       // leg a strategy can actually trade rather than a balance it can only see.
       universe: watchTokensFor(c.basketSymbols, c.customTokens),
       trench: {
-        // Looser rules on paper only, decided each tick with the same answer the
-        // execution fork acts on. Live always gets TRENCHER_DEFAULTS.
+        // The loose rules plus the owner's tuning, read fresh each tick.
         cfg: trencherCfgNow,
         usdgToken: CASH.USD as `0x${string}`,
         candidates: trenchCandidates,

@@ -254,20 +254,20 @@ describe("the unpriceable exit, once it can actually be reached", () => {
   });
 });
 
-describe("paper rules: looser to enter, faster to exit, live untouched", () => {
+describe("the loose rules: looser to enter, faster to exit, paper and live alike", () => {
   const qi = { symbol: "QI", token: "0x0000000000000000000000000000000000000001" as const, decimals: 18, priceable: true, liquidityUsd: 8_567, fdvUsd: 13_433, ageSec: 15 * 60, price8: 1n };
 
-  it("a small real launch passes on paper and not live", async () => {
-    const { TRENCHER_DEFAULTS, TRENCHER_PAPER, shouldEnter } = await import("./trencher");
-    assert.equal(shouldEnter(qi, TRENCHER_PAPER, 0).enter, true);
+  it("a small real launch passes the loose rules and not the defaults", async () => {
+    const { TRENCHER_DEFAULTS, TRENCHER_LOOSE, shouldEnter } = await import("./trencher");
+    assert.equal(shouldEnter(qi, TRENCHER_LOOSE, 0).enter, true);
     assert.equal(shouldEnter(qi, TRENCHER_DEFAULTS, 0).enter, false);
     assert.equal(TRENCHER_DEFAULTS.minLiquidityUsd, 25_000);
     assert.equal(TRENCHER_DEFAULTS.maxFdvUsd, 5_000_000);
-    assert.equal(TRENCHER_PAPER.perEntryUsdg, TRENCHER_DEFAULTS.perEntryUsdg);
+    assert.equal(TRENCHER_LOOSE.perEntryUsdg, TRENCHER_DEFAULTS.perEntryUsdg);
   });
 
   it("the tick uses cfgNow when given, so the worker can switch rules per tick", async () => {
-    const { makeTrencher, TRENCHER_DEFAULTS, TRENCHER_PAPER } = await import("./trencher");
+    const { makeTrencher, TRENCHER_DEFAULTS, TRENCHER_LOOSE } = await import("./trencher");
     const run = async (cfgNow?: () => typeof TRENCHER_DEFAULTS) => {
       const s = makeTrencher({
         cfg: TRENCHER_DEFAULTS,
@@ -286,16 +286,16 @@ describe("paper rules: looser to enter, faster to exit, live untouched", () => {
       return takeTick(await s.tick(snap)).intents.length;
     };
     assert.equal(await run(), 0);
-    assert.equal(await run(() => TRENCHER_PAPER), 1);
+    assert.equal(await run(() => TRENCHER_LOOSE), 1);
   });
 });
 
-describe("the paper age floor is the rug filter", () => {
-  it("paper still waits 10 minutes before entering a launch", async () => {
-    const { TRENCHER_DEFAULTS, TRENCHER_PAPER, shouldEnter } = await import("./trencher");
-    assert.equal(TRENCHER_PAPER.minAgeSec, TRENCHER_DEFAULTS.minAgeSec);
+describe("the age floor is the rug filter", () => {
+  it("the loose rules still wait 10 minutes before entering a launch", async () => {
+    const { TRENCHER_DEFAULTS, TRENCHER_LOOSE, shouldEnter } = await import("./trencher");
+    assert.equal(TRENCHER_LOOSE.minAgeSec, TRENCHER_DEFAULTS.minAgeSec);
     const young = candidate({ liquidityUsd: 8_000, fdvUsd: 12_000, ageSec: 2 * 60 });
-    assert.equal(shouldEnter(young, TRENCHER_PAPER, 0).enter, false);
+    assert.equal(shouldEnter(young, TRENCHER_LOOSE, 0).enter, false);
   });
 });
 

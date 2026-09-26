@@ -107,15 +107,16 @@ export const TRENCHER_DEFAULTS: TrencherConfig = {
 };
 
 /**
- * PAPER ONLY: looser, so practice mode shows the trencher actually trading.
+ * The rules the worker actually trades on, paper AND live: looser to enter,
+ * faster to exit.
  *
  * With the defaults above, 1 of 86 BNB launches qualified in a day (2026-09-25).
  * These let ~10 through, and close positions within hours instead of days, so a
- * paper book shows full buy→sell round trips. Never used live: the worker picks
- * this only while the agent is on paper (see `cfgNow` in index.ts). The entry
- * size is unchanged, and the grant's caps still bound every fill.
+ * book shows full buy→sell round trips. First run on paper only; live moved onto
+ * them too (2026-09-26) so live stops sitting idle. The entry size is unchanged,
+ * and the scout budget and the grant's caps still bound every fill.
  */
-export const TRENCHER_PAPER: TrencherConfig = {
+export const TRENCHER_LOOSE: TrencherConfig = {
   ...TRENCHER_DEFAULTS,
   minLiquidityUsd: 5_000,
   minFdvUsd: 10_000,

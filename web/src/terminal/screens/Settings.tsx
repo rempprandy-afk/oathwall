@@ -634,7 +634,7 @@ export default function SettingsPage({onFund}:{onFund:()=>void}) {
 
           {/* The two knobs that decide whether a token gets a price at all. They
               live here, next to the tokens they govern, because the refusal
-              message names them by value ("below your $25,000 floor") and an
+              message names them by value ("below your $5,000 floor") and an
               owner who can't find the dial can't act on that. */}
           <div className="mm-grid" style={{ marginTop: 12 }}>
             <Field

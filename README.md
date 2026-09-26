@@ -422,9 +422,10 @@ your P&L and your drawdown breaker. So:
 
 - **Valuation uses a 15-minute TWAP**, not spot. Moving it means holding the price
   away from the market for the whole window and eating the arbitrage.
-- **Two guards, both yours to set.** A minimum pool depth (default $25,000) and a
+- **Two guards, both yours to set.** A minimum pool depth (default $5,000) and a
   maximum spot-vs-average gap (default 5%). Live pools on this chain run from ~$3k
-  to ~$1.2M, so the default admits the deep end and refuses the rest.
+  to ~$1.2M, so the default refuses only the thinnest, and the gap check refuses
+  a pool being pushed.
 - **A refusal is the feature.** When a pool is too thin or is being pushed right
   now, the token stays *unpriced* and oathwall says why. Your agent keeps trading
   — you can always sell out — but equity, P&L and the breaker pause rather than

@@ -539,10 +539,11 @@ export const SETTINGS_DEFAULTS = {
   // DEFAULT_BASKET_SYMBOLS in tokens.ts.
   basketSymbols: [...DEFAULT_BASKET_SYMBOLS] as string[],
   customTokens: [] as { symbol: string; address: string; decimals: number }[],
-  // $25k of depth and a 5% spot/TWAP band. Deliberately strict: live pools on
-  // this chain run from ~$3k (trivially pushed) to ~$1.2M, so this admits the
-  // deep end and refuses the rest until the owner explicitly loosens it.
-  minPoolLiquidityUsdg: 25_000,
+  // $5k of depth and a 5% spot/TWAP band. Live pools on this chain run from
+  // ~$3k (trivially pushed) to ~$1.2M. The floor was $25k until 2026-09-26 and
+  // came down to match the trencher's entry floor, so live sees the same small
+  // launches paper does; the spot/TWAP band is what still refuses a pushed pool.
+  minPoolLiquidityUsdg: 5_000,
   maxPriceDivergenceBps: 500,
   // Scout mode is OFF and ZERO by default. Buying what you cannot price is a
   // real decision with a real downside, so it is never the default and never
