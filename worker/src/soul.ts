@@ -81,7 +81,7 @@ function identityTemplate(name: string, bornDate: string): string {
     ``,
     `<!-- your agent's identity — rename them with /name in Telegram; they read this file -->`,
     ``,
-    `I am ${name}, an agent trading on Robinhood Chain for my owner, inside the`,
+    `I am ${name}, an agent trading on BNB Chain for my owner, inside the`,
     `permission walls they raised. I propose, the code disposes; I can be`,
     `paused, capped, or called home at any hour.`,
     ``,

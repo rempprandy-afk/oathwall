@@ -1,15 +1,15 @@
 /**
  * WHAT THE BROWSER IS ALLOWED TO ASK A THIRD PARTY, AND HOW IT ASKS.
  *
- * The redesign needed three outside feeds the app had never used — Robinhood's
- * issuer quotes, Yahoo's chart bars, Blockscout's holder list — and reached
- * them by adding wildcard `rewrites()` to next.config.mjs:
+ * The redesign needed outside feeds the app had never used — an issuer quote
+ * feed, Yahoo's chart bars, an explorer's holder list — and reached them by
+ * adding wildcard `rewrites()` to next.config.mjs, one per host:
  *
- *     {source:"/robinhood/:path*", destination:"https://api.robinhood.com/rhj/:path*"}
- *     {source:"/yahoo/:path*",     destination:"https://query1.finance.yahoo.com/:path*"}
- *     {source:"/blockscout/:path*",destination:"https://robinhoodchain.blockscout.com/api/v2/:path*"}
+ *     {source:"/yahoo/:path*", destination:"https://query1.finance.yahoo.com/:path*"}
  *
- * That is three problems in five lines, and the first is the serious one.
+ * That was three problems in a few lines, and the first is the serious one.
+ * The quote feed and the holder list served the chain this product has since
+ * left, and are gone; Yahoo's chart bars are what remains.
  *
  * 1. IT SENDS THE READER'S SESSION COOKIE TO THREE STRANGERS. The session is
  *    set `httpOnly, secure, sameSite:"strict", path:"/"` — `path:"/"` is what
@@ -19,7 +19,7 @@
  *    Yahoo. `sameSite:"strict"` does not help: this IS the site.
  *
  * 2. IT IS AN OPEN PROXY. `:path*` means anyone on the internet can drive our
- *    egress at those three hosts, through our IP and our reputation, at any
+ *    egress at those hosts, through our IP and our reputation, at any
  *    path they choose, unauthenticated — the middleware's cross-site and host
  *    guards only cover `/api/`.
  *
@@ -29,9 +29,8 @@
  * So the browser now asks OUR api, and this module is where the ask is bounded.
  * Requests upstream are BUILT, never forwarded: a fresh URL from validated
  * pieces, a fixed header set, no cookies, a timeout and a byte cap. The symbol
- * must be one this chain actually lists; the window must be one of five; the
- * address must be twenty bytes of hex. There is no arm that takes a caller's
- * string and puts it in a URL.
+ * must be one this chain actually lists and the window must be one the UI
+ * offers. There is no arm that takes a caller's string and puts it in a URL.
  *
  * `coin-image/route.ts` already argued all of this for logos, in 2026-08. This
  * is the same argument applied to data.
@@ -44,26 +43,12 @@ import { TRADABLE_TOKENS } from "@oathwall/core";
 
 /** Hosts this app will talk to on a reader's behalf, and nothing else. */
 export const VENUE_HOSTS = {
-  robinhood: "api.robinhood.com",
   yahoo: "query1.finance.yahoo.com",
-  blockscout: "robinhoodchain.blockscout.com",
 } as const;
 
-/** Bounds. A quote is kilobytes; a chart is tens of them. */
+/** Bounds. A chart is tens of kilobytes. */
 export const MAX_VENUE_BYTES = 2_000_000;
 export const VENUE_TIMEOUT_MS = 10_000;
-
-/**
- * The two Robinhood documents the terminal reads.
- *
- * Named individually rather than matched by pattern: an allow-list of two
- * strings cannot be talked into a third.
- */
-export type QuoteDoc = "assets" | "prices";
-export function quoteUrl(doc: QuoteDoc): string | null {
-  if (doc !== "assets" && doc !== "prices") return null;
-  return `https://${VENUE_HOSTS.robinhood}/rhj/${doc}`;
-}
 
 /**
  * Chart windows the terminal offers, and the upstream shape of each.
@@ -112,20 +97,6 @@ export function chartUrl(symbol: string, window: string): string | null {
     `https://${VENUE_HOSTS.yahoo}/v8/finance/chart/${encodeURIComponent(want)}` +
     `?interval=${interval}&range=${range}`
   );
-}
-
-/**
- * The holder list for one token.
- *
- * Any well-formed address is allowed rather than only the listed ones, because
- * the market view legitimately covers launchpad coins the registry has never
- * heard of. The bound that matters here is the SHAPE — twenty bytes of hex
- * cannot carry a path traversal, a query string or another host.
- */
-export function holdersUrl(address: string): string | null {
-  const want = address.trim().toLowerCase();
-  if (!/^0x[0-9a-f]{40}$/.test(want)) return null;
-  return `https://${VENUE_HOSTS.blockscout}/api/v2/tokens/${want}/holders`;
 }
 
 /**

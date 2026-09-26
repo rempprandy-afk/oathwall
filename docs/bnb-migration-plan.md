@@ -1,8 +1,8 @@
 # BNB Chain migration plan
 
 **Status:** Phases 1–5 landed · **Drafted:** 2026-09-08 · **Updated:** 2026-09-09
-**Decision:** oathwall moves off Robinhood Chain (4663/46630) to BNB Chain (56).
-Robinhood Chain is dropped entirely — not kept as a second chain.
+**Decision:** oathwall moves off the chain it launched on (4663/46630) to BNB Chain (56).
+The previous chain is dropped entirely — not kept as a second chain.
 
 | Phase | State | Commit |
 |---|---|---|
@@ -29,10 +29,10 @@ npx tsx scripts/probe-paper-run.mts            # paper fills at live feeds
 ### What Phase 5 removed, and the four things it found
 
 **~12,000 lines net.** The venue lanes with no deployment on BNB: Pons (curve
-pricing, launch scanning, the self-trade adapter), Rialto, the Robinhood
+pricing, launch scanning, the self-trade adapter), Rialto, the
 brokerage rail and its MCP client, Morpho, and — decided during the phase rather
 than in this plan — the **Uniswap v4 lane**. That last one was not on the §3
-list, but Phase 5's exit criterion is "no reference to Robinhood Chain outside
+list, but Phase 5's exit criterion is "no reference to the previous chain outside
 git history" and `DEAD_ON_BNB.UNISWAP` held twelve 4663 addresses that
 `uniswap-v4.ts`, `v4-keys.ts` and `v4-price.ts` still read. PancakeSwap's own v4
 is a different protocol at different addresses; wiring it is new work.
@@ -52,11 +52,11 @@ five members to two.
    — negative for any token under ten decimals, and BigInt `**` THROWS on a
    negative exponent rather than rounding. The multiplier's 18 had been holding
    it positive by accident. The cash scale moved to the numerator instead.
-3. **Two live Robinhood Chain RPCs were still the DEFAULT**, bypassing the Phase
+3. **Two live previous-chain RPCs were still the DEFAULT**, bypassing the Phase
    1 registry: `cli/bin.mjs` and `orchestrator.ts` each carried their own
-   hardcoded `rpc.mainnet.chain.robinhood.com`. An operator who set no
+   hardcoded RPC URL for the previous chain. An operator who set no
    `OATHWALL_RPC_MAINNET` had the reconciler reading 4663. `GECKO_NETWORK` was
-   still `"robinhood"` too — and GeckoTerminal answers an unknown network with a
+   still the previous chain's slug too — and GeckoTerminal answers an unknown network with a
    404 HTML page, so a stale slug is indistinguishable from a quiet market.
    `contracts/hardhat.config.ts` had been renamed to `bnbTestnet` while keeping
    the 46630 URL and chain id underneath.
@@ -112,7 +112,7 @@ and returned null: the same answer as "all fine". A guard that cannot fire.
 
 ## 1 · What this actually is
 
-This is not a port. Robinhood Stock Tokens do not exist on BNB Chain, so the
+This is not a port. The previous chain's stock tokens do not exist on BNB Chain, so the
 thing the agent trades changes species: tokenized equities become crypto majors
 plus the PancakeSwap longtail.
 
@@ -224,11 +224,11 @@ measurements, which need re-measuring but not rewriting.
 |---|---|---|
 | `weekend-gap` | Enters on Chainlink staleness at equity market close. Crypto never closes. | 1 strategy + tests |
 | Stock Token registry | No tokenized equities on BNB. | `tokens.ts` — 25 symbols, 14 tradeable |
-| ERC-8056 `uiMultiplier` | Robinhood-specific scaled-UI standard. | 13 files / 39 refs |
+| ERC-8056 `uiMultiplier` | The previous chain's scaled-UI standard. | 13 files / 39 refs |
 | Issuer-trust model | Beacon proxy, `adminBurn`, shared pause registry. | folded into above |
-| `venues/pons*` | Robinhood Chain bonding curves. | ~3,069 lines incl tests; 21 files / 58 non-test refs |
-| `rialto.ts` | Robinhood Chain exchange. | 9 files / 26 refs |
-| `robinhood-{auth,id,feed}.ts`, `robinhood-oauth.ts` | Brokerage rail. | ~440 lines |
+| `venues/pons*` | The previous chain's bonding curves. | ~3,069 lines incl tests; 21 files / 58 non-test refs |
+| `rialto.ts` | The previous chain's exchange. | 9 files / 26 refs |
+| The brokerage-rail modules (auth, id, feed, OAuth) | Brokerage rail. | ~440 lines |
 | Sequencer-uptime checks | BNB is an L1. There is no sequencer. | `snapshot.ts` |
 | Morpho 4663 deployment | Chain-specific; canonical Blue address is empty there anyway. | 11 files / 28 refs |
 
@@ -322,8 +322,8 @@ dissimilar backends (Uniswap vs Rialto vs Pons proves it).
   refused unless the signed key can sell it back. This rule is chain-agnostic
   and is the most valuable thing in the venue layer — it must survive the
   rewrite verbatim.
-- **Exit:** round-trip quote for every basket token in both directions, the
-  `probe-tradability.mts` equivalent green.
+- **Exit:** round-trip quote for every basket token in both directions, green
+  on a BNB tradability probe.
 
 ### Phase 4 — strategies + paper mode
 - Delete `weekend-gap` and its tests.
@@ -333,7 +333,7 @@ dissimilar backends (Uniswap vs Rialto vs Pons proves it).
 - **Exit:** a paper-mode run produces sane fills against live BNB feeds.
 
 ### Phase 5 — strip + tighten ✅
-- ✅ Deleted `venues/pons*`, `rialto.ts`, `robinhood-*`, ERC-8056 multiplier
+- ✅ Deleted `venues/pons*`, `rialto.ts`, the brokerage-rail modules, ERC-8056 multiplier
   math, the Uniswap v4 lane, Morpho, and the `DEAD_ON_BNB` block.
 - ✅ `sequencerUp` → `chainLive`, RENAMED rather than deleted — see finding 1.
 - ✅ **`RateLimitPolicy` wired**, and ops/day is on the chain-enforced list
@@ -347,13 +347,13 @@ dissimilar backends (Uniswap vs Rialto vs Pons proves it).
   moved back onto the on-chain list, with the 2026-08-30 correction kept as
   history and the lifetime-vs-refill trap stated.
 - ✅ The wall's approved-spender list went from six to **one**.
-- ✅ `GECKO_NETWORK` re-pointed `"robinhood"` → `"bsc"`, and the last live
-  Robinhood RPC defaults removed from `cli/bin.mjs`, `orchestrator.ts` and
+- ✅ `GECKO_NETWORK` re-pointed from the previous chain's slug to `"bsc"`, and the last live
+  previous-chain RPC defaults removed from `cli/bin.mjs`, `orchestrator.ts` and
   `contracts/hardhat.config.ts`.
 - ✅ The user-strategy surface migrated with a compatibility shim rather than a
   break: the example, the scaffold and `strategies/README.md`.
 - **Exit:** met for `worker/`, `packages/`, `cli/`, `contracts/`, `strategies/`.
-  `web/src` terminal screens, `site/` and `mobile/` still carry Robinhood
+  `web/src` terminal screens, `site/` and `mobile/` still carry previous-chain
   equity-quote lanes and copy — that is Phase 6, below.
 
 **What is NOT done and is not a Phase 6 item.** Three intent kinds —
@@ -365,7 +365,7 @@ touches the security-critical policy file and deserves its own commit.
 
 ### Phase 6 — surfaces
 - `web/src/terminal` — the equity-quote lane (`quotes.ts`, `live.ts`'s
-  `robinhoodFallback`, `Token.tsx`) still fetches Robinhood stock prices and
+  fallback token list, `Token.tsx`) still fetches the old stock-token prices and
   Blockscout/CDN logos. `market.ts` and `venue.ts` name those hosts.
 - `web/src` — files naming USDG or stocks; `mobile/src` — USDG / chain ids.
 - `site/` marketing copy, `docs/`, the grant screen's chain acknowledgement.

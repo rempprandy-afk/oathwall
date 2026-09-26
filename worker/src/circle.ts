@@ -1,7 +1,7 @@
 /**
  * The Oathwall Circle — read a holder's $OATHWALL balance and resolve their tier.
  *
- * $OATHWALL lives on Robinhood Chain mainnet (4663), so the balance is read
+ * $OATHWALL lives on the previous chain mainnet (4663), so the balance is read
  * there regardless of which chain the agent trades on. Read-only: this only ever
  * calls balanceOf; the holder address is never a spend key. The tier lowers the
  * platform performance fee (worker/src/index.ts) and unlocks perks — utility,

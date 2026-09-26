@@ -28,10 +28,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 ## 3. House keys (testnet)
 The orchestrator injects these into each child; a tenant never sets them (they are stripped server-side). For the testnet slice:
-- **Bundler** — `OATHWALL_BUNDLER_API_KEY` (a **Pimlico** key). The worker builds the URL per chain as `https://api.pimlico.io/v2/<chainId>/rpc?apikey=…`; Pimlico supports Robinhood testnet **46630** (listed as `robinhood-testnet`). Get a key at <https://dashboard.pimlico.io> (free tier is fine for the slice). Alternatively set `OATHWALL_BUNDLER_URL` to a full 4337 RPC from any bundler that supports 46630.
-- **RPC** — `OATHWALL_RPC_TESTNET`. The public endpoint is **`https://rpc.testnet.chain.robinhood.com`** (already the chain's built-in default in `packages/core/src/chain.ts`; set it explicitly, or point at a private endpoint for reliability). `OATHWALL_RPC_MAINNET` = `https://rpc.mainnet.chain.robinhood.com` for 4663 later.
+- **Bundler** — `OATHWALL_BUNDLER_API_KEY` (a **Pimlico** key). The worker builds the URL per chain as `https://api.pimlico.io/v2/<chainId>/rpc?apikey=…`; Pimlico supports BNB Smart Chain **56** and its testnet **97**. Get a key at <https://dashboard.pimlico.io> (free tier is fine for the slice). Alternatively set `OATHWALL_BUNDLER_URL` to a full 4337 RPC from any bundler that supports the chain.
+- **RPC** — `OATHWALL_RPC_TESTNET`. The public endpoint is **`https://data-seed-prebsc-1-s1.bnbchain.org:8545`** (already the chain's built-in default in `packages/core/src/chain.ts`; set it explicitly, or point at a private endpoint for reliability). `OATHWALL_RPC_MAINNET` = `https://bsc-dataseed.bnbchain.org` for chain 56.
 - **LLM** (optional, for the strategist) — `GROQ_API_KEY` (free tier) or `ANTHROPIC_API_KEY`.
-- **Gas** — by default the smart account self-pays, so each armed tenant's smart account needs testnet ETH on 46630 from the Robinhood Chain faucet (see <https://docs.robinhood.com/chain/>). Set `OATHWALL_SPONSOR_GAS=1` on the **orchestrator** and the house pays instead, out of the same Pimlico account as the bundler — tenants then fund USDG only. Two things to know before flipping it:
+- **Gas** — by default the smart account self-pays, so each armed tenant's smart account needs testnet BNB on chain 97 from the BNB Chain faucet (<https://www.bnbchain.org/en/testnet-faucet>). Set `OATHWALL_SPONSOR_GAS=1` on the **orchestrator** and the house pays instead, out of the same Pimlico account as the bundler — tenants then fund USDG only. Two things to know before flipping it:
   - **Nothing in this repo caps cumulative spend.** The clamps bound a single operation (`PAYMASTER_GAS_MAX`, `GAS_BOUNDS.absoluteMax`), not a month. The **Pimlico sponsorship policy is the only real limit**, so create one scoped to the chain with per-sender and monthly caps and put its id in `OATHWALL_SPONSORSHIP_POLICY_ID`. Without a policy id `paymasterContext` is undefined and sponsorship is unpoliced.
   - **Withdrawal is never sponsored.** The recovery path pays its own fee out of the balance it is sweeping, so an account still needs a little ETH to get money back OUT. Every screen that mentions sponsorship says so; do not remove that caveat.
 
@@ -65,7 +65,7 @@ The orchestrator injects these into each child; a tenant never sets them (they a
 |---|---|
 | `OATHWALL_START` | `start:orchestrator` — selects the supervisor role of the shared image (web leaves this unset) |
 | `OATHWALL_BUNDLER_API_KEY` *(or `OATHWALL_BUNDLER_URL`)* | Pimlico key / full bundler URL |
-| `OATHWALL_RPC_TESTNET` | `https://rpc.testnet.chain.robinhood.com` (or a private endpoint) |
+| `OATHWALL_RPC_TESTNET` | `https://data-seed-prebsc-1-s1.bnbchain.org:8545` (or a private endpoint) |
 | `OATHWALL_SPONSOR_GAS` *(optional)* | `1` to pay tenants' trading gas from the house Pimlico account. Off by default. |
 | `OATHWALL_SPONSORSHIP_POLICY_ID` *(with the above)* | Pimlico policy id (`sp_…`) — where the real spend limits live |
 | `GROQ_API_KEY` *(optional)* | strategist brain |
@@ -154,7 +154,7 @@ healthcheck it can't answer.
 - Web comes up at `OATHWALL_PUBLIC_ORIGIN`; `GET /api/version` returns 200.
 - Open the dashboard, **sign in** (SIWE — your wallet signs a free challenge), create/**sign a testnet grant** (session-key-only; the owner key never leaves your browser).
 - The orchestrator logs `... spawned (pid …)` for your tenant within ~15s and writes `children/<you>/grant.json` (session key only) + `settings.json`.
-- **Fund** the smart account on testnet (ETH for gas). The child arms and trades on 46630.
+- **Fund** the smart account on testnet (tBNB for gas). The child arms and trades on chain 97.
 
 ## 7. Known limits of the slice (closed in Phase B)
 - **The dashboard feed now reads the shared Postgres** — the ledger→Postgres port (B2) has landed, so `/api/feed` and `/api/scoreboard` show a child's live numbers in hosted mode. (`pg` is a runtime-only dependency the `Dockerfile` installs into the image; it is deliberately absent from `package.json` so self-hosted stays lean.)

@@ -1337,7 +1337,7 @@ async function runReconstructionDryRunIfAsked(): Promise<void> {
       );
     }
     // The registry's own endpoint, not a second copy — this default was the
-    // last live Robinhood Chain RPC in the worker, so an operator who set no
+    // last live RPC of the previous chain in the worker, so an operator who set no
     // OATHWALL_RPC_MAINNET had the reconciler reading 4663 while everything
     // else read BNB.
     const rpcUrl = process.env.OATHWALL_RPC_MAINNET ?? bnbChain.rpcUrls.default.http[0]!;

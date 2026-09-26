@@ -7,7 +7,7 @@
  * Uses the SHIPPED logic in worker/src/gas-backfill.ts rather than a copy, so
  * what this prints is what a backfill would write.
  *
- * WHY THIS IS POSSIBLE WITHOUT AN ARCHIVE NODE. Robinhood Chain's public RPC
+ * WHY THIS IS POSSIBLE WITHOUT AN ARCHIVE NODE. The old chain's public RPC
  * refuses historical state (`eth_call` at an old block returns "metadata is not
  * found"), so the feed cannot be re-read as of the trade. But a Chainlink
  * aggregator keeps its past rounds readable from CURRENT state via
@@ -16,7 +16,12 @@
  */
 import { findRoundAt, priceGasAtRound, type FeedRound } from "../../worker/src/gas-backfill";
 
-const RPC = process.env.OATHWALL_RPC_URL ?? "https://rpc.mainnet.chain.robinhood.com";
+// The old chain's RPC this repair was run against; pass it explicitly.
+const RPC: string =
+  process.env.OATHWALL_RPC_URL ??
+  (() => {
+    throw new Error("set OATHWALL_RPC_URL to the RPC of the chain the ledger was written on");
+  })();
 const ETH_USD = "0x78F3556b67E17Df817D51Ef5a990cDaF09E8d3A9";
 
 const argAt = (flag: string) => {

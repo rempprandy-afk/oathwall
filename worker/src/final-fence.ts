@@ -7,7 +7,7 @@
  * whether they say what we decided.
  *
  * WHY IT IS WORTH THE HUNDRED LINES. Vex took a confirmed production fill on
- * Robinhood Chain 263x worse than quoted, on 2026-08-27, because the execute
+ * the previous chain 263x worse than quoted, on 2026-08-27, because the execute
  * path re-quoted at broadcast time and derived its floor from the fresher route
  * — so the approved quote never reached the signed transaction. oathwall does
  * not have that bug (venues/uniswap.ts threads one quote object from bestRoute

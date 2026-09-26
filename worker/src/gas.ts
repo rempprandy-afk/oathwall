@@ -12,7 +12,7 @@
  *   - Pimlico bundler → its own `pimlico_getUserOperationGasPrice` oracle (the bundler is
  *     guaranteed to accept the fees it quotes — avoids "maxFeePerGas too low" rejects).
  *   - any other bundler, or if that call fails → the chain's public RPC: EIP-1559 fees,
- *     or legacy `eth_gasPrice` when the chain has no base fee (Robinhood Chain is an
+ *     or legacy `eth_gasPrice` when the chain has no base fee (the previous chain is an
  *     Arbitrum-based L3 and may not expose EIP-1559).
  *
  * The account self-pays gas from its own ETH; there is no paymaster.

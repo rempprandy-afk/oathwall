@@ -3,7 +3,7 @@
  * Token addresses and Chainlink feeds probed via eth_getCode / latestAnswer on
  * 2026-09-08. Do not add an entry here without probing it first.
  *
- * WHAT CHANGED, AND WHY IT MATTERS. This registry used to hold Robinhood Stock
+ * WHAT CHANGED, AND WHY IT MATTERS. This registry used to hold issuer-backed Stock
  * Tokens: issuer-backed tokenised equities with 24/5 Chainlink feeds, ERC-8056
  * scaled-UI multipliers, a shared upgrade beacon and an issuer who could pause
  * or adminBurn. None of that exists on BNB Chain. The entries below are ordinary
@@ -110,7 +110,7 @@ export interface PriceQuote {
    * still inside the scout budget on the buy side.
    *
   * "broker", "curve" and "v4" WERE members and were removed in Phase 5 with
-   * their producers — the Robinhood get_equity_quotes rail, the Pons bonding
+   * their producers — the broker's get_equity_quotes rail, the Pons bonding
    * curve, and the Uniswap v4 lane, none of which has code at its address on
    * BNB. Two sources are all this chain can produce.
    *
@@ -167,7 +167,7 @@ export function isValidCustomToken(t: unknown): t is CustomToken {
 /**
  * Cash + gas legs.
  *
- * EVERY BNB STABLE IS 18 DECIMALS, where USDG on Robinhood Chain was 6. That
+ * EVERY BNB STABLE IS 18 DECIMALS, where USDG on the previous chain was 6. That
  * exponent used to be a literal at more than a hundred conversion sites; Phase 2
  * routed every one of them through `CASH_DECIMALS` and `cash.ts`, so the next
  * change to it is one line. See docs/bnb-migration-plan.md §4 for the seven bugs
@@ -218,7 +218,7 @@ export const CASH_FEEDS = {
 /**
  * The curated registry — probed on 2026-09-08, prices read the same day.
  *
- * Deliberately short. The Robinhood registry carried 25 symbols of which 14 had
+ * Deliberately short. The previous registry carried 25 symbols of which 14 had
  * a pool deep enough to trade, and the gap between those two numbers was a
  * standing trap. Starting narrow and widening on evidence is the cheaper
  * mistake: a token absent from this list is a missed opportunity, and a token
@@ -235,7 +235,7 @@ export const TRADABLE_TOKENS: TradableToken[] = [
 /**
  * Tokens the grant's call policy may approve for a SELL.
  *
- * ⚠ NOT YET RE-VERIFIED ON BNB. On Robinhood Chain every entry was confirmed
+ * ⚠ NOT YET RE-VERIFIED ON BNB. On the previous chain every entry was confirmed
  * via QuoterV2 across fee tiers in BOTH directions, because a buy that quotes
  * and a sell that doesn't is a trap, not a feature — and the gap between a
  * stale list and reality once cost people money. That verification is Phase 3
@@ -273,7 +273,7 @@ export const DEFAULT_BASKET_SYMBOLS = ["WBNB", "BTCB", "ETH"] as const;
  *
  * ⚠ CARRIES DEAD ENTRIES UNTIL PHASE 5. `uiMultiplier`, `newUIMultiplier`,
  * `effectiveAt`, `balanceOfUI`, `totalSupplyUI` and the pause reads are
- * ERC-8056 / Robinhood-issuer surface. No BNB token implements them and every
+ * ERC-8056 / stock-token issuer surface. No BNB token implements them and every
  * such call REVERTS. They remain only because the multiplier math in
  * worker/src/positions.ts still references them and removing both at once would
  * break the build mid-migration — see docs/bnb-migration-plan.md, Phase 5.

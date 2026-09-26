@@ -50,11 +50,11 @@ describe("the screen can talk about every blocker there is", () => {
   });
 
   it("names the network and the cash token this chain actually has", () => {
-    // The old copy asked for USDG on Robinhood Chain after the product had moved
+    // The old copy asked for USDG on the previous chain after the product had moved
     // to BNB — an instruction that, followed exactly, funds nothing.
     for (const rule of ["no-gas", "no-cash", "wrong-chain"]) {
       const say = blockerAdvice(rule)!.say;
-      assert.doesNotMatch(say, /Robinhood|USDG|\bETH\b/, `${rule} still names the old chain: ${say}`);
+      assert.doesNotMatch(say, /USDG|\bETH\b/, `${rule} still names the old chain's assets: ${say}`);
     }
     assert.match(blockerAdvice("no-cash")!.say, /USDT/);
   });

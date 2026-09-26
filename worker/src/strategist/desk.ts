@@ -120,11 +120,10 @@ export interface DeskResult {
 /** Long enough for a real view, short enough that a surface can show it whole. */
 export const THESIS_MAX = 400;
 
-const SYSTEM = `You are the trader on a small desk, working one account on Robinhood Chain.
+const SYSTEM = `You are the trader on a small desk, working one account on BNB Chain.
 
-Tokenized equities here trade 24/7 while the underlying markets close nights and weekends, so a
-Chainlink price going stale is the market being shut — expected, not an error. Idle cash earns
-vault yield on its own; you do not manage the vault.
+The account holds cash (USDT) and trades a short list of majors — WBNB, BTCB, ETH, CAKE, USDC —
+on PancakeSwap, around the clock. Idle cash earns nothing; there is no vault to manage.
 
 HOW YOU WORK. You are not answering a quiz. Look into things before you decide: pull the depth on
 a name you are sizing, check what you already paid for something before you add to it or cut it,
@@ -178,7 +177,7 @@ const SUBMIT_TOOL: ToolSpec = {
           properties: {
             action: { type: "string", enum: ["buy", "sell", "hold"] },
             symbol: { type: "string", description: "Exactly as it appears in tradableSymbols." },
-            sizeUsdg: { type: "number", description: "USDG. Must respect maxPerActionUsdg." },
+            sizeUsdg: { type: "number", description: "USD of cash. Must respect maxPerActionUsdg." },
             reason: {
               type: "string",
               description: "One sentence for THIS action, citing the figures that decided it.",

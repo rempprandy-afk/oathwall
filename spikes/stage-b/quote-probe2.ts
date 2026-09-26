@@ -17,7 +17,7 @@ import { bestRoute } from "../../worker/src/venues/pancake";
 import { probeTransport, wire, resetWire, readMeter, resetRpcMeters, setInjector } from "./quote-instrument";
 import { writeFileSync } from "node:fs";
 
-const RPC = process.env.PROBE_RPC ?? "https://rpc.mainnet.chain.robinhood.com";
+const RPC = process.env.PROBE_RPC ?? "https://bsc-dataseed.bnbchain.org";
 const OUT = process.env.PROBE_OUT ?? "quote-probe2.json";
 const PACE = Number(process.env.PROBE_PACE ?? 700);
 const tok = (s: string) => TRADABLE_TOKENS.find((t) => t.symbol === s)!.address;

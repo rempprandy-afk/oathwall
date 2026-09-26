@@ -1,7 +1,7 @@
 /**
  * WHERE THE MONEY IS STACKED — a price-level depth map read from the chain.
  *
- * WHAT THIS IS NOT. There is no order book here to read. Robinhood Chain has no
+ * WHAT THIS IS NOT. There is no order book here to read. The previous chain had no
  * CLOB: Rialto's own OpenAPI says "No orderbook is exposed", the limit-order
  * contracts deployed on 4663 have 0-2 lifetime transactions, and the strategist
  * prompt has always told the model it cannot see one. Anything calling itself an

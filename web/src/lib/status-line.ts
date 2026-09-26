@@ -97,7 +97,7 @@ function firstSentence(s: string, max = 160): string {
  *
  * A user sent ETH to his account address and reported it “appearing in the
  * wallet”, then “topped up a wallet but nothing's showing”. His address held
- * 0.004268 ETH — on ETHEREUM MAINNET. On Robinhood Chain it had never been
+ * 0.004268 ETH — on ETHEREUM MAINNET. On the chain we used it had never been
  * touched: zero balance, zero USDG, nonce 0.
  *
  * He did nothing wrong. He was given an address and no network, and an

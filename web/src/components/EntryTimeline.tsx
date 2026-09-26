@@ -13,7 +13,7 @@ import { AgentAvatar } from "@/components/AgentAvatar";
  * of what is interesting on this chain, reasoning from GeckoPool.poolAddress
  * being null for them. That field is about CALLABILITY — somewhere to send an
  * eth_call — and the index indexes those pools perfectly well: asked directly,
- * /networks/robinhood/pools/<32-byte poolId>/ohlcv/hour returns 200 with real
+ * /networks/<network>/pools/<32-byte poolId>/ohlcv/hour returns 200 with real
  * candles.
  *
  * So the true statement is narrower. No OHLC exists in this repo yet, poolId is

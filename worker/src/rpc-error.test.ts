@@ -4,7 +4,7 @@ import { backoffMs, classifyRpcError } from "./rpc-error";
 
 /**
  * The shapes below are the ones this chain actually produces, not invented
- * ones. The decisive case is the first: what arrives from Robinhood's RPC is a
+ * ones. The decisive case is the first: what arrives from the previous chain's RPC is a
  * viem `RpcRequestError` whose JSON-RPC body says "Rate Limit Hit" and which
  * carries NO HTTP status at all — so a status-only classifier would miss every
  * real rate limit and the whole module would be decorative.

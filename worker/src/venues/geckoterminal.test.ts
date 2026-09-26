@@ -11,15 +11,15 @@ import {
 /**
  * Reading the market the agent could not see.
  *
- * CHUMP below is a VERBATIM trending_pools row for chain 4663, captured
- * 2026-08-29 — not a hand-written fixture. That matters twice over: every
+ * CHUMP below is a real trending_pools row captured 2026-08-29, with its ids
+ * re-prefixed `bsc_` — not a hand-written fixture. That matters twice over: every
  * numeric field really does arrive as a string, and this pool launched on
  * 2026-07-31, so it is exactly the "trending but not new" token discovery was
  * structurally blind to. If GeckoTerminal changes its shape, this is what should
  * fail, rather than the screen quietly returning nothing forever.
  */
 const CHUMP = {
-  id: "robinhood_0x714442e9a611f8561a7df108d6d925132937cfb8",
+  id: "bsc_0x714442e9a611f8561a7df108d6d925132937cfb8",
   type: "pool",
   attributes: {
     base_token_price_usd: "0.0222452357304331",
@@ -36,9 +36,9 @@ const CHUMP = {
     reserve_in_usd: "521702.1056",
   },
   relationships: {
-    base_token: { data: { id: "robinhood_0x0e0d2c89a5a019fe1cf762e5e33187631dacc21b", type: "token" } },
-    quote_token: { data: { id: "robinhood_0x0bd7d308f8e1639fab988df18a8011f41eacad73", type: "token" } },
-    dex: { data: { id: "uniswap-v3-robinhood", type: "dex" } },
+    base_token: { data: { id: "bsc_0x0e0d2c89a5a019fe1cf762e5e33187631dacc21b", type: "token" } },
+    quote_token: { data: { id: "bsc_0x0bd7d308f8e1639fab988df18a8011f41eacad73", type: "token" } },
+    dex: { data: { id: "pancakeswap-v3-bsc", type: "dex" } },
   },
 };
 
@@ -59,7 +59,7 @@ const MICRODUCK = {
     transactions: { h24: { buys: 900, sells: 700, buyers: 310, sellers: 280 } },
   },
   relationships: {
-    base_token: { data: { id: "robinhood_0xd5f1afea47b1a9eab414d2ee740cf1d6d039e725" } },
+    base_token: { data: { id: "bsc_0xd5f1afea47b1a9eab414d2ee740cf1d6d039e725" } },
     dex: { data: { id: "pons-v2-dex" } },
   },
 };
@@ -74,7 +74,7 @@ describe("parseGeckoPool", () => {
     // confusing the two would have the agent trading the pool contract.
     assert.equal(p!.tokenAddress, "0x0e0d2c89a5a019fe1cf762e5e33187631dacc21b");
     assert.equal(p!.name, "CHUMP / WETH 1%");
-    assert.equal(p!.dex, "uniswap-v3-robinhood");
+    assert.equal(p!.dex, "pancakeswap-v3-bsc");
   });
 
   it("turns the API's strings into numbers, not NaN", () => {

@@ -4025,7 +4025,7 @@ async function main() {
         await addEvent(
           agentId,
           "warn",
-          "rialtoApiKey is set, but Rialto was a Robinhood Chain venue and has no BNB deployment — " +
+          "rialtoApiKey is set, but Rialto is a venue on another chain and has no BNB deployment — " +
             "clear the setting and use PancakeSwap. Swap skipped.",
         );
         // AND LEAVE A ROW, not just an event — the rule every refusal in this
@@ -5780,17 +5780,7 @@ async function main() {
         cashDecimals: CASH_DECIMALS,
       });
       if (!depth) return formatNoDepth(symbol);
-
-      // AN OFF-CHAIN CROSS-CHECK USED TO SIT HERE: Robinhood's own published
-      // NBBO for the stock behind the token, fetched best-effort with a 2.5s
-      // timeout, shown beside the on-chain depth so a human could see the two
-      // disagree. It priced EQUITIES, so there is nothing on BNB it could be
-      // asked about — and pointing a "cross-check" at an unrelated venue is
-      // worse than having none. The depth map always stood on its own; it just
-      // stands alone now.
-      const nbboMid: number | null = null;
-
-      return formatDepth({ symbol, depth, nbboMid, fee: best.fee });
+      return formatDepth({ symbol, depth, fee: best.fee });
     } catch (e) {
       console.log(`[depth] ${symbol} failed: ${e instanceof Error ? e.message : String(e)}`);
       return `couldn't read the ${symbol} pool just now — try again in a moment.`;

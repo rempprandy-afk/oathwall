@@ -30,7 +30,7 @@ const config: HardhatUserConfig = {
   // Deploy targets: BNB Chain testnet 97 / mainnet 56.
   //
   // ⚠ THE KEY WAS RENAMED BEFORE THE ENDPOINT WAS. Phase 1 renamed this entry to
-  // `bnbTestnet` while leaving the Robinhood Chain URL and chainId underneath —
+  // `bnbTestnet` while leaving the previous chain's URL and chainId underneath —
   // a network that says BNB and answers 46630, which `--network bnbTestnet`
   // would have deployed against without a word. Both endpoints below were
   // probed on 2026-09-09: 56 at block 120,892,489 and 97 at 130,037,320.

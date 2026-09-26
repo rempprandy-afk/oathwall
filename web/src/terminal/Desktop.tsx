@@ -14,7 +14,6 @@ import { Coin, Face, LogoMark, TabIcon } from "./ui";
 import {
   money,
   coinPrice,
-  quoteTitle,
   pctPts,
   pctBps,
   type LiveAgent,
@@ -272,7 +271,7 @@ export function DesktopSidebar({
                 <small>{t.name}</small>
               </span>
               <span>
-                <strong title={quoteTitle(t)}>{coinPrice(t.priceUsd)}</strong>
+                <strong>{coinPrice(t.priceUsd)}</strong>
                 <small className={deltaClass(t.change24hPct)}>
                   {pctPts(t.change24hPct)}
                 </small>
@@ -575,7 +574,7 @@ export function DesktopTicker({ tokens, onScreen }: Pick<Actions, "onScreen"> & 
           type="button"
           tabIndex={copy ? -1 : undefined}
           onClick={() => onScreen({ kind: "token", id: t.id })}
-          title={quoteTitle(t)}
+         
         >
           <strong>{t.symbol}</strong>
           <span>{coinPrice(t.priceUsd)}</span>

@@ -37,7 +37,7 @@ walkthrough including sell intents.
 
 ## Written before the BNB move?
 
-oathwall moved from Robinhood Chain to BNB Chain. A strategy file from before
+oathwall moved to BNB Chain from the chain it launched on. A strategy file from before
 the move needs these changes:
 
 | was | now |

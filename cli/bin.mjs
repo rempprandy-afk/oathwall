@@ -51,7 +51,7 @@ const WELCOMED = path.join(HOME, ".welcomed");
 // imported, because this file is plain .mjs that must run before any build step
 // — but they are the SAME endpoints, and a probe on 2026-09-09 confirmed both
 // answer with the chain id below. These two constants were the last live
-// Robinhood Chain RPCs in the product: a BNB agent whose settings named no RPC
+// RPCs of the previous chain in the product: a BNB agent whose settings named no RPC
 // fell back to 4663 here and in the orchestrator.
 const RPC_MAINNET = "https://bsc-dataseed.bnbchain.org";
 const RPC_TESTNET = "https://bsc-testnet-dataseed.bnbchain.org";

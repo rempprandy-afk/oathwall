@@ -1,11 +1,7 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 import { AccountEntry, FundingPanel, LimitsPanel, requestJson, type AccountState } from "./HostedControls";
-import {
-  applyTokenQuotes,
-  loadTokenQuotes,
-  loadSessionChanges,
-} from "./quotes";
+import { loadSessionChanges } from "./quotes";
 import {
   DesktopHeader,
   DesktopSidebar,
@@ -190,12 +186,6 @@ export function App() {
       if (!loaded || refreshing || document.hidden) return;
       refreshing = true;
       try {
-        const quotes = await loadTokenQuotes();
-        if (alive && quotes.size)
-          setLive((previous) => ({
-            ...previous,
-            tokens: applyTokenQuotes(previous.tokens, quotes),
-          }));
         const next = await loadLive();
         const [session,status]=await Promise.all([requestJson<AccountState["session"]>("/api/auth/session"),requestJson<AccountState["status"]>("/api/grants")]);
         if(alive) {

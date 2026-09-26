@@ -33,7 +33,7 @@
  * PURE CORE. findOrphanOps takes a narrow ReconcileChain seam, not a live
  * client, so the decoding and dedup are unit-tested without a chain — the same
  * discipline fills.ts uses. The live wiring (real getLogs/receipts against the
- * Robinhood RPC) is gated on an end-to-end run before any funded deploy, exactly
+ * chain's RPC) is gated on an end-to-end run before any funded deploy, exactly
  * like the Postgres store: this file is correct by test, proven by that run.
  */
 import { decodeEventLog, parseAbi, type Hex } from "viem";

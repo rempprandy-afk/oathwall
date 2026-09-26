@@ -260,7 +260,7 @@ export interface SenderScanRequest {
  *    error this comment exists to refuse.
  *
  * 2. FUNDAMENTAL GUARANTEE. I could not establish an authoritative finality
- *    bound for Robinhood Chain from the repo or from the chain itself. It is an
+ *    bound for the previous chain from the repo or from the chain itself. It is an
  *    Arbitrum-stack L3, so its settlement inherits from the L2 beneath it and
  *    ultimately L1, but the depth at which a SEQUENCER pre-confirmation can be
  *    reordered is a property of that operator's configuration, not something a

@@ -1,5 +1,5 @@
 /**
- * A tiny Robinhood Chain reader for the browser — no dependency, no backend.
+ * A tiny chain reader for the browser — no dependency, no backend.
  *
  * The whole claim oathwall makes is "you don't have to trust us", so a page that
  * proxied this through a server of ours would be asking for exactly the trust

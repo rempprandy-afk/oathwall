@@ -209,7 +209,7 @@ without a new signed grant.
 
 **Trades-per-day came back to the on-chain list on 2026-09-09, and the story is
 worth keeping.** It was on this list until 2026-08-30, when `eth_getCode` showed
-ZeroDev's rate-limit policy had **no code at all** on Robinhood Chain — mainnet
+ZeroDev's rate-limit policy had **no code at all** on the previous chain — mainnet
 or testnet — while the timestamp and call policies both did. A policy pointing at
 an empty address is not a bound, so it was removed and the sentence corrected
 rather than left to flatter the design. On BNB that contract is deployed
@@ -485,12 +485,8 @@ oathwall refuses the buy. If your key can't sell something, it won't buy it, and
 it tells you which symbols and why. A missed trade is recoverable; a position with
 no way out is not. Re-sign at `/grant` to widen the list.
 
-This is why the shipped allowlist is verified in **both directions** against live
-pools — re-check it yourself any time:
-
-```bash
-npx tsx scripts/probe-tradability.mts
-```
+This is why every token on the shipped allowlist has to quote in **both
+directions** against live pools before it is added.
 
 ---
 

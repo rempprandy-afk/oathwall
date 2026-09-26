@@ -5,7 +5,7 @@ import { bestRoute, requoteRoute } from "../../worker/src/venues/pancake";
 import { probeTransport, wire, resetWire, readMeter, resetRpcMeters } from "./quote-instrument";
 const tok = (s: string) => TRADABLE_TOKENS.find((t) => t.symbol === s)!.address;
 const USDG = CASH.USD as `0x${string}`, WETH = CASH.WBNB as `0x${string}`;
-const C = createPublicClient({ chain: bnbChain, transport: probeTransport(process.env.PROBE_RPC ?? "https://rpc.mainnet.chain.robinhood.com") }) as PublicClient;
+const C = createPublicClient({ chain: bnbChain, transport: probeTransport(process.env.PROBE_RPC ?? "https://bsc-dataseed.bnbchain.org") }) as PublicClient;
 const sleep = (ms:number)=>new Promise(r=>setTimeout(r,ms));
 async function main() {
   console.log("===== PHASE 10: full LIVE trade quote cost = bestRoute + requoteRoute =====");

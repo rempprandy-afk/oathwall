@@ -5,8 +5,11 @@
  *  - Chainlink feeds (on-chain, multicall): price + updatedAt. THE price source.
  *    DEX-derived prices (GeckoTerminal etc.) are junk while stock pools are shallow.
  *  - Stock contracts (on-chain, multicall): tokenPaused, uiMultiplier.
- *  - Blockscout API: official Robinhood logo (cdn.robinhood.com), holders, 24h volume.
- *  - Rialto /tokens (public): whether Rialto considers the token liquid.
+ *  - Rialto: retired with the chain it ran on; every token reads "unknown".
+ *
+ * Holders, 24h volume and the logo came from the old chain's explorer. BNB has
+ * no keyless equivalent wired in yet, so they are null (unknown) and the logo
+ * is empty, which the Coin component draws as its fallback mark.
  */
 
 import { createPublicClient, http } from "viem";
@@ -51,39 +54,14 @@ export interface MarketData {
 
 const client = createPublicClient({ chain: bnbChain, transport: http() });
 
-const BLOCKSCOUT = "https://robinhoodchain.blockscout.com/api/v2";
-const LOGO_CDN = (address: string) =>
-  `https://cdn.robinhood.com/ncw_assets/logos/${address.toLowerCase()}.png`;
-
 /**
  * RIALTO LIQUIDITY WAS READ HERE, mapping token address → whether the exchange
- * would actually fill it. Rialto was Robinhood Chain's propAMM venue and has no
+ * would actually fill it. Rialto was the previous chain's propAMM venue and has no
  * BNB deployment (Phase 5), so the map is empty and every caller falls to its
  * unknown branch — which is what it already did whenever Rialto was down.
  */
 async function fetchRialtoLiquidity(): Promise<Map<string, boolean>> {
   return new Map();
-}
-
-interface BlockscoutStats {
-  iconUrl: string | null;
-  volume24hUsd: number | null;
-  holders: number | null;
-}
-
-async function fetchBlockscoutStats(address: string): Promise<BlockscoutStats> {
-  try {
-    const res = await fetch(`${BLOCKSCOUT}/tokens/${address}`, { next: { revalidate: 300 } });
-    if (!res.ok) return { iconUrl: null, volume24hUsd: null, holders: null };
-    const j = await res.json();
-    return {
-      iconUrl: typeof j.icon_url === "string" ? j.icon_url : null,
-      volume24hUsd: j.volume_24h != null ? Number(j.volume_24h) : null,
-      holders: j.holders_count != null ? Number(j.holders_count) : null,
-    };
-  } catch {
-    return { iconUrl: null, volume24hUsd: null, holders: null };
-  }
 }
 
 export async function fetchMarket(): Promise<MarketData> {
@@ -98,11 +76,10 @@ export async function fetchMarket(): Promise<MarketData> {
     { address: t.address, abi: TOKEN_ABI, functionName: "uiMultiplier" } as const,
   ]);
 
-  const [feedResults, stateResults, rialtoLiquid, blockscout] = await Promise.all([
+  const [feedResults, stateResults, rialtoLiquid] = await Promise.all([
     client.multicall({ contracts: feedCalls }),
     client.multicall({ contracts: stateCalls }),
     fetchRialtoLiquidity(),
-    Promise.all(TRADABLE_TOKENS.map((t) => fetchBlockscoutStats(t.address))),
   ]);
 
   const prices = new Map<string, { priceUsd: number; updatedAt: number }>();
@@ -121,13 +98,12 @@ export async function fetchMarket(): Promise<MarketData> {
     const pausedRes = stateResults[i * 2];
     const multRes = stateResults[i * 2 + 1];
     const price = prices.get(t.symbol);
-    const stats = blockscout[i]!;
     return {
       symbol: t.symbol,
       name: t.name,
       kind: t.kind,
       address: t.address,
-      logo: stats.iconUrl ?? LOGO_CDN(t.address),
+      logo: "",
       priceUsd: price?.priceUsd ?? null,
       priceUpdatedAt: price?.updatedAt ?? null,
       paused: pausedRes?.status === "success" ? (pausedRes.result as boolean) : null,
@@ -136,13 +112,13 @@ export async function fetchMarket(): Promise<MarketData> {
       // fetchRialtoLiquidity returns an EMPTY MAP when Rialto is down, so a
       // `?? false` stamped "illiquid" on all 25 tokens during one outage.
       rialtoLiquid: rialtoLiquid.get(t.address.toLowerCase()) ?? null,
-      volume24hUsd: stats.volume24hUsd,
-      holders: stats.holders,
+      volume24hUsd: null,
+      holders: null,
     };
   });
 
   // Unknown volume sorts LAST rather than as zero: `?? 0` ranked a token
-  // Blockscout did not answer for identically to one that genuinely did no
+  // nobody had a figure for identically to one that genuinely did no
   // trade, which is the same conflation this file just removed from `paused`.
   tokens.sort((a, b) => {
     if (a.volume24hUsd === b.volume24hUsd) return 0;

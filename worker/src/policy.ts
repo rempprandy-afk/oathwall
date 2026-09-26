@@ -10,15 +10,15 @@
  * than the chain — a stricter mirror rejects trades the wall would allow.
  *
  * ON THE BROKER RAIL (equity-order) there is NO on-chain policy to mirror.
- * Robinhood's Agentic account is custodial, its OAuth scope cannot be
+ * The broker's agentic account is custodial, its OAuth scope cannot be
  * restricted below full trading, and nothing re-checks amounts after this
  * function returns ok — so here this layer IS the wall, and the posture
  * inverts: deliberately conservative, because there is no backstop to defer
- * to. The only enforcement beneath it is Robinhood's own account-level
+ * to. The only enforcement beneath it is the broker's own account-level
  * reserved budget. This is why processIntent runs checkPolicy TWICE on that
  * rail — once on the proposed notional and again on the terms review()
  * returns — where the EVM rail relies on the account contract for the
- * re-check. (spikes/robinhood-mcp/DESIGN.md §5.)
+ * re-check.
  *
  * Nothing in this file may call an LLM, read agent memory, or take a string that
  * originated from a model. Intents come in typed; verdicts go out typed.
@@ -147,7 +147,7 @@ export type TradeIntent = {
   amountUsdg: bigint;
 } | {
   /**
-   * A brokerage equity order (the Robinhood venue). NO ADDRESS FIELDS on
+   * A brokerage equity order (the broker venue). NO ADDRESS FIELDS on
    * purpose: there is no contract to target and no calldata to build, and
    * omitting `target` means the compiler forces every consumer that assumes an
    * EVM shape to decide what an equity order means to it — nothing falls

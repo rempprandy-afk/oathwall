@@ -263,7 +263,7 @@ export function poolPriceUsable(
 /**
  * Combine two TWAP legs into one price: TOKEN→WETH→USDG.
  *
- * ON-CHAIN REALITY (checked against live Robinhood Chain pools, 2026-07):
+ * ON-CHAIN REALITY (checked against live pools on the previous chain, 2026-07):
  * roughly three quarters of pools quote against WETH, not USDG — CATE, VIRTUAL,
  * KITTY, GRAILS, POTUS, HOODER and friends all pair with WETH. Only the stock
  * tokens (nvda, gme) and a couple of others have direct USDG pairs. So a
@@ -434,7 +434,7 @@ export async function readPoolPrice(
  * exists to prevent. `cashDecimals` is the POOL's cash-side token — WBNB on a
  * TOKEN/WBNB leg, the stable on a direct leg — while the result is denominated
  * in the PRODUCT's cash unit, CASH_DECIMALS. They are frequently the same number
- * on BNB and were never the same on Robinhood Chain.
+ * on BNB and were never the same on the previous chain.
  *
  * Exported so the v4 price path scales depth the SAME way — the comment at the
  * routed call site exists because doing this by hand lands 1e12 out.

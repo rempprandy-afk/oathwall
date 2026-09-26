@@ -206,7 +206,7 @@ export interface OathwallSettings {
    * Enables streaming the agent's live activity to its Virtuals Terminal. */
   virtualsApiKey?: string;
   /**
-   * Bitquery API key (secret). Bitquery indexes Robinhood Chain from genesis —
+   * Bitquery API key (secret). Bitquery indexes the previous chain from genesis —
    * decoded events, DEX trades and, crucially, Uniswap **v4** pool activity that
    * oathwall's own v3 reads cannot see. It is a DISCOVERY source: it can tell
    * the agent a pair exists, never authorise a trade in it.

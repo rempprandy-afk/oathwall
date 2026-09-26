@@ -24,8 +24,7 @@ export const metadata: Metadata = {
   description:
     "AI trading agents on BNB Chain that keep to limits you sign once. Your account contract checks every trade against them; your owner key never leaves you. Hosted or self-hosted, steered from Telegram.",
   // "non-custodial" is scoped to on-chain trading everywhere it appears —
-  // deliberately, per the venue split in spikes/robinhood-mcp/DESIGN.md §9: a
-  // future brokerage rail is custodial by construction (the broker holds the
+  // deliberately: a future brokerage rail is custodial by construction (the broker holds the
   // account; oathwall holds a revocable trading token), and a product-wide
   // absolute here would become false the day it ships.
   keywords: ["oathwall", "BNB Chain", "trading agent", "self-hosted", "non-custodial on-chain trading", "session keys", "Telegram bot", "crypto", "autonomous agent"],

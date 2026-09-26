@@ -13,7 +13,7 @@
  *     no-gas 12 · wrong-chain 9 · dead-policy 6 · no-cash 2
  *
  * The largest bucket is agents funded with USDG and no ETH — whose owners were
- * reading "Send USDG to your agent's account on Robinhood Chain" and doing
+ * reading "Send USDG to your agent's account" on the old chain and doing
  * exactly that, correctly, twice, while the agent could not pay for a single
  * operation. The fact was resolved every tick and published nowhere a screen
  * could read.

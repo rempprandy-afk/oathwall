@@ -7,8 +7,8 @@
  * running that probe first — docs/bnb-migration-plan.md §2 is research notes,
  * and a table copied out of a plan document has verified nothing.
  *
- * LIQUIDITY REALITY (2026-09-08): the inverse of the situation on Robinhood
- * Chain. There, stock-token DEX pools were seed-sized (tens of dollars) and
+ * LIQUIDITY REALITY (2026-09-08): the inverse of the situation on the
+ * previous chain. There, stock-token DEX pools were seed-sized (tens of dollars) and
  * Rialto's propAMMs were where execution actually happened, so the venue layer
  * grew a meta-router to reach them. On BNB the majors have deep v3 pools and
  * there is no propAMM tier to reach for — PancakeSwap v3 IS the venue, and the
@@ -69,7 +69,7 @@ export const YIELD = null;
 /**
  * WHAT USED TO BE HERE, and why nothing replaced it.
  *
- * Phase 1 quarantined the Robinhood Chain deployments in a `DEAD_ON_BNB` block
+ * Phase 1 quarantined the previous chain's deployments in a `DEAD_ON_BNB` block
  * so the venue layer would keep compiling while the replacement was written;
  * Phase 5 deleted the block and every caller. Recorded here rather than dropped
  * silently, because "this venue does not exist on BNB" is a fact a reader will
@@ -80,7 +80,7 @@ export const YIELD = null;
  *   PancakeSwap's own v4 ("Infinity") is a different protocol at different
  *   addresses. Wiring it is new work with its own quoting and hook model, not a
  *   migration step.
- * - **Rialto** — Robinhood Chain's propAMM exchange. No BNB equivalent, and
+ * - **Rialto** — the previous chain's propAMM exchange. No BNB equivalent, and
  *   none needed: the meta-router existed to reach propAMM liquidity because
  *   stock-token DEX pools were seed-sized. PancakeSwap v3's majors are deep, so
  *   the tier the meta-router reached for is not missing here — it never existed.

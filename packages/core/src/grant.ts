@@ -362,8 +362,8 @@ export interface StoredGrant {
    *
    * Both are `personal_sign` (EIP-191), deliberately: it carries no domain and
    * no chainId, so it needs no network switch and works in wallets that cannot
-   * reach this chain at all — Phantom among them, which supports Robinhood
-   * Chain for assets but refuses dApp connections on it.
+   * reach this chain at all — Phantom among them, which on some chains supports
+   * assets but refuses dApp connections.
    *
    * Absent on self-hosted grants, where localhost is the perimeter and there is
    * no tenant to bind to.

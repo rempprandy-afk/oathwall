@@ -143,7 +143,7 @@ describe("preflight — the things that make a trade pointless", () => {
 
   it("never warns about a vault sweep — there is no yield venue on this chain", () => {
     // This used to warn that idle cash above the floor would "move to Morpho" on
-    // the first tick. Morpho was a Robinhood Chain deployment; on BNB `YIELD` is
+    // the first tick. Morpho was a deployment on the previous chain; on BNB `YIELD` is
     // null and steady-basket refuses the sweep, so the warning described money
     // moving somewhere it cannot go.
     assert.equal(YIELD, null, "if a yield venue lands, this warning needs rewriting for it, not restoring");

@@ -58,18 +58,16 @@ function fixture(over: Partial<PoolDepth> = {}): PoolDepth {
   };
 }
 
-test("the depth read names the pool price, the cross-check, and the tradable size", () => {
-  const out = formatDepth({ symbol: "NVDA", depth: fixture(), nbboMid: 217.09, fee: 500 });
+test("the depth read names the pool price and the tradable size", () => {
+  const out = formatDepth({ symbol: "NVDA", depth: fixture(), fee: 500 });
   assert.match(out, /<b>NVDA<\/b>/);
   assert.match(out, /\$217\.22/, "pool spot is shown");
-  assert.match(out, /\$217\.09/, "the independent quote is shown next to it");
-  assert.match(out, /\+6\.0bps/, "and the gap between them, signed");
   assert.match(out, /Trade without moving it more than 0\.5%/);
   assert.match(out, /0\.05% tier/, "the fee tier, so it can be checked on the explorer");
 });
 
 test("the read never claims resting orders or stacked buyers", () => {
-  const out = formatDepth({ symbol: "NVDA", depth: fixture(), nbboMid: 217.09 });
+  const out = formatDepth({ symbol: "NVDA", depth: fixture() });
   // THE WHOLE POINT OF THIS TEST. A v3 range is a two-sided quote whose owner
   // can withdraw in a block — it is not somebody's bid. Copy that says otherwise
   // would be describing a market that does not exist on this chain, and the
@@ -92,14 +90,6 @@ test("a truncated map is never presented as a complete one", () => {
   assert.equal(/floors, not totals/.test(formatDepth({ symbol: "NVDA", depth: fixture() })), false, "and only then");
 });
 
-test("a missing cross-check quote is simply absent, never rendered as NaN or zero", () => {
-  for (const mid of [null, undefined, Number.NaN, 0]) {
-    const out = formatDepth({ symbol: "NVDA", depth: fixture(), nbboMid: mid as number | null });
-    assert.equal(/NaN/.test(out), false, `nbboMid=${String(mid)} must not print NaN`);
-    assert.equal(/Robinhood/.test(out), false, "the line is dropped entirely rather than shown empty");
-    assert.match(out, /\$217\.22/, "the on-chain map still stands on its own");
-  }
-});
 
 test("a flat pool says so rather than inventing zones", () => {
   const out = formatDepth({ symbol: "XYZ", depth: fixture({ levels: [], zones: [] }) });

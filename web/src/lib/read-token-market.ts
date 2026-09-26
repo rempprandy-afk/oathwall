@@ -6,7 +6,7 @@
  * lets the page render each half when only one of them answered.
  *
  * WHICH INDEX OWNS A TOKEN IS DECIDED OFFLINE. TRADABLE_TOKENS is a static list
- * compiled into the app, so "is this a Robinhood stock token" costs no request
+ * compiled into the app, so "is this a listed token" costs no request
  * and cannot fail. Everything else on this chain is a coin, and coins live in
  * the GeckoTerminal read.
  *

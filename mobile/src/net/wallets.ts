@@ -6,7 +6,7 @@ import type { HandoffOutcome } from "./handoffMessage";
  * Handing the owner off to their phone wallet to fund the smart account.
  *
  * WHY TRUST WALLET AND NOT PHANTOM. This used to open Phantom, which carried
- * Robinhood Chain. Phantom does NOT support BNB Smart Chain — its own help
+ * the previous chain. Phantom does NOT support BNB Smart Chain — its own help
  * centre lists BSC among the "unsupported networks" it walks people through
  * recovering from — so on BNB it is the one wallet this screen must not send
  * anyone to. Trust Wallet holds BNB Smart Chain natively, on the same EVM

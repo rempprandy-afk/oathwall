@@ -1,4 +1,3 @@
-import { loadTokenQuotes, applyTokenQuotes } from "./quotes";
 import { TRADABLE_TOKENS, type TokenKind } from "@oathwall/core";
 import { parseStrategy, strategyLabel, type StrategyGlance } from "./strategy";
 import { whyLine } from "./why";
@@ -44,8 +43,6 @@ export interface LiveToken {
   name: string;
   logo: string;
   priceUsd: number | null;
-  priceUpdatedAt?: number;
-  priceSource?: string;
   uiMultiplier?: number;
   change24hPct: number | null;
   fdvUsd: number | null;
@@ -174,11 +171,6 @@ export interface Thesis {
   postId?: string | null;
 }
 
-export interface ChainHolder {
-  addr: string;
-  value: string;
-}
-
 export interface LiveMine {
   statusLabel?: string;
   history?: number[];
@@ -231,10 +223,7 @@ export interface LiveState {
   };
 }
 
-const LOGO = (addr: string) =>
-  `https://cdn.robinhood.com/ncw_assets/logos/${addr.toLowerCase()}.png`;
-
-/** Company mark. The NCW CDN is the same Robinhood feather for every listed token. */
+/** Company mark for a listed token. A memecoin with no logo of its own gets the Coin fallback. */
 const COMPANY = (symbol: string) =>
   `https://financialmodelingprep.com/image-stock/${symbol}.png`;
 
@@ -253,12 +242,6 @@ export function coinPrice(n: number | null): string {
   if (n >= 100)
     return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return `$${n.toFixed(n >= 1 ? 2 : 4)}`;
-}
-
-export function quoteTitle(token: LiveToken): string | undefined {
-  if (token.priceSource !== "robinhood" || !token.priceUpdatedAt)
-    return undefined;
-  return `Robinhood bid/ask midpoint · ${new Date(token.priceUpdatedAt * 1000).toLocaleString()}`;
 }
 
 export function pctPts(n: number | null): string {
@@ -357,7 +340,7 @@ export function tradeOutcome(status: string): NonNullable<Thesis["outcome"]> {
 
 export function seedLive(): LiveState {
   return ({
-    tokens: robinhoodFallback(),
+    tokens: registryTokens(),
     agents: [],
     theses: [],
     mine: null,
@@ -369,7 +352,7 @@ export function seedLive(): LiveState {
   });
 }
 
-function robinhoodFallback(): LiveToken[] {
+function registryTokens(): LiveToken[] {
   return TRADABLE_TOKENS.map((t) => ({
     id: t.address.toLowerCase(),
     symbol: t.symbol,
@@ -429,12 +412,11 @@ export function readStateOf(body: { source?: string } | null | undefined): ReadS
 }
 
 export async function loadLive(onMine?: (mine: LiveMine | null) => void): Promise<LiveState> {
-  const [market, board, thesesRes, feed, quotes, disc] = await Promise.all([
+  const [market, board, thesesRes, feed, disc] = await Promise.all([
     getJson<{ tokens: MarketTok[]; source?: string }>("/api/market"),
     getJson<{ agents: BoardRow[]; source?: string }>("/api/leaderboard"),
     getJson<{ theses: Thesis[]; source?: string }>("/api/theses"),
     getJson<Feed>("/api/feed").then(feed=>{onMine?.(mineOf(feed,[]));return feed;}),
-    loadTokenQuotes(),
     getJson<Disc>("/api/discoveries"),
   ]);
 
@@ -451,7 +433,7 @@ export async function loadLive(onMine?: (mine: LiveMine | null) => void): Promis
   }
 
   const tokens = new Map<string, LiveToken>();
-  for (const t of robinhoodFallback()) tokens.set(t.id, t);
+  for (const t of registryTokens()) tokens.set(t.id, t);
 
   for (const t of market?.tokens ?? []) {
     const id = t.address.toLowerCase();
@@ -461,7 +443,7 @@ export async function loadLive(onMine?: (mine: LiveMine | null) => void): Promis
       symbol: t.symbol,
       name: t.name,
       logo:
-        t.kind === "memecoin" ? t.logo || LOGO(t.address) : COMPANY(t.symbol),
+        t.kind === "memecoin" ? t.logo : COMPANY(t.symbol),
       priceUsd: t.priceUsd,
       change24hPct: null,
       fdvUsd: null,
@@ -572,7 +554,7 @@ export async function loadLive(onMine?: (mine: LiveMine | null) => void): Promis
   const mine = mineOf(feed, theses);
 
   return ({
-    tokens: applyTokenQuotes([...tokens.values()], quotes),
+    tokens: [...tokens.values()],
     agents,
     theses,
     mine,
@@ -816,20 +798,6 @@ export function thesesForAgent(
   name: string,
 ): Thesis[] {
   return theses.filter((t) => t.slug === slug || t.name === name).slice(0, 12);
-}
-
-export async function chainHolders(addr: string): Promise<ChainHolder[]> {
-  const d = await getJson<{
-    items?: { address?: { hash?: string }; value?: string }[];
-  }>(`/api/venue?desk=holders&token=${encodeURIComponent(addr)}`);
-  const rows = (d?.items ?? []).slice(0, 8).map((h) => {
-    const hash = h.address?.hash ?? "";
-    return {
-      addr: hash ? `${hash.slice(0, 6)}…${hash.slice(-4)}` : "—",
-      value: h.value ?? "—",
-    };
-  });
-  return rows;
 }
 
 export function faceSrc(slug: string | null): string | null {

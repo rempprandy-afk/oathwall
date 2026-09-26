@@ -6,7 +6,7 @@
  *
  * ERC-8056 IS GONE, AND THE ARITHMETIC GOT MORE DANGEROUS, NOT LESS — see
  * positionValueUsdg. This file used to implement Scaled UI Amount, the standard
- * behind Robinhood Stock Tokens: raw balances never rebased, and a corporate
+ * behind issuer-backed stock tokens: raw balances never rebased, and a corporate
  * action moved `uiMultiplier()` instead, so a 2-for-1 split doubled the
  * multiplier while the reference price halved and value was unchanged. Every
  * valuation had to pass through it or a split read as a 50% crash and tripped

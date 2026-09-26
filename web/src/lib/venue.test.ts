@@ -1,13 +1,13 @@
 /**
  * THE READER'S SESSION MUST NOT LEAVE THIS ORIGIN.
  *
- * The terminal redesign needed three outside feeds and reached them by adding
+ * The terminal redesign needed outside feeds and reached them by adding
  * wildcard `rewrites()` to next.config.mjs. A rewrite is same-origin, so the
  * browser attached the session cookie — set `httpOnly, secure,
  * sameSite:"strict", path:"/"` in lib/auth.ts — to `/yahoo/…`, and Next
  * forwarded the request upstream headers and all. Every chart view on a hosted
  * deployment sent a live oathwall session to Yahoo. They were also open
- * proxies: `:path*` at three hosts, unauthenticated, outside the middleware,
+ * proxies: `:path*` at each host, unauthenticated, outside the middleware,
  * which guards only `/api/`.
  *
  * These tests hold the replacement in place. The first one is the one that
@@ -20,10 +20,8 @@ import { readFileSync } from "node:fs";
 import {
   CHART_WINDOWS,
   chartUrl,
-  holdersUrl,
   isChartWindow,
   isJsonType,
-  quoteUrl,
   VENUE_HOSTS,
   venueHeaders,
 } from "./venue";
@@ -49,7 +47,7 @@ describe("no third-party host is reachable from this origin", () => {
     ];
     for (const f of files) {
       const src = readFileSync(new URL(f, terminal), "utf8");
-      for (const bad of ["/yahoo/", "/robinhood/", "/blockscout/"]) {
+      for (const bad of ["/yahoo/", "/blockscout/"]) {
         // Comments explain the history; code must not contain the path.
         const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/[^\n]*$/gm, "");
         assert.ok(!code.includes(bad), `${f} still fetches ${bad} — that path no longer exists`);
@@ -70,14 +68,6 @@ describe("no third-party host is reachable from this origin", () => {
 });
 
 describe("what may be asked, and nothing else", () => {
-  it("quotes are two named documents", () => {
-    assert.equal(quoteUrl("assets"), `https://${VENUE_HOSTS.robinhood}/rhj/assets`);
-    assert.equal(quoteUrl("prices"), `https://${VENUE_HOSTS.robinhood}/rhj/prices`);
-    for (const bad of ["", "../../etc", "assets?x=1", "accounts", "ASSETS"]) {
-      assert.equal(quoteUrl(bad as "assets"), null, `"${bad}" must be refused`);
-    }
-  });
-
   it("a chart symbol must be one this chain actually lists", () => {
     assert.ok(chartUrl("ETH", "1D"));
     assert.ok(chartUrl("eth", "1D"), "case is normalised, not a second allow-list");
@@ -112,31 +102,8 @@ describe("what may be asked, and nothing else", () => {
     }
   });
 
-  it("a holder list needs twenty bytes of hex and nothing else", () => {
-    const good = "0x322f0929c4625ed5bad873c95208d54e1c003b2d";
-    assert.equal(holdersUrl(good), `https://${VENUE_HOSTS.blockscout}/api/v2/tokens/${good}/holders`);
-    assert.equal(holdersUrl(good.toUpperCase().replace("0X", "0x")), holdersUrl(good), "case is normalised");
-    for (const bad of [
-      "",
-      "0x",
-      "0x322f",
-      "0x322f0929c4625ed5bad873c95208d54e1c003b2dd",
-      "0x322f0929c4625ed5bad873c95208d54e1c003b2g",
-      "../../../admin",
-      "0x322f0929c4625ed5bad873c95208d54e1c003b2d/../../admin",
-      "0x322f0929c4625ed5bad873c95208d54e1c003b2d?x=1",
-    ]) {
-      assert.equal(holdersUrl(bad), null, `"${bad}" must be refused`);
-    }
-  });
-
   it("every built URL lands on an allow-listed host", () => {
-    const built = [
-      quoteUrl("assets"),
-      quoteUrl("prices"),
-      chartUrl("ETH", "1M"),
-      holdersUrl("0x322f0929c4625ed5bad873c95208d54e1c003b2d"),
-    ];
+    const built = [chartUrl("ETH", "1M"), chartUrl("BTCB", "1D")];
     const hosts = new Set<string>(Object.values(VENUE_HOSTS));
     for (const u of built) {
       assert.ok(u, "every allowed request must build a URL");

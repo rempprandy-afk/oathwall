@@ -105,7 +105,7 @@ export interface CandidateInput {
  * Why an agent is or is not worth shadowing.
  *
  * `BLOCKED-STALE-FEED` REPLACED `READY-WHEN-MARKET-OPENS`, AND THE SIGN
- * FLIPPED WITH IT. On Robinhood Chain a stale Chainlink row meant the US
+ * FLIPPED WITH IT. On the previous chain a stale Chainlink row meant the US
  * equity market was shut: the agent was sound, the only thing missing was
  * trading hours, and treating that as a blocker would have excluded most of
  * the fleet every night and all weekend. So it was deliberately not a blocker.

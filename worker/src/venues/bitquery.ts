@@ -3,7 +3,7 @@
  *
  * oathwall reads Uniswap **v3** directly: factory, pools, quoter. That is enough
  * to trade what already exists and blind to almost everything that's new. New
- * pairs on Robinhood Chain launch through Pons/Doppler on **Uniswap v4**, whose
+ * pairs on the previous chain launch through Pons/Doppler on **Uniswap v4**, whose
  * pools live inside a singleton PoolManager with no per-pair contract to find by
  * scanning. Bitquery indexes this chain from genesis and decodes v4 events, so
  * it can answer "what launched, and when" — a question no amount of v3 reading
@@ -36,9 +36,9 @@ export const BITQUERY_DEFAULT_ENDPOINT = "https://streaming.bitquery.io/graphql"
 /**
  * This chain's identifier in Bitquery's EVM schema.
  *
- * Was "robinhood" until 2026-09-25, a leftover the BNB migration moved
+ * Named the previous chain until 2026-09-25, a leftover the BNB migration moved
  * in the gateway (gateway/lib/core.mjs) but not here — so every owner's OWN key
- * asked for Robinhood Chain pools and the trencher's feed stayed empty on BNB.
+ * asked for the previous chain's pools and the trencher's feed stayed empty on BNB.
  */
 export const BITQUERY_NETWORK = "bsc";
 

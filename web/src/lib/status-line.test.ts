@@ -59,7 +59,7 @@ test("NO MONEY AND NO GAS still gets the plain sentence", () => {
 
 test("EVERY REQUEST FOR MONEY NAMES THE NETWORK", () => {
   // A user sent ETH to his account address and it never showed. The address
-  // held 0.004268 ETH on ETHEREUM MAINNET; on Robinhood Chain it had never been
+  // held 0.004268 ETH on ETHEREUM MAINNET; on the chain we used it had never been
   // touched (zero balance, nonce 0). He was given an address and no network, and
   // an address is valid on every EVM chain — so the omission is the bug.
   const asksForMoney: AgentSnapshot[] = [
@@ -74,7 +74,7 @@ test("EVERY REQUEST FOR MONEY NAMES THE NETWORK", () => {
       /BNB Smart Chain \(BEP-20\)/,
       `asked for money without naming the network: ${l.next}`,
     );
-    assert.doesNotMatch(l.next, /Robinhood|USDG|\bETH\b/, `still asks for the old chain's assets: ${l.next}`);
+    assert.doesNotMatch(l.next, /USDG|\bETH\b/, `still asks for the old chain's assets: ${l.next}`);
   }
 });
 

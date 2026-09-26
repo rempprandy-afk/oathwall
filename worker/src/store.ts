@@ -29,7 +29,7 @@ const SQLITE_SCHEMA = `
     /* agent_id (= smart_account here) threads EVERY per-agent table: trades,
        decisions, positions, cost_basis, equity, fee_accruals. On the EVM rail
        it is the ERC-4337 smart-account address; on the broker rail it is the
-       namespaced "rh:<account_number>" from venues/robinhood-id.ts — the
+       namespaced "rh:<account_number>" id from the broker rail — the
        prefix exists so the two id spaces can never collide, and a broker row
        can never key into an on-chain agent's basis, HWM, or fee ledger. */
     CREATE TABLE IF NOT EXISTS agents (

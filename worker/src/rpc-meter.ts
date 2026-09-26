@@ -134,7 +134,7 @@ const BATCH_WAIT_MS = 20;
  * The first fix is not a queue, it is BATCHING, because the traffic is already
  * the right shape for it: viem's `multicall` fans out per-token reads that are
  * issued together and awaited together, which is exactly the window a JSON-RPC
- * batch collects. Measured against rpc.mainnet.chain.robinhood.com the node
+ * batch collects. Measured against the previous chain's public RPC the node
  * answers a batch correctly (three calls, three results, one request), and the
  * same tick then costs a handful of requests instead of eighty.
  *
@@ -156,7 +156,7 @@ export function chainRead(url: string | undefined, label = "read"): Transport {
       //
       // Batching cost the fleet its own error messages, and that was very
       // nearly worse than the rate limiting it fixed. Measured against
-      // rpc.mainnet.chain.robinhood.com: a batch it will not serve comes back
+      // the previous chain's public RPC: a batch it will not serve comes back
       //
       //   HTTP 429  {"jsonrpc":"2.0","error":{"code":429,"message":"Too Many Requests"}}
       //

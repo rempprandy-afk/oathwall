@@ -13,7 +13,7 @@ import { loadGrantFile } from "./grant";
 import { grantHasDeadRateLimit } from "./session-account";
 import { preflight, rank, verdict, type Check, type PreflightInput } from "./preflight";
 import { resolveConfig } from "./settings";
-import { CASH, WALL_POLICY_CONTRACTS, chainForId } from "../../packages/core/src/index";
+import { CASH, WALL_POLICY_CONTRACTS, bnbChain, bnbTestnet, chainForId } from "../../packages/core/src/index";
 import { cashToNumber } from "../../packages/core/src/index";
 
 const GREEN = "\x1b[32m";
@@ -155,10 +155,10 @@ async function main(): Promise<void> {
 
   const settings = readSettings();
   const grant = loadGrantFile();
-  const chainId = grant?.chainId ?? 4663;
+  const chainId = grant?.chainId ?? bnbChain.id;
   const chain = chainForId(chainId);
   const rpcUrl =
-    (chainId === 46630 ? settings.rpcTestnet : settings.rpcMainnet) ??
+    (chainId === bnbTestnet.id ? settings.rpcTestnet : settings.rpcMainnet) ??
     chain.rpcUrls.default.http[0]!;
 
   const [usdg, ethWei, bundlerReachable, missingPolicy, accountDeployed] = await Promise.all([

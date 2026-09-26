@@ -163,8 +163,8 @@ describe("a stale weekend is reported, not just endured", () => {
      * pretending otherwise is the worse failure. There is no ERC-4626 vault to
      * hold anything (`vaultUsdg` is a constant zero in snapshot.ts), and the
      * wall no longer carries a withdraw permission, so the intent would have
-     * been built and refused at the chain. Cash parked on Robinhood Chain comes
-     * home from Robinhood Chain, with `oathwall recover` on the tree that knew
+     * been built and refused at the chain. Cash parked on the previous chain comes
+     * home from the previous chain, with `oathwall recover` on the tree that knew
      * about it.
      */
   });

@@ -15,8 +15,8 @@ const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   // THERE ARE NO REWRITES HERE, AND THAT IS LOAD-BEARING.
   //
-  // Three arrived with the terminal redesign, proxying /robinhood/:path*,
-  // /yahoo/:path* and /blockscout/:path* straight to those hosts. Because a
+  // Some arrived with the terminal redesign, proxying paths like /yahoo/:path*
+  // and /blockscout/:path* straight to those hosts. Because a
   // rewrite is same-origin, the browser attached the reader's session cookie —
   // `httpOnly, secure, sameSite:"strict", path:"/"` — to every one of those
   // requests, and Next forwarded it upstream: a live oathwall session posted to

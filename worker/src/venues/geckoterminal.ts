@@ -36,7 +36,7 @@ const GECKO_BASE = "https://api.geckoterminal.com/api/v2";
  * The network slug for BNB Chain (56) in GeckoTerminal's namespace.
  *
  * ⚠ A SLUG, NOT A CHAIN ID, and it is the one thing here that fails SILENTLY.
- * This read `"robinhood"` until Phase 5. GeckoTerminal answers an unknown
+ * This named the previous chain until Phase 5. GeckoTerminal answers an unknown
  * network with a 404 HTML page rather than an error the client would raise, so
  * a stale slug is indistinguishable from a quiet market: the discovery lane
  * simply finds nothing, forever, and says nothing about why.
@@ -103,7 +103,7 @@ export interface GeckoPool {
   tokenAddress: `0x${string}`;
   /** Human label as GeckoTerminal renders it, e.g. "CHUMP / WETH 1%". */
   name: string;
-  /** Which venue it trades on, e.g. "uniswap-v3-robinhood" or a Pons curve. */
+  /** Which venue it trades on, e.g. "pancakeswap-v3-bsc". */
   dex: string;
   priceUsd: number | null;
   /**
@@ -168,7 +168,7 @@ function int(v: unknown): number | null {
   return n === null ? null : Math.trunc(n);
 }
 
-/** `robinhood_0xabc…` → `0xabc…`. Returns null for anything else. */
+/** `bsc_0xabc…` → `0xabc…`. Returns null for anything else. */
 function tokenIdToAddress(id: unknown): `0x${string}` | null {
   if (typeof id !== "string") return null;
   const m = /(0x[0-9a-fA-F]{40})$/.exec(id);

@@ -78,7 +78,7 @@ test("the real builder's output passes, single-hop and multi-hop", () => {
 });
 
 test("THE 263x CLASS: a floor that is not the floor we approved", () => {
-  // Vex's incident, 2026-08-27 on Robinhood Chain: a confirmed fill 263x worse
+  // Vex's incident, 2026-08-27 on the previous chain: a confirmed fill 263x worse
   // than quoted, because the execute path re-quoted at broadcast and derived its
   // floor from the fresher route. This is the check that would have caught it
   // regardless of which end the drift came from.

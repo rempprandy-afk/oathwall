@@ -3,7 +3,7 @@ import { createPublicClient, http } from "viem";
 import { bestRoute } from "../../worker/src/venues/pancake";
 import { CASH, TRADABLE_TOKENS, bnbChain, CASH_DECIMALS } from "../../packages/core/src/index";
 
-const RPC = "https://rpc.mainnet.chain.robinhood.com";
+const RPC = "https://bsc-dataseed.bnbchain.org";
 let attempts = 0, inFlight = 0, peak = 0, rate429 = 0;
 const lat: number[] = [];
 const fetchFn: typeof fetch = async (u, i) => {

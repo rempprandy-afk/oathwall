@@ -214,7 +214,7 @@ describe("discoverTrending", () => {
     poolAddress: null,
     tokenAddress: `0x${"a".repeat(40)}`,
     name: "AAA / WETH",
-    dex: "uniswap-v3-robinhood",
+    dex: "pancakeswap-v3-bsc",
     priceUsd: 1,
     reserveUsd: 500_000,
     fdvUsd: 5_000_000,

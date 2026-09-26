@@ -37,7 +37,6 @@ import {
   money,
   pctBps,
   pctPts,
-  quoteTitle,
   seedLive,
   sizeOf,
   thesesForSymbol,
@@ -168,12 +167,6 @@ describe("looking things up", () => {
     const list = [thesis({ symbol: "ETH" }), thesis({ symbol: "BTCB" })];
     assert.equal(thesesForSymbol(list, "eth").length, 1, "matched case-insensitively");
     assert.equal(thesesForSymbol(list, "CAKE").length, 0);
-  });
-
-  it("quoteTitle attributes the price to its source, or says nothing", () => {
-    assert.equal(quoteTitle(token({ priceSource: "chainlink" } as Partial<LiveToken>)), undefined);
-    const titled = quoteTitle(token({ priceSource: "robinhood", priceUpdatedAt: 1_788_000_000 } as Partial<LiveToken>));
-    assert.ok(titled && titled.includes("Robinhood"), "a price from a venue says which venue");
   });
 });
 

@@ -12,7 +12,6 @@ import {
 } from "../bars";
 import {
   coinPrice,
-  quoteTitle,
   compactUsd,
   money,
   pctBps,
@@ -183,7 +182,7 @@ export function Token({
 
       <div className="token-hero">
         <div>
-          <div className="price" title={quoteTitle(token)}>
+          <div className="price">
             {coinPrice(token.priceUsd)}
           </div>
           {winPct != null && (
@@ -204,13 +203,9 @@ export function Token({
       <div className="token-market-strip">
         <div>
           <span>
-            {token.priceUsd == null
-              ? "Chart close"
-              : token.priceSource === "robinhood"
-                ? "Quote midpoint"
-                : "Token price"}
+            {token.priceUsd == null ? "Chart close" : "Token price"}
           </span>
-          <strong title={quoteTitle(token)}>
+          <strong>
             {coinPrice(token.priceUsd ?? last?.close ?? null)}
           </strong>
         </div>

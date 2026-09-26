@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { curveReturn } from "../beat";
 import {
   coinPrice,
-  quoteTitle,
   money,
   pctBps,
   pctPts,
@@ -185,7 +184,7 @@ export function Home({
                   {/* "—" until the ledger answers. Zero agents and an unread
                       ledger are different facts about a listed instrument. */}
                   <td>{t.agents ?? "—"}</td>
-                  <td title={quoteTitle(t)}>{coinPrice(t.priceUsd)}</td>
+                  <td>{coinPrice(t.priceUsd)}</td>
                   <td className={deltaClass(t.change24hPct)}>
                     {pctPts(t.change24hPct)}
                   </td>

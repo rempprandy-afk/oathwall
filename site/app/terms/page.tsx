@@ -60,7 +60,7 @@ export default function Terms() {
         </ul>
         <p>
           <strong>Connected brokerage accounts are different, and we say so plainly.</strong> If
-          oathwall adds support for a brokerage venue (such as a Robinhood Agentic account) and you
+          oathwall adds support for a brokerage venue and you
           choose to connect one: the brokerage — not oathwall — is the custodian of that account
           and its funds. Connecting authorizes oathwall to hold a revocable OAuth trading token for
           that account. That token can place trades within the budget you configured at the

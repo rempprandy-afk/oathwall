@@ -62,7 +62,7 @@ const INFRA: Record<string, `0x${string}`> = {
  * ZeroDev. The three policy contracts the grant is built on, plus Kernel v3.3 —
  * which docs/bnb-migration-plan.md §2 lists as STILL UNPROBED and makes a Phase 1
  * exit condition. RateLimitPolicy is the one that changes behaviour: it is 0 bytes
- * on Robinhood Chain, which is why ops/day is a worker-enforced cap today.
+ * on the previous chain, which is why ops/day was a worker-enforced cap there.
  */
 const ZERODEV: Record<string, `0x${string}`> = {
   "Kernel v3.3 implementation": "0xd6CEDDe84be40893d153Be9d467CD6aD37875b28",

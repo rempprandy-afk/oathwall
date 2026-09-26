@@ -402,11 +402,11 @@ async function rankUncached(
 /**
  * FRESH LAUNCHES — EMPTY ON BNB, AND THE THREE FLAGS SAY SO.
  *
- * This read the Pons launchpad directly off Robinhood Chain: a log sweep for
+ * This read the Pons launchpad directly off the previous chain: a log sweep for
  * launches, a second for curve activity, then three sequential reads for
  * metadata, card facts and a block clock. All of it is gone with the chain
- * (Phase 5), including the hardcoded `rpc.mainnet.chain.robinhood.com` client
- * that made this the last place in the web app still talking to 4663.
+ * (Phase 5), including the hardcoded RPC client that made this the last place
+ * in the web app still talking to the old chain.
  *
  * `ChainStatus` KEEPS ITS SHAPE and every flag stays FALSE, which is the honest
  * answer rather than a convenient one. The comment this function carried is why:

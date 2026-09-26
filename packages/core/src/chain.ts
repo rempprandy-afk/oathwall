@@ -89,7 +89,7 @@ export function pimlicoBundlerUrl(chainId: number, apiKey: string): string {
  * override — an override would reintroduce the wrong-chain class this shape makes
  * impossible, and bundlerChainMismatch only inspects the bundler URL.
  *
- * UNVERIFIED ON BNB. On Robinhood Chain this was established by probing
+ * UNVERIFIED ON BNB. On the previous chain this was established by probing
  * `pm_getPaymasterStubData` and reading back a real paymaster address and signed
  * paymasterData. That probe has NOT been re-run against 56/97, because it needs a
  * live Pimlico key. Until it is, treat sponsored gas as unproven here: the
@@ -118,7 +118,7 @@ export const INFRA = {
  * on the two. The SDK carries these too (KernelVersionToAddressesMap["0.3.3"]);
  * they are restated here so a probe result has somewhere to live.
  *
- * They are the SAME addresses the accounts on Robinhood Chain were deployed
+ * They are the SAME addresses the accounts on the previous chain were deployed
  * through, which has a consequence worth stating: an owner key derives the SAME
  * smart-account address on BNB as it did on 4663. Same factory, same
  * implementation, same CREATE2 salt. That is convenient for `oathwall recover`

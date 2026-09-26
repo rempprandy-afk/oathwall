@@ -1137,8 +1137,8 @@ export default function GrantPage() {
                 The second copy of this sentence. Trades-per-day was corrected on the
                 loaded-grant panel, in the README, in WallPanel and in Console — and missed
                 here, in the create flow, which is the one place every single user reads it.
-                It rested on ZeroDev's rate-limit policy, whose contract has no bytecode on
-                Robinhood Chain.
+                It rested on ZeroDev's rate-limit policy, whose contract had no bytecode on
+                the previous chain.
               */}
             </div>
 

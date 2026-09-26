@@ -4,7 +4,7 @@ import { bnbChain, CASH, TRADABLE_TOKENS } from "../../packages/core/src/index";
 import { bestRoute } from "../../worker/src/venues/pancake";
 import { probeTransport, wire, resetWire, readMeter, resetRpcMeters } from "./quote-instrument";
 
-const RPC = process.env.PROBE_RPC ?? "https://rpc.mainnet.chain.robinhood.com";
+const RPC = process.env.PROBE_RPC ?? "https://bsc-dataseed.bnbchain.org";
 const tok = (s: string) => TRADABLE_TOKENS.find((t) => t.symbol === s)!.address;
 
 const client = createPublicClient({ chain: bnbChain, transport: probeTransport(RPC) }) as PublicClient;

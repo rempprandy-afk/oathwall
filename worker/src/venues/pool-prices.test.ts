@@ -415,7 +415,7 @@ describe("createPoolPriceReader — the depth floor survives the WETH hop", () =
 });
 
 /**
- * Route selection, calibrated against live Robinhood Chain pools (2026-07-27).
+ * Route selection, calibrated against live pools on the previous chain (2026-07-27).
  *
  * Preferring "direct if it answers at all" reads as an optimisation and is a
  * functional bug. On the real chain, VIRTUAL has a direct USDG pool holding $25

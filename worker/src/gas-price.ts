@@ -6,7 +6,7 @@
  * at the small trade sizes a first deposit produces, gas is most of the round
  * trip, and a P&L figure that is gross of gas flatters every strategy.
  *
- * THE GAS PRICE IS NOW A FEED, WHICH IT WAS NOT ON ROBINHOOD CHAIN. There was
+ * THE GAS PRICE IS NOW A FEED, WHICH IT WAS NOT ON THE PREVIOUS CHAIN. There was
  * no Chainlink ETH/USD feed on 4663, so this module's price had to come from a
  * WETH/USDG pool TWAP through the guarded reader that values feedless holdings
  * — a liquidity floor and a spot-vs-TWAP divergence band standing in for an

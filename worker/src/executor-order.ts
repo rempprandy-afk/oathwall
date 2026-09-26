@@ -1,6 +1,6 @@
 /**
  * OrderExecutor — the brokerage sibling of AgentExecutor, and the seam the
- * whole Robinhood venue hangs off (DESIGN.md §4).
+ * whole broker venue hangs off (DESIGN.md §4).
  *
  * Deliberately NOT a widening of AgentExecutor: that interface is EVM-shaped —
  * `execute(Call[]) → 0x txhash` — and a custodial order has no calldata and no

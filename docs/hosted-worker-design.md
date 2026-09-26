@@ -68,11 +68,11 @@ So: the phone stays the key holder and the signer of intent. The server becomes 
 | Hosting the existing Next.js dashboard | `web/src/middleware.ts:56` returns false for every public host by design. Fork a new API instead (§5.4) |
 | One shared process for many tenants (R1) | Would require hoisting `let active` (`worker/src/index.ts:202`) and ~20 sibling mutables *before the first paying tenant*, including the money counters — see §4.1 |
 
-### The Robinhood venue — scoped into the task, and it does not fit this design
+### The brokerage venue — scoped into the task, and it does not fit this design
 
-The task title includes the Robinhood rail. It is not a later phase of this design; it is a different product with a different legal structure, and the doc should say so rather than defer to a memo.
+The task title includes the brokerage rail. It is not a later phase of this design; it is a different product with a different legal structure, and the doc should say so rather than defer to a memo.
 
-Hosting it means the server holds **OAuth brokerage credentials that move real money with no on-chain wall behind them**. `worker/src/policy.ts:1-12` says it outright: on the EVM rail the policy layer is a *mirror* of an on-chain wall that wins any disagreement; **on the broker rail "there is NO on-chain policy to mirror"** — our own process is the only control that exists. And the auth flow cannot even complete headless: `worker/src/venues/robinhood-auth.ts:105` binds a 127.0.0.1 catcher with a loopback redirect URI, deliberately ("binding 0.0.0.0 would expose the catcher to the network"), and there is no browser on a Railway box.
+Hosting it means the server holds **OAuth brokerage credentials that move real money with no on-chain wall behind them**. `worker/src/policy.ts:1-12` says it outright: on the EVM rail the policy layer is a *mirror* of an on-chain wall that wins any disagreement; **on the broker rail "there is NO on-chain policy to mirror"** — our own process is the only control that exists. And the auth flow cannot even complete headless: the broker auth module (since deleted) bound a 127.0.0.1 catcher with a loopback redirect URI, deliberately ("binding 0.0.0.0 would expose the catcher to the network"), and there is no browser on a Railway box.
 
 So there is no non-custodial form of it. Holding those tokens *is* custody, which the standing invariant forbids, and no wall-narrowing exercise helps because there is no wall. Self-hosted it stays exactly as it is — the user's own machine, the user's own broker session. Hosted, it needs its own product decision (are we a broker-adjacent custodian?) before it needs an engineering design.
 

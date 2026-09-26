@@ -151,8 +151,8 @@ export function toScoutCandidates(
   }));
 }
 
-const SYSTEM = `You are a scout for a memecoin trading agent on Robinhood Chain. Tokens here
-launch on the Pons bonding-curve launchpad and graduate to Uniswap pools; they trade 24/7.
+const SYSTEM = `You are a scout for a memecoin trading agent on BNB Chain. Tokens here launch
+into PancakeSwap pools and trade 24/7.
 
 You are given candidates that ALREADY passed a liquidity and activity screen. Your job is to
 NARROW them — to say which few are worth a closer, more expensive look, and why. You are not

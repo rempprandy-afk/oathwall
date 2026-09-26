@@ -362,8 +362,8 @@ export { resolveBitquery };
 
 /** GeckoTerminal's venue slug for a Pons curve that has GRADUATED to a pool. */
 /**
- * ⚠ ROBINHOOD CHAIN DEX SLUGS, KEPT ONLY AS A SHAPE. GeckoTerminal labels each
- * pool with the dex it trades on, and on 4663 those two slugs distinguished a
+ * ⚠ PREVIOUS-CHAIN DEX SLUGS, KEPT ONLY AS A SHAPE. GeckoTerminal labels each
+ * pool with the dex it trades on, and on the previous chain those two slugs distinguished a
  * graduated launchpad coin from one still on its curve — a real difference,
  * since a curve's reported reserve is mostly a virtual seed. Neither slug can
  * appear in a BNB response, so `graduated` is now always false and

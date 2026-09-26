@@ -4,7 +4,7 @@
  *
  * TWO CLIENTS, ON PURPOSE. The agents trade on BNB Chain (56), so scope reads —
  * the symbol/decimals of a freshly initialized pool's token — go there. But
- * $OATHWALL was launched on Robinhood Chain (4663) and has NO contract on BNB
+ * $OATHWALL was launched on the previous chain (4663) and has NO contract on BNB
  * yet (eth_getCode returned 0x on 2026-09-24). Reading the holder balance on BNB
  * would fail closed for every holder, so the token check stays on the token's
  * own chain until it is deployed on BNB. At that point it is an env change, not
@@ -29,7 +29,7 @@ const BNB_RPC = "https://bsc-dataseed.bnbchain.org";
 
 const NAMES = {
   56: { name: "BNB Smart Chain", nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 } },
-  4663: { name: "Robinhood Chain", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } },
+  4663: { name: "$OATHWALL token chain (4663)", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } },
 };
 
 function clientFor(id, rpc) {

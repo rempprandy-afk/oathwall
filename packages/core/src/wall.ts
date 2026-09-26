@@ -99,7 +99,7 @@ export const WALL_POLICY_FLAG = PolicyFlags.NOT_FOR_VALIDATE_SIG;
  * A ZeroDev policy is an address plus its data: `getPolicyInfoInBytes()` is
  * `concat([policyFlag, policyAddress])`, and the addresses come from
  * @zerodev/permissions' own constants — defaults for a deployment the library
- * assumes exists. On Robinhood Chain one of them did not, and nothing here
+ * assumes exists. On the previous chain one of them did not, and nothing here
  * checked, so the grant sealed a pointer into empty space and the failure
  * surfaced as a UserOp that would not validate, with no message naming a cause.
  *
@@ -129,7 +129,7 @@ export const WALL_POLICY_CONTRACTS: readonly { name: string; address: Address }[
  *
  * ONE ENTRY, AND THAT IS THE HEADLINE OF PHASE 5. This list used to hold up to
  * six: the Pancake router, a Rialto meta-router, a Morpho vault, Permit2, and
- * two self-swap adapters. Five of them pointed at Robinhood Chain deployments
+ * two self-swap adapters. Five of them pointed at the previous chain's deployments
  * with no code on BNB, and an approved spender is never free — the sell-side
  * approvals carry no amount condition, so every unused router in this list was
  * a standing licence to move every token the agent holds. They are gone with
@@ -475,7 +475,7 @@ export function buildWallPolicies(args: {
     // THE RATE LIMIT IS BACK ON THE CHAIN, and this is the one thing the BNB
     // move made strictly better rather than merely different.
     //
-    // On Robinhood Chain this line was empty, and the comment where it used to
+    // On the previous chain this line was empty, and the comment where it used to
     // sit was the longest apology in the file. `toRateLimitPolicy`'s default
     // `policyAddress` is RATE_LIMIT_POLICY_CONTRACT, which had ZERO BYTES on
     // 4663 and 46630 (measured 2026-08-30). Every grant the repo could produce

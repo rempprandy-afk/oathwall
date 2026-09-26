@@ -3,7 +3,7 @@
  *
  * When the account can't sign (no bundler key), approved intents are FILLED
  * here instead of stubbed: at the live on-chain oracle price (the same
- * Chainlink feeds Robinhood publishes for every stock token), minus the
+ * Chainlink feed for each token), minus the
  * configured slippage as honest friction. Fills land in the real ledger as
  * status "paper" trades, the book lives in SQLite, and everything downstream
  * — equity curve, positions, pings, digests, chat trades — works unchanged.

@@ -30,9 +30,6 @@ export function price8(v: bigint): string {
 export interface DepthReadContext {
   symbol: string;
   depth: PoolDepth;
-  /** Robinhood's published NBBO mid, when it answered. A cross-check from a
-   * completely independent source is worth more than another on-chain number. */
-  nbboMid?: number | null;
   /** The pool's fee tier, in Uniswap units — hundredths of a bip, so 500 is
    * 0.05%, NOT 5%. Named plainly because `feeBps` invited exactly that error. */
   fee?: number;
@@ -40,18 +37,10 @@ export interface DepthReadContext {
 
 export function formatDepth(ctx: DepthReadContext): string {
   const { depth: d, symbol } = ctx;
-  const spot = Number(d.spot8) / 1e8;
   const cash = (raw: bigint) => money(cashToNumber(raw, d.cashDecimals));
   const lines: string[] = [];
 
   lines.push(`<b>${esc(symbol)}</b> — ${price8(d.spot8)} in the pool`);
-
-  if (typeof ctx.nbboMid === "number" && Number.isFinite(ctx.nbboMid) && ctx.nbboMid > 0) {
-    const bps = ((spot - ctx.nbboMid) / ctx.nbboMid) * 10_000;
-    lines.push(
-      `Robinhood's quote: $${ctx.nbboMid.toFixed(2)} — the pool is ${bps >= 0 ? "+" : ""}${bps.toFixed(1)}bps off it`,
-    );
-  }
 
   // The number a trader actually wants: not "how much is in there" but "how much
   // can I do before I move it".

@@ -1,22 +1,18 @@
 import { NextResponse } from "next/server";
 import {
   chartUrl,
-  holdersUrl,
   isJsonType,
   MAX_VENUE_BYTES,
-  quoteUrl,
   VENUE_HOSTS,
   VENUE_TIMEOUT_MS,
   venueHeaders,
-  type QuoteDoc,
 } from "@/lib/venue";
 
 /**
  * THE ONE DOOR TO A THIRD-PARTY FEED.
  *
- * Replaces three wildcard `rewrites()` the redesign added to next.config.mjs,
- * which proxied `/robinhood/:path*`, `/yahoo/:path*` and `/blockscout/:path*`
- * to their upstreams. Those rewrites were same-origin, so the browser attached
+ * Replaces the wildcard `rewrites()` the redesign added to next.config.mjs,
+ * which proxied paths like `/yahoo/:path*` straight to their upstreams. Those rewrites were same-origin, so the browser attached
  * the reader's `httpOnly; path:"/"` session cookie to every chart request and
  * Next forwarded it upstream — a live oathwall session posted to Yahoo on every
  * page view. They were also unauthenticated open proxies at an attacker-chosen
@@ -28,27 +24,21 @@ import {
  * asked; this file only does the asking, and it builds every upstream request
  * from scratch rather than forwarding the reader's.
  *
- * CACHED AT THE EDGE, deliberately. A quote is the same for every viewer, so
+ * CACHED AT THE EDGE, deliberately. A chart is the same for every viewer, so
  * one upstream fetch should serve all of them — the rewrites re-fetched ten
  * documents per visitor per navigation, which is both rude to the venue and
  * the reason the first paint was slow.
  */
 
-/** Quotes move; bars and holder lists move slowly. Seconds, per document. */
-const TTL: Record<string, number> = { quotes: 30, chart: 300, holders: 300 };
+/** Bars move slowly. Seconds, per document. */
+const TTL: Record<string, number> = { chart: 300 };
 
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const desk = params.get("desk") ?? "";
 
   const upstream =
-    desk === "quotes"
-      ? quoteUrl((params.get("doc") ?? "") as QuoteDoc)
-      : desk === "chart"
-        ? chartUrl(params.get("symbol") ?? "", params.get("window") ?? "")
-        : desk === "holders"
-          ? holdersUrl(params.get("token") ?? "")
-          : null;
+    desk === "chart" ? chartUrl(params.get("symbol") ?? "", params.get("window") ?? "") : null;
 
   // A REFUSAL NAMES THE DESK, NOT THE INPUT. Echoing the caller's string back
   // into a response body is how a proxy becomes a reflection gadget.
