@@ -231,6 +231,7 @@ import {
   getTrenchEntry,
   markPoolSeen,
   recentCandidates,
+  candidatesByAddress,
   pruneDiscovered,
   curveFor,
   seenCurves,
@@ -1928,18 +1929,29 @@ async function main() {
           .map((v) => v.token.toLowerCase()),
       );
       paperHeldTokens = holding;
-      const reach = TRENCHER_DEFAULTS.maxAgeSec + TRENCHER_DEFAULTS.maxHoldSec;
+      // HELD TOKENS BY ADDRESS, NOT BY RECENCY. They were picked out of the
+      // newest 500 discoveries, which was days of launches before v2 discovery
+      // and is about an hour after it: a position bought earlier aged out of
+      // the list, left the watch set, lost its price, and the fail-closed
+      // valuation then froze the whole agent — no buys, and no way to sell.
+      const toWatch = (c: { symbol: string; address: string; decimals: number; liquidityUsd: number }) => ({
+        symbol: c.symbol,
+        address: c.address as `0x${string}`,
+        decimals: c.decimals,
+        depth: c.liquidityUsd,
+      });
+      for (const c of await candidatesByAddress([...holding])) held.push(toWatch(c));
       const nowSec = Math.floor(Date.now() / 1000);
-      for (const c of await recentCandidates(reach, 500, { poolsOnly: true })) {
-        const token = { symbol: c.symbol, address: c.address as `0x${string}`, decimals: c.decimals, depth: c.liquidityUsd };
-        if (holding.has(c.address.toLowerCase())) held.push(token);
+      for (const c of await recentCandidates(TRENCHER_DEFAULTS.maxAgeSec, 500, { poolsOnly: true })) {
+        if (holding.has(c.address.toLowerCase())) continue;
+        const token = toWatch(c);
         // ONLY LAUNCHES THAT COULD QUALIFY. Every watched token costs up to ~20
         // pool reads a tick, and watching all ~75 of a day's launches made 1,100
         // calls a tick against the public RPC, 75% of them failing — which read
         // as "no pool" and blinded the trencher to the one launch that passed.
         // Most launches are born empty; one discovery measured at under half the
         // entry floor is not worth pricing every minute.
-        else if (
+        if (
           nowSec - c.firstSeen <= TRENCHER_DEFAULTS.maxAgeSec &&
           c.liquidityUsd >= trencherCfgNow().minLiquidityUsd / 2
         ) {
@@ -4798,8 +4810,14 @@ async function main() {
           // that would have SOLD it, all waiting on a price that is never
           // coming. Practice mode is where an owner is meant to find out how
           // this behaves, so it is the worst place to hang.
+          //
+          // A holding with no watch-set entry at all is the same structural
+          // case: the basket and custom tokens are always watched, so anything
+          // missing is a discovery, and discoveries have no feed. Treating it as
+          // transient froze 19 of 22 paper agents on 2026-09-26, when held
+          // launches aged out of the discovery window and nothing could sell them.
           const known = watchTokens.find((t) => t.symbol === p.symbol);
-          if (known && known.chainlinkFeed === null) unpricedByDesign.push(p.symbol);
+          if (!known || known.chainlinkFeed === null) unpricedByDesign.push(p.symbol);
           else missingPrice.push(p.symbol);
           continue;
         }

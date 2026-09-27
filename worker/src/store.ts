@@ -2914,6 +2914,39 @@ export async function recentCandidates(
 }
 
 /**
+ * Discovered pools by token address, however old.
+ *
+ * The paper trencher needs the tokens it HOLDS in its watch set, and those are
+ * found by address — recentCandidates' newest-N window drops a position bought
+ * more than an hour or so ago once v2 discovery is running.
+ */
+export async function candidatesByAddress(addresses: readonly string[]): Promise<PoolCandidate[]> {
+  if (addresses.length === 0) return [];
+  try {
+    const lower = addresses.map((a) => a.toLowerCase());
+    const rows = (await getDb()
+      .prepare(
+        `SELECT address, symbol, decimals, liquidity_usd, fdv_usd, first_seen
+         FROM discovered_pools WHERE lower(address) IN (${lower.map(() => "?").join(",")})`,
+      )
+      .all(...lower)) as {
+      address: string; symbol: string; decimals: number;
+      liquidity_usd: number; fdv_usd: number; first_seen: number;
+    }[];
+    return rows.map((r) => ({
+      address: r.address,
+      symbol: r.symbol,
+      decimals: Number(r.decimals) || 18,
+      liquidityUsd: Number(r.liquidity_usd) || 0,
+      fdvUsd: Number(r.fdv_usd) || 0,
+      firstSeen: Number(r.first_seen) || 0,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
  * The entry baseline a trench exit is judged against.
  *
  * Only depth and time live here. Entry PRICE is derived from cost basis

@@ -20,7 +20,7 @@ import path from "node:path";
 const HOME = mkdtempSync(path.join(os.tmpdir(), "oathwall-curves-"));
 process.env.OATHWALL_HOME = HOME;
 
-const { initStore, markPoolSeen, recentCandidates, recordCandidate, seenCurves, seenPools, setTrenchEntry, getTrenchEntry, upgradeTrenchEntry } = await import("./store");
+const { candidatesByAddress, initStore, markPoolSeen, recentCandidates, recordCandidate, seenCurves, seenPools, setTrenchEntry, getTrenchEntry, upgradeTrenchEntry } = await import("./store");
 
 await initStore();
 after(() => {
@@ -230,5 +230,26 @@ describe("trench entry baselines", () => {
     // that only disables the drain check.
     await setTrenchEntry(A, "paper", "OWNED", 0);
     assert.notEqual(await getTrenchEntry(A, "paper", "OWNED"), null);
+  });
+});
+
+describe("a held token is found by address, not by recency", () => {
+  it("returns it however many newer launches were recorded after it", async () => {
+    // The paper trencher froze when a held launch fell out of the newest-500
+    // window: v2 discovery records ~420 pairs an hour.
+    const held = "0x00000000000000000000000000000000000000Aa";
+    await recordCandidate({ address: held, symbol: "HELD", decimals: 9, liquidityUsd: 7_000, fdvUsd: 9_000, firstSeen: 0 });
+    for (let i = 0; i < 30; i++) {
+      await recordCandidate({ address: `0x${(0x1000 + i).toString(16).padStart(40, "0")}`, symbol: `N${i}`, decimals: 18, liquidityUsd: 1, fdvUsd: 1, firstSeen: 0 });
+    }
+    assert.equal((await recentCandidates(3600, 25)).some((c) => c.address === held), false, "the newest-N window has dropped it");
+    const got = await candidatesByAddress([held.toLowerCase()]);
+    assert.equal(got.length, 1, "matched case-insensitively");
+    assert.equal(got[0]?.symbol, "HELD");
+    assert.equal(got[0]?.decimals, 9);
+  });
+
+  it("an empty list asks nothing", async () => {
+    assert.deepEqual(await candidatesByAddress([]), []);
   });
 });
