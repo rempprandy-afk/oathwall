@@ -15,6 +15,7 @@ import { strategyName } from "../strategy";
 import { Coin, Face } from "../ui";
 import { Allocation } from "../studio";
 import { unrankedLabel } from "@/lib/rank-pnl";
+import { activityLine, ageSec, isActive, rowTitle } from "../activity";
 
 export function Profile({
   agent,
@@ -197,6 +198,43 @@ export function Profile({
           </div>
         )}
       </section>
+      {agent.activity !== undefined && (
+        <section className="public-section">
+          <div className="public-section-heading">
+            <h2>What it's watching</h2>
+            <span className={`public-live ${agent.activity && isActive(agent.activity, Date.now() / 1000) ? "" : "idle"}`}>
+              <i aria-hidden="true" />
+              {activityLine(agent.activity, !!agent.activity && isActive(agent.activity, Date.now() / 1000), Date.now() / 1000)}
+            </span>
+          </div>
+          {agent.activity === null ? (
+            <p className="public-empty">Activity is unavailable right now.</p>
+          ) : agent.activity.rows.length === 0 ? (
+            <p className="public-empty">Nothing looked at in the last hour.</p>
+          ) : (
+            <div className="public-activity">
+              {agent.activity.rows.slice(0, 8).map((r, i) => (
+                <article key={`${r.at}-${i}`} className="public-event">
+                  <span
+                    className={`public-event-mark ${r.kind === "buy" ? "buy" : r.kind === "sell" ? "sell" : "hold"}`}
+                    aria-hidden
+                  >
+                    {r.kind === "buy" ? "↗" : r.kind === "sell" ? "↘" : r.kind === "found" ? "+" : "·"}
+                  </span>
+                  <div>
+                    <div className="public-event-heading">
+                      <strong>{rowTitle(r)}</strong>
+                      <span>{r.count > 1 ? `×${r.count}` : ""}</span>
+                    </div>
+                    <p>{r.detail}</p>
+                    <small>{ageSec(Date.now() / 1000 - r.at)} ago</small>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
       <section className="public-section">
         <div className="public-section-heading">
           <h2>Recent activity</h2>

@@ -2245,7 +2245,11 @@ async function main() {
       await addEvent(
         agentId,
         "ok",
-        `${line} — I can't trade it until you add it in /settings and re-sign at /grant.`,
+        // Say what THIS agent can do with it: a trencher on paper, or live under
+        // the v2 launch key, is already judging it; anything else is only told.
+        cfg.strategy === "trencher" && (paperActive() || trencherV2Live())
+          ? `${line} — watching it against the trencher's rules.`
+          : `${line} — I can't trade it until you add it in /settings and re-sign at /grant.`,
       );
     }
   }

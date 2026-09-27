@@ -23,6 +23,7 @@
  */
 import { cache } from "react";
 import { withReadDb } from "@/lib/ledger";
+import { SUMMARY_WINDOW_SEC, summarizeActivity, type ActivitySummary } from "@/terminal/activity";
 import { rankPnl, type UnrankedWhy } from "@/lib/rank-pnl";
 import { growthIndex, drawdownBps } from "@/lib/growth-index";
 import { PUBLISHABLE_STRATEGIES } from "@/lib/thesis";
@@ -106,6 +107,14 @@ export interface AgentProfile {
   gas: { usdg: number; unpricedTrades: number };
   /** Whether any deposit or withdrawal is on record at all. */
   funded: boolean;
+  /**
+   * What the worker has been doing in the last hour — launches found, judged,
+   * bought and sold, with each verdict's reason — so a page can show the agent
+   * is working while it has nothing to trade. Public-safe kinds only: the
+   * owner's own notes (balances, gas, errors) never leave the owner's screen.
+   * Null when the events could not be read.
+   */
+  activity: ActivitySummary | null;
   /**
    * Whether the flows behind that funding are EVIDENCE.
    *
@@ -197,13 +206,17 @@ export const readAgent = cache(async function readAgent(
           beat_at: number | null;
         }
       | undefined;
+    // THE ACCOUNT THAT IS RUNNING, not the newest. An owner who re-creates a
+    // wallet leaves the old one in `agents`, and "newest first" picked the
+    // abandoned, empty one (Zug, 2026-09-27), so the page reported no deposit
+    // for an agent holding 55 USDT. Most recent heartbeat first, like the board.
     try {
       row = (await db
         .prepare(
           `SELECT smart_account, name, x_handle, COALESCE(mode, 'idle') AS mode,
                   COALESCE(epoch, 1) AS epoch, beat_at
              FROM agents WHERE LOWER(smart_account) IN (${inList})
-            ORDER BY created_at DESC LIMIT 1`,
+            ORDER BY COALESCE(beat_at, 0) DESC, created_at DESC LIMIT 1`,
         )
         .get(...accounts)) as typeof row;
     } catch {
@@ -214,6 +227,26 @@ export const readAgent = cache(async function readAgent(
     const account = row.smart_account;
     const epoch = Number(row.epoch ?? 1);
     const paper = row.mode === "paper";
+
+
+    let activity: ActivitySummary | null = null;
+    try {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const evs = (await db
+        .prepare(
+          `SELECT level, message, created_at FROM events
+            WHERE agent_id = ? AND created_at >= ?
+            ORDER BY created_at DESC, id DESC LIMIT 5000`,
+        )
+        .all(account, nowSec - SUMMARY_WINDOW_SEC)) as { level: "ok" | "warn" | "err"; message: string; created_at: number }[];
+      const summary = summarizeActivity(
+        evs.map((e) => ({ level: e.level, message: e.message, at: Number(e.created_at) })),
+        nowSec,
+      );
+      activity = { ...summary, rows: summary.rows.filter((r) => r.kind !== "note").slice(0, 20) };
+    } catch {
+      /* events not readable — the page says so rather than showing nothing as quiet */
+    }
 
     // ── flows, row by row and not just summed ────────────────────────────────
     // The total is what the return divides by; the individual timestamps are
@@ -500,6 +533,7 @@ export const readAgent = cache(async function readAgent(
       tokensTouched,
       gas: { usdg: gasUsdg, unpricedTrades },
       funded: contributed !== null,
+      activity,
       contributionsEvidenced: contributionsKnown === true,
       flowsWithTx,
       flowsTotal,

@@ -229,7 +229,7 @@ export async function discoverPools(deps: DiscoveryDeps): Promise<Discovery[]> {
         } else {
           liquidityUsdg = cashUnits(reading.liquidityUsd);
           spotOnly = true;
-          reason = "spot price only (no TWAP in its pool) — paper trading can use it, live can't";
+          reason = "spot price only (no TWAP in its pool) — tradable on paper, or live under the v2 launch permission";
           // FDV only where it can matter: most launches are born empty, and a
           // supply read per empty one is RPC spent on a candidate nobody enters.
           const stats =
@@ -344,7 +344,7 @@ export function describeDiscovery(d: Discovery): string {
   const verdict = d.priceable
     ? "deep enough for me to price"
     : d.spotOnly
-      ? "spot price only (no TWAP in its pool) — paper can trade it, live can't"
+      ? "spot price only (no TWAP in its pool) — tradable on paper, or live under the v2 launch permission"
       : `I can't price it yet — ${d.reason ?? "guards refused it"}`;
   // A launchpad token is a different KIND of sighting and says so. "new pair"
   // would be wrong twice over: there is no pair, and there is no pool — the

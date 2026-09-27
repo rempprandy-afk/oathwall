@@ -7826,3 +7826,20 @@
     font-size: 13px;
   }
 }
+
+/* The public profile's live indicator: is this agent's worker looking at anything. */
+:where(.terminal-host) .public-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+:where(.terminal-host) .public-live i {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--up);
+}
+:where(.terminal-host) .public-live.idle i {
+  background: var(--tx-2);
+}

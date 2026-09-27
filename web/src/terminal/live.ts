@@ -67,6 +67,8 @@ export interface LiveAgent {
   unrankedWhy?: import("@/lib/rank-pnl").UnrankedWhy | null;
   gas?: {usdg:number;unpricedTrades:number};
   holdingsRead?: boolean;
+  /** The public profile's last hour of worker activity; absent on board rows. */
+  activity?: ActivitySummary | null;
   slug: string;
   name: string;
   handle: string | null;

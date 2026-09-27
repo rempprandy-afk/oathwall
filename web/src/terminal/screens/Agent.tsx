@@ -16,7 +16,7 @@ import {
   type ChatTurn,
 } from "../account";
 import { ageOf, money, pctPts, type LiveMine, type LiveToken } from "../live";
-import { isActive, type ActivityRow, type ActivitySummary } from "../activity";
+import { activityLine, ageSec, isActive, rowTitle } from "../activity";
 import { strategyName } from "../strategy";
 import { Coin, Empty, Face } from "../ui";
 import { BalanceFigure } from "../studio";
@@ -567,43 +567,6 @@ export function Agent({
       </div>
     </div>
   );
-}
-
-/** One line for the agent screen: is it working, and what has it been doing. */
-function activityLine(a: ActivitySummary | null, active: boolean, nowSec: number): string {
-  if (a === null) return "Activity unavailable";
-  if (a.lastAt === null) return "No activity recorded yet";
-  const last = `last check ${ageSec(nowSec - a.lastAt)} ago`;
-  if (!active) return `Quiet · ${last}`;
-  const parts = [`${a.checked} ${a.checked === 1 ? "launch" : "launches"} checked in the last hour`];
-  if (a.bought) parts.push(`${a.bought} bought`);
-  if (a.sold) parts.push(`${a.sold} sold`);
-  return `Scanning · ${parts.join(" · ")} · ${last}`;
-}
-
-function rowTitle(r: ActivityRow): string {
-  const sym = r.symbol ?? "";
-  switch (r.kind) {
-    case "buy":
-      return `Bought ${sym}`;
-    case "sell":
-      return `Sold ${sym}`;
-    case "pass":
-      return `Passed on ${sym}`;
-    case "found":
-      return `New launch: ${sym}`;
-    default:
-      return r.level === "err" ? "Error" : r.level === "warn" ? "Heads up" : "Note";
-  }
-}
-
-function ageSec(s: number): string {
-  const n = Math.max(0, Math.round(s));
-  if (n < 60) return `${n}s`;
-  const m = Math.round(n / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.round(m / 60);
-  return h < 48 ? `${h}h` : `${Math.round(h / 24)}d`;
 }
 
 function CopyReply({ text }: { text: string }) {
