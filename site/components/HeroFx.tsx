@@ -2,15 +2,12 @@
 
 import { useEffect } from "react";
 
-/** The homepage hero's entrance animations and phone menu. Runs after
- * hydration so it never edits server-rendered markup React is still matching. */
 export function HeroFx() {
   useEffect(() => {
     const markIn = (el: Element) => el.classList.add("is-in");
     const appears = Array.from(document.querySelectorAll(".home-hero .appear"));
     appears.forEach((el) => el.addEventListener("animationend", () => markIn(el), { once: true }));
-    // If an element has no running animation (reduced motion, or the browser
-    // skipped it), show it rather than leave it at opacity 0.
+
     const frame = requestAnimationFrame(() => {
       const stalled = appears.some((el) => {
         const anims = typeof el.getAnimations === "function" ? el.getAnimations() : [];

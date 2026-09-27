@@ -5,14 +5,6 @@ import { SentinelCanvas } from "@/components/SentinelCanvas";
 import { LandingFx } from "@/components/LandingFx";
 import "./landing.css";
 
-/**
- * The homepage. A dark, robotic surface: the hero is a full-frame stage where
- * a wireframe sentinel is cut by a blade of light (the wall) that refuses the
- * trades outside the oath, with glass instruments laid over it. Everything
- * below keeps the same HUD language. Inter for type, JetBrains Mono for
- * anything the chain would print. It owns its header and footer; SiteChrome
- * leaves "/" bare.
- */
 
 const GITHUB = "https://github.com/rempprandy-afk/oathwall";
 const NPM = "https://www.npmjs.com/package/oathwall";
