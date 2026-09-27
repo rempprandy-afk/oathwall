@@ -6,7 +6,6 @@ import { LandingFx } from "@/components/LandingFx";
 import "./landing.css";
 
 
-const GITHUB = "https://github.com/rempprandy-afk/oathwall";
 const NPM = "https://www.npmjs.com/package/oathwall";
 const X_URL = "https://x.com/Oatwallbsc";
 const SUPPORT = "support@oathwall.dev";
@@ -446,9 +445,6 @@ export default function Home() {
                 <a href={HOSTED_APP} className="lx-btn lx-btn-solid">
                   Sign your oath
                 </a>
-                <a href={GITHUB} target="_blank" rel="noreferrer" className="lx-btn lx-btn-ghost">
-                  Read the source
-                </a>
               </div>
             </div>
           </div>
@@ -480,7 +476,6 @@ export default function Home() {
           </nav>
           <nav aria-label="Project">
             <h4>Project</h4>
-            <a href={GITHUB} target="_blank" rel="noreferrer">GitHub</a>
             <a href={NPM} target="_blank" rel="noreferrer">npm</a>
             <a href={X_URL} target="_blank" rel="noreferrer">X · @Oatwallbsc</a>
             <a href={`mailto:${SUPPORT}`}>{SUPPORT}</a>
