@@ -309,6 +309,10 @@ const SQLITE_ALTERS: string[] = [
     // restart, which is when an in-memory copy lost it and sold BNC4 on a false
     // "100% drained" (2026-09-25). NULL for rows written before this column.
     "ALTER TABLE trench_positions ADD COLUMN depth_basis TEXT",
+    // The TOKEN a trench position holds, lowercased. Symbols are launch-chosen
+    // text and collide constantly ("?" alone is hundreds of launches), so a
+    // live trencher finds what it holds by address. NULL for older rows.
+    "ALTER TABLE trench_positions ADD COLUMN token TEXT",
     "ALTER TABLE discovered_pools ADD COLUMN spot_manager TEXT",
     "ALTER TABLE discovered_pools ADD COLUMN spot_pool_id TEXT",
     "ALTER TABLE discovered_pools ADD COLUMN spot_currency0 TEXT",
@@ -2959,14 +2963,15 @@ export async function setTrenchEntry(
   symbol: string,
   liquidityUsd: number,
   depthBasis: string | null = null,
+  token: string | null = null,
 ): Promise<void> {
   try {
     await getDb()
       .prepare(
-        `INSERT INTO trench_positions (agent_id, mode, symbol, entry_liquidity_usd, depth_basis)
-         VALUES (?, ?, ?, ?, ?) ON CONFLICT(agent_id, mode, symbol) DO NOTHING`,
+        `INSERT INTO trench_positions (agent_id, mode, symbol, entry_liquidity_usd, depth_basis, token)
+         VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(agent_id, mode, symbol) DO NOTHING`,
       )
-      .run(agentId, mode, symbol, liquidityUsd, depthBasis);
+      .run(agentId, mode, symbol, liquidityUsd, depthBasis, token ? token.toLowerCase() : null);
   } catch (e) {
     console.error("[store] trench entry insert failed:", e);
   }
@@ -3027,6 +3032,18 @@ export async function getTrenchEntry(
       : null;
   } catch {
     return null;
+  }
+}
+
+/** The tokens this agent holds trench positions in, by address — rows without one are left out. */
+export async function heldTrenchTokens(agentId: string, mode: BasisMode): Promise<string[]> {
+  try {
+    const rows = (await getDb()
+      .prepare("SELECT token FROM trench_positions WHERE agent_id = ? AND mode = ? AND token IS NOT NULL")
+      .all(agentId, mode)) as { token: string }[];
+    return rows.map((r) => r.token.toLowerCase());
+  } catch {
+    return [];
   }
 }
 

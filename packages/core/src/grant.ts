@@ -125,6 +125,21 @@ export function grantPonsAdapter(
   return a.toLowerCase() as `0x${string}`;
 }
 
+/**
+ * grantFeatures marker meaning "this signature carries the TRENCHER V2
+ * permissions" (wall.ts): approve any token to the SmartRouter, buy launches
+ * with cash through a v2 path, and sell anything the grant does not name back
+ * to cash or WBNB. Minted by the signers exactly when they pass `trencherV2`
+ * to the wall — marker and permission move together, or the worker builds
+ * calls the chain refuses.
+ */
+export const GRANT_TRENCHER_V2 = "trencher-v2";
+
+/** Can this signature buy and sell a token it was never told about, through PancakeSwap v2? */
+export function grantHasTrencherV2(grant: Pick<StoredGrant, "grantFeatures"> | null | undefined): boolean {
+  return grant?.grantFeatures?.includes(GRANT_TRENCHER_V2) ?? false;
+}
+
 export const GRANT_TRANSFER = "transfer";
 
 /**

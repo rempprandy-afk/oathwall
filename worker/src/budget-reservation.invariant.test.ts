@@ -132,3 +132,13 @@ test("the retired-venue skip records a row rather than returning bare", () => {
     "the skip must write a rejected row before returning — that is what releases the reservation",
   );
 });
+
+test("the v2 launch refusals record a row — `return refuseV2(...)` is a release", () => {
+  // The live trencher's v2 branch refuses through one helper so every refusal
+  // leaves the same row. The line scan above only sees bare `return;`, so the
+  // helper itself is pinned here: it must record a trade, which releases.
+  const helper = SRC.match(/const refuseV2 = async \([\s\S]*?\n {8}\};/)?.[0] ?? "";
+  assert.ok(helper.length > 0, "found the refuseV2 helper");
+  assert.match(helper, /\brecordTrade\(\{/);
+  assert.match(helper, /status: "rejected"/);
+});

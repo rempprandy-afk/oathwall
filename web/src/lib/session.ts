@@ -72,12 +72,12 @@ import {
   usableExtraTokens,
   chainForId,
   bnbChain,
-  
   GRANT_V4,
   GRANT_V4_ADAPTER,
   GRANT_PONS_ADAPTER,
   bindingMessage,
   TRADEABLE_V2,
+  GRANT_TRENCHER_V2,
   cashToNumber,
   assertDerivedAccount,
   type CustomToken,
@@ -255,6 +255,13 @@ async function mintGrant(
    * below, before the wall is pinned to anything.
    */
   expectAccount?: Address,
+  /**
+   * Seal the TRENCHER V2 permissions (packages/core/src/wall.ts) — buy and
+   * sell new launches the owner could not have named. True only for an agent
+   * whose strategy is trencher; the marker below is minted from this same
+   * value, so the two cannot disagree.
+   */
+  trencherV2 = false,
 ): Promise<MintedGrant> {
   // Testnet is the sandbox; mainnet (4663) is real funds — the UI gates that
   // choice behind an explicit consent step. Note: the call-policy addresses
@@ -348,6 +355,7 @@ async function mintGrant(
     caps,
     smartAccount: sudoOnlyAccount.address,
     extraTokens,
+    trencherV2,
   });
 
   const permissionValidator = await toPermissionValidator(publicClient, {
@@ -421,8 +429,11 @@ async function mintGrant(
     // GRANT_V4_ADAPTER is minted ONLY when the permission was — marker and
     // wall move together, the same lockstep rule as GRANT_V4 above. The sealed
     // address rides with it because the marker alone is a claim, not evidence.
+    // GRANT_TRENCHER_V2 is minted from the SAME `trencherV2` that was passed
+    // to buildWallPolicies above — marker and wall move together.
     grantFeatures: [
       TRADEABLE_V2,
+      ...(trencherV2 ? [GRANT_TRENCHER_V2] : []),
     ],
     // What this signature ACTUALLY covers — the worker compares it against the
     // owner's configured tokens and says so when they've drifted apart.
@@ -811,6 +822,11 @@ export interface MintOptions {
    * difference is invisible without this: see the refusal in mintGrant.
    */
   expectAccount?: Address;
+  /**
+   * Seal the trencher's new-launch permissions. The caller passes
+   * `strategy === "trencher"`; any other strategy keeps the tighter key.
+   */
+  trencherV2?: boolean;
 }
 
 export async function createAgentWallet(o: MintOptions): Promise<MintedGrant> {
@@ -826,6 +842,7 @@ export async function createAgentWallet(o: MintOptions): Promise<MintedGrant> {
     o.ponsAdapterAddress,
     o.hostedAs,
     o.expectAccount,
+    o.trencherV2 ?? false,
   );
 }
 
@@ -862,6 +879,7 @@ export async function createPrivyOwnedWallet(
     o.ponsAdapterAddress,
     o.hostedAs,
     o.expectAccount,
+    o.trencherV2 ?? false,
   );
 }
 
@@ -895,6 +913,7 @@ export async function restoreAgentWallet(
     o.ponsAdapterAddress,
     o.hostedAs,
     o.expectAccount,
+    o.trencherV2 ?? false,
   );
 }
 

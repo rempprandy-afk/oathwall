@@ -1,8 +1,8 @@
-import { erc20Abi, type Address } from "viem";
+import { erc20Abi, pad, toFunctionSelector, toHex, zeroAddress, type Address, type Hex } from "viem";
 import { PolicyFlags } from "@zerodev/permissions";
 import { CallPolicyVersion, ParamCondition, toCallPolicy } from "@zerodev/permissions/policies";
 import { toRateLimitPolicy, toTimestampPolicy } from "@zerodev/permissions/policies";
-import { UNISWAP_SWAP_ROUTER_ABI } from "./abis";
+import { PANCAKE_V2_SWAP_ABI, UNISWAP_SWAP_ROUTER_ABI } from "./abis";
 import { PANCAKE } from "./protocols";
 import { CASH, TRADABLE_TOKENS, TRADEABLE_SYMBOLS, CASH_DECIMALS, isValidCustomToken, type CustomToken } from "./tokens";
 import { builtinGrantTargets, type GrantCaps } from "./grant";
@@ -175,6 +175,13 @@ export interface WallOptions {
    * wall — so this removes an agent's power, not the owner's.
    */
   withdrawalAddresses?: readonly Address[];
+  /**
+   * Let the trencher buy and sell NEW LAUNCHES for real — tokens nobody could
+   * have named at signing time. Off by default; the signers turn it on only
+   * for a trencher agent. See TRENCHER V2 in buildCallPermissions for exactly
+   * what it grants and what a leaked key could do with it.
+   */
+  trencherV2?: boolean;
 }
 
 /**
@@ -402,6 +409,7 @@ export function buildCallPermissions(
         null,
       ],
     },
+    ...(opts.trencherV2 ? trencherV2Permissions(smartAccount, tradableAssets) : []),
     // MULTI-HOP (`exactInput`) IS GONE, and it cannot come back in this shape.
     //
     // It used to sit here with `args: [null, null, self]` — the recipient
@@ -451,6 +459,98 @@ export function buildCallPermissions(
     // The fifth, the Permit2 + UniversalRouter pair, is described in the block
     // comment that replaced WallOptions' opt-ins. It is the one nobody should
     // want back in that form.
+  ];
+}
+
+/**
+ * TRENCHER V2 — three permissions that let a key trade tokens it was never told about.
+ *
+ * Every other permission in this file names its tokens. A trencher cannot: it
+ * buys launches minutes old, so no list sealed at signing time contains them,
+ * and without these a live trencher could only watch. What makes it possible
+ * is CallPolicy's zero-address target, which the contract reads as ANY target
+ * — its own comment names "approve of ANY ERC20" as the case — while still
+ * enforcing the argument rules. Verified against the deployed V0_0_4 source
+ * (identical bytecode on BNB and Ethereum, 2026-09-27).
+ *
+ * WHAT EACH ONE ALLOWS:
+ *   1. approve(spender == SmartRouter) on ANY token. A token with its own
+ *      permission above (cash, the basket, owner extras) never reaches this
+ *      one — the policy only falls back to the wildcard when no exact match
+ *      exists — so cash stays capped per trade. It lets the agent approve a
+ *      launch it bought in order to sell it.
+ *   2. swapTokensForExactTokens — the BUY. Input must be cash (path[0]),
+ *      path of 2 or 3 (cash→launch, or cash→WBNB→launch), output to self.
+ *      Spend is bounded by amountInMax AND the cash approve's per-trade cap.
+ *   3. swapExactTokensForTokens — the SELL. Output must be cash or WBNB
+ *      (path[1]), path of exactly 2, output to self, and the input may be
+ *      anything EXCEPT a token the grant names: one NOT_EQUAL rule per named
+ *      token, since the policy checks every rule independently. Without that,
+ *      a leaked key could sell the basket into a shallow v2 pool it had
+ *      pushed, and buy the proceeds back cheaply on the other side.
+ *
+ * Both swaps pin the ABI's path offset (0x80) and length, so the words the
+ * rules read really are the path's elements and not attacker-placed data.
+ *
+ * WHAT A LEAKED KEY COULD DO: spend up to one trade's cash on a token of its
+ * choosing, per op, up to the daily op limit — buy junk. Nothing leaves the
+ * account (every output is pinned to it) and the basket cannot be routed
+ * through these doors. That is why the worker also counts live trencher money
+ * against the owner's scout budget.
+ *
+ * A BUY and a SELL are separate SELECTORS on purpose: a permission is keyed by
+ * (target, selector), so one selector could carry only one rule set, and "input
+ * must be cash OR output must be cash" is not expressible as rules that are
+ * each checked on their own. Which way round is chosen by the trade: a buy
+ * names its exact output with a cash ceiling (any unspent cash simply stays),
+ * and a sell names its exact input so the whole position leaves — an
+ * exact-output sell leaves dust, and a trencher holding dust re-sells it every
+ * tick.
+ */
+function trencherV2Permissions(smartAccount: Address, namedTokens: readonly Address[]) {
+  const word = (n: number) => n * 32;
+  const b32 = (v: Hex | bigint | number): Hex => (typeof v === "string" ? pad(v, { size: 32 }) : pad(toHex(v), { size: 32 }));
+  const rule = (condition: ParamCondition, offset: number, params: (Hex | bigint | number)[]) => ({
+    condition,
+    offset: BigInt(offset),
+    params: params.map(b32),
+  });
+  const cash = CASH.USD as Address;
+  const wbnb = CASH.WBNB as Address;
+  const PATH_OFFSET = 0x80; // four head words: amount, amount, path offset, to
+  const selector = (name: "swapExactTokensForTokens" | "swapTokensForExactTokens") =>
+    toFunctionSelector(PANCAKE_V2_SWAP_ABI.find((f) => f.name === name)!);
+
+  return [
+    {
+      target: zeroAddress,
+      valueLimit: 0n,
+      selector: toFunctionSelector("approve(address,uint256)"),
+      rules: [rule(ParamCondition.EQUAL, word(0), [PANCAKE.smartRouter as Address])],
+    },
+    {
+      target: PANCAKE.smartRouter as Address,
+      valueLimit: 0n,
+      selector: selector("swapTokensForExactTokens"),
+      rules: [
+        rule(ParamCondition.EQUAL, word(2), [PATH_OFFSET]),
+        rule(ParamCondition.EQUAL, word(3), [smartAccount]),
+        rule(ParamCondition.ONE_OF, word(4), [2, 3]),
+        rule(ParamCondition.EQUAL, word(5), [cash]),
+      ],
+    },
+    {
+      target: PANCAKE.smartRouter as Address,
+      valueLimit: 0n,
+      selector: selector("swapExactTokensForTokens"),
+      rules: [
+        rule(ParamCondition.EQUAL, word(2), [PATH_OFFSET]),
+        rule(ParamCondition.EQUAL, word(3), [smartAccount]),
+        rule(ParamCondition.EQUAL, word(4), [2]),
+        rule(ParamCondition.ONE_OF, word(6), [cash, wbnb]),
+        ...namedTokens.map((t) => rule(ParamCondition.NOT_EQUAL, word(5), [t])),
+      ],
+    },
   ];
 }
 
@@ -526,11 +626,13 @@ export function buildWallPolicies(args: {
       // a permission the call policy did not carry. A mirror looser than the
       // chain is the one shape this file exists to prevent.
       //
-      // Both fields below are now the whole of WallOptions, which is the real
-      // fix: the trap needs three or more options to hide in.
+      // WallOptions is three fields again (trencherV2 joined), so the trap is
+      // back in reach: wall.test.ts builds the policies with every option and
+      // asserts each one reached the call policy.
       permissions: buildCallPermissions(args.caps, args.smartAccount, {
         extraTokens: args.extraTokens,
         withdrawalAddresses: args.withdrawalAddresses,
+        trencherV2: args.trencherV2,
       }) as never,
     }),
   ];

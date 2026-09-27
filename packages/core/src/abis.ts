@@ -200,3 +200,39 @@ export const PONS_SELFTRADE_ABI = [
     outputs: [{ name: "amountOut", type: "uint256" }],
   },
 ] as const;
+
+/**
+ * PancakeSwap SmartRouter's v2 swaps — the SmartRouter form, which takes no
+ * deadline (unlike the standalone v2 router's `…, uint256 deadline`). Both
+ * selectors are present in the SmartRouter's bytecode on BNB (checked
+ * 2026-09-27): swapExactTokensForTokens 0x472b43f3, swapTokensForExactTokens
+ * 0x42712a67. The trencher buys new launches with the second (exact output,
+ * cash ceiling) and sells them with the first (exact input, whole position);
+ * see TRENCHER V2 in wall.ts for why each direction gets its own selector.
+ */
+export const PANCAKE_V2_SWAP_ABI = [
+  {
+    type: "function",
+    name: "swapExactTokensForTokens",
+    stateMutability: "payable",
+    inputs: [
+      { name: "amountIn", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "path", type: "address[]" },
+      { name: "to", type: "address" },
+    ],
+    outputs: [{ name: "amountOut", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "swapTokensForExactTokens",
+    stateMutability: "payable",
+    inputs: [
+      { name: "amountOut", type: "uint256" },
+      { name: "amountInMax", type: "uint256" },
+      { name: "path", type: "address[]" },
+      { name: "to", type: "address" },
+    ],
+    outputs: [{ name: "amountIn", type: "uint256" }],
+  },
+] as const;

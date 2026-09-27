@@ -38,7 +38,7 @@
  */
 
 import { decodeFunctionData, erc20Abi, type Hex } from "viem";
-import { UNISWAP_SWAP_ROUTER_ABI } from "../../packages/core/src/index";
+import { PANCAKE_V2_SWAP_ABI, UNISWAP_SWAP_ROUTER_ABI } from "../../packages/core/src/index";
 
 export type FenceRule =
   /** The calls are not the shape this trade builds. */
@@ -185,4 +185,98 @@ export function checkV3SwapCalls(
     return no("asset", `the path ends at ${ends.last}, not the token quoted`);
   }
   return { ok: true };
+}
+
+/**
+ * What a v2 trencher trade was approved to do, for checkV2TradeCalls.
+ *
+ * `path` is the exact path the quote priced; `unwind` is present only for a
+ * sale of a WBNB-paired launch, whose guaranteed WBNB goes back to cash in the
+ * same operation.
+ */
+export type V2FenceExpect = {
+  router: `0x${string}`;
+  recipient: `0x${string}`;
+  path: readonly `0x${string}`[];
+} & (
+  | { side: "buy"; exactOut: bigint; amountInMax: bigint }
+  | {
+      side: "sell";
+      amountIn: bigint;
+      minOut: bigint;
+      unwind?: { wbnb: `0x${string}`; cash: `0x${string}`; cashMinOut: bigint };
+    }
+);
+
+/** One approval leg: this token, to the router, for exactly this amount. */
+function checkApprove(call: FenceCall, token: string, router: string, amount: bigint): FenceVerdict {
+  if (call.value !== 0n) return no("build-integrity", "an approval carries value");
+  if (!same(call.to, token)) return no("asset", `the approval is against ${call.to}, not ${token}`);
+  let args: readonly unknown[];
+  try {
+    const d = decodeFunctionData({ abi: erc20Abi, data: call.data });
+    if (d.functionName !== "approve") return no("approval", `\`${d.functionName}\` where an approval belongs`);
+    args = d.args as readonly unknown[];
+  } catch {
+    return no("approval", "an approval leg does not decode as an ERC-20 call");
+  }
+  const [spender, allowance] = args as [`0x${string}`, bigint];
+  if (!same(spender, router)) return no("approval", `the approval names ${spender}, not the router`);
+  if (allowance !== amount) return no("approval", `the approval is for ${allowance}, but the trade moves ${amount}`);
+  return { ok: true };
+}
+
+/**
+ * Does this v2 trencher trade do exactly what was approved? The v2 twin of
+ * checkV3SwapCalls, with the same rule: read the bytes, not the intent.
+ */
+export function checkV2TradeCalls(calls: readonly FenceCall[], expect: V2FenceExpect): FenceVerdict {
+  const unwind = expect.side === "sell" ? expect.unwind : undefined;
+  const want = unwind ? 4 : 2;
+  if (calls.length !== want) return no("build-integrity", `expected ${want} calls, got ${calls.length}`);
+  const [approve, swap] = calls as [FenceCall, FenceCall];
+
+  const spent = expect.side === "buy" ? expect.amountInMax : expect.amountIn;
+  const a = checkApprove(approve, expect.path[0]!, expect.router, spent);
+  if (!a.ok) return a;
+
+  if (swap.value !== 0n) return no("build-integrity", "the swap carries value");
+  if (!same(swap.to, expect.router)) return no("build-integrity", `the swap is addressed to ${swap.to}, not the router`);
+  let fn: string;
+  let args: readonly unknown[];
+  try {
+    const d = decodeFunctionData({ abi: PANCAKE_V2_SWAP_ABI, data: swap.data });
+    fn = d.functionName;
+    args = d.args as readonly unknown[];
+  } catch {
+    return no("build-integrity", "the swap leg does not decode against the v2 router ABI");
+  }
+  const [x, y, path, to] = args as [bigint, bigint, readonly `0x${string}`[], `0x${string}`];
+  const wantFn = expect.side === "buy" ? "swapTokensForExactTokens" : "swapExactTokensForTokens";
+  if (fn !== wantFn) return no("build-integrity", `a ${expect.side} is built as \`${wantFn}\`, not \`${fn}\``);
+  if (!same(to, expect.recipient)) return no("recipient", `the output would go to ${to}, not the account`);
+  if (path.length !== expect.path.length || path.some((t, i) => !same(t, expect.path[i]!))) {
+    return no("asset", `the swap's path is ${path.join("→")}, not the path that was quoted`);
+  }
+  if (expect.side === "buy") {
+    if (x !== expect.exactOut) return no("price-floor", `the buy asks for ${x}, but was judged at ${expect.exactOut}`);
+    if (y !== expect.amountInMax) return no("approval", `the buy may spend ${y}, not the ${expect.amountInMax} approved`);
+    return { ok: true };
+  }
+  if (x !== expect.amountIn) return no("build-integrity", `the sale sells ${x}, not ${expect.amountIn}`);
+  if (y !== expect.minOut) return no("price-floor", `the sale's floor is ${y}, but it was judged at ${expect.minOut}`);
+  if (!unwind) return { ok: true };
+
+  // The unwind: the WBNB the sale guaranteed, back to cash, into this account.
+  const [approve2, swap2] = calls.slice(2) as [FenceCall, FenceCall];
+  const a2 = checkApprove(approve2, unwind.wbnb, expect.router, expect.minOut);
+  if (!a2.ok) return a2;
+  return checkV3SwapCalls([approve2, swap2], {
+    router: expect.router,
+    tokenIn: unwind.wbnb,
+    tokenOut: unwind.cash,
+    recipient: expect.recipient,
+    amountIn: expect.minOut,
+    minOut: unwind.cashMinOut,
+  });
 }

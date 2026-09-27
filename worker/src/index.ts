@@ -52,6 +52,7 @@ import {
   pimlicoPaymasterUrl,
   bnbTestnet,
   grantHasMultihop,
+  grantHasTrencherV2,
   // Aliased: `grantHasTransfer` is also the name of the dep this file passes
   // to the Telegram executor, and the two must not shadow each other.
   grantHasTransfer as grantCarriesTransfer,
@@ -65,7 +66,8 @@ import {
   type StoredGrant,
 } from "../../packages/core/src/index";
 import { impactBps, judgeImpact, probeAmountIn } from "./impact";
-import { checkV3SwapCalls } from "./final-fence";
+import { checkV2TradeCalls, checkV3SwapCalls } from "./final-fence";
+import { buildV2BuyCalls, buildV2SellCalls, buyPath, quoteV2, sellPath, v2RouteFor } from "./venues/pancake-v2";
 import { readPeers } from "./peer-files";
 import { peerLabel, peerView } from "./strategist/peer-view";
 import { SHADOW_SOURCES, type PublicThesis } from "./thesis-policy";
@@ -232,6 +234,7 @@ import {
   markPoolSeen,
   recentCandidates,
   candidatesByAddress,
+  heldTrenchTokens,
   pruneDiscovered,
   curveFor,
   seenCurves,
@@ -392,6 +395,19 @@ async function main() {
    */
   const trencherCfgNow = () =>
     cfg.trencherTuning ? { ...TRENCHER_LOOSE, ...cfg.trencherTuning } : TRENCHER_LOOSE;
+  /**
+   * Is this agent trading NEW LAUNCHES for real? Every condition must hold:
+   * live, the trencher, the owner switched live trenching on, and the signed
+   * key carries the TRENCHER V2 permissions (wall.ts) — without the marker the
+   * chain would refuse every one of these trades, so none are attempted.
+   * When true, discovered launches are watched, priced and traded on the live
+   * rail exactly as they are on paper.
+   */
+  const trencherV2Live = (): boolean =>
+    cfg.strategy === "trencher" &&
+    !paperActive() &&
+    cfg.trencherLiveEnabled &&
+    grantHasTrencherV2(active?.grant ?? null);
 
   // ── paper trading plumbing ────────────────────────────────────────────
   /**
@@ -1782,7 +1798,7 @@ async function main() {
               price8: 0n,
               stale: false,
               source: "spot",
-              detail: "spot · pool emptied (liquidity pulled) — marked at $0 · paper only",
+              detail: "spot · pool emptied (liquidity pulled) — marked at $0 · paper",
               liquidityUsdg: 0n,
             });
             lastLiquidityUsd.set(key, 0);
@@ -1794,7 +1810,7 @@ async function main() {
             price8: reading.price8,
             stale: false,
             source: "spot",
-            detail: `spot · ${p.manager === SPOT_MANAGERS.uniswapV4 ? "Uniswap v4" : p.manager === SPOT_MANAGERS.pancakeV2 ? "PancakeSwap v2" : "PancakeSwap Infinity"} · ~$${Math.round(reading.liquidityUsd).toLocaleString()} deep · paper only`,
+            detail: `spot · ${p.manager === SPOT_MANAGERS.uniswapV4 ? "Uniswap v4" : p.manager === SPOT_MANAGERS.pancakeV2 ? "PancakeSwap v2" : "PancakeSwap Infinity"} · ~$${Math.round(reading.liquidityUsd).toLocaleString()} deep · ${paperActive() ? "paper" : "live, carried at cost"}`,
             liquidityUsdg: cashUnits(reading.liquidityUsd),
           });
           lastLiquidityUsd.set(t.address.toLowerCase(), reading.liquidityUsd);
@@ -1922,13 +1938,20 @@ async function main() {
   async function refreshPaperDiscoveries(agentId: string): Promise<void> {
     const held: { symbol: string; address: `0x${string}`; decimals: number; depth: number }[] = [];
     const fresh: typeof held = [];
-    if (cfg.strategy === "trencher" && paperActive()) {
-      const holding = new Set(
-        Object.values((await getPaperBook(agentId, cfg.paperStartUsdg)).shares)
-          .filter((v) => v.shares > 0)
-          .map((v) => v.token.toLowerCase()),
-      );
-      paperHeldTokens = holding;
+    const paper = paperActive();
+    if (cfg.strategy === "trencher" && (paper || trencherV2Live())) {
+      // What it holds: the paper book on paper; on live, the trench positions it
+      // opened, recorded by address when each buy landed.
+      const holding = paper
+        ? new Set(
+            Object.values((await getPaperBook(agentId, cfg.paperStartUsdg)).shares)
+              .filter((v) => v.shares > 0)
+              .map((v) => v.token.toLowerCase()),
+          )
+        : new Set(await heldTrenchTokens(agentId, "live"));
+      // The $0 write-off of an emptied pool is a PAPER mark; live carries the
+      // position at cost and lets the exit try to sell.
+      paperHeldTokens = paper ? holding : new Set<string>();
       // HELD TOKENS BY ADDRESS, NOT BY RECENCY. They were picked out of the
       // newest 500 discoveries, which was days of launches before v2 discovery
       // and is about an hour after it: a position bought earlier aged out of
@@ -1969,6 +1992,20 @@ async function main() {
     }
     paperOnlyTokens = next;
   }
+  /**
+   * The launch leg of a live trencher trade: which discovered token it is and
+   * whether this buys or sells it. Only cash↔launch swaps qualify — the v2
+   * permissions allow nothing else — so anything else is null.
+   */
+  const v2LaunchLeg = (intent: TradeIntent): { token: `0x${string}`; side: "buy" | "sell" } | null => {
+    if (intent.kind !== "swap") return null;
+    const cash = (CASH.USD as string).toLowerCase();
+    const sell = intent.sellToken.toLowerCase();
+    const buy = intent.buyToken.toLowerCase();
+    if (sell === cash && paperOnlyTokens.has(buy)) return { token: intent.buyToken, side: "buy" };
+    if (buy === cash && paperOnlyTokens.has(sell)) return { token: intent.sellToken, side: "sell" };
+    return null;
+  };
   const touchesPaperOnly = (intent: TradeIntent): boolean =>
     intent.kind === "swap" &&
     [intent.sellToken, intent.buyToken].some((t) => paperOnlyTokens.has(t.toLowerCase()));
@@ -2043,7 +2080,7 @@ async function main() {
       // thin at birth, see refreshPaperDiscoveries) and can never be priced;
       // discovery already announced it, so it is skipped rather than logged as
       // "can't be priced" once a minute for a day.
-      if (!sameToken && paperActive()) continue;
+      if (!sameToken && (paperActive() || trencherV2Live())) continue;
       const quote = sameToken ? lastPrices.get(c.symbol) : undefined;
       out.push({
         symbol: c.symbol,
@@ -3166,7 +3203,7 @@ async function main() {
         // The row goes in with 0 when depth is unknown, which the drain guard
         // already reads as "no baseline, this check is off" — and
         // upgradeTrenchEntry fills it in the first tick a real reading arrives.
-        await setTrenchEntry(agentId, mode, f.symbol, depth ?? 0, basis ?? null);
+        await setTrenchEntry(agentId, mode, f.symbol, depth ?? 0, basis ?? null, tok.address);
         if (depth === undefined) {
           console.log(`[trench] no depth reading for ${f.symbol} — baseline stamped unknown, will fill in later`);
         }
@@ -3389,7 +3426,7 @@ async function main() {
     const paperOnlyIntent = touchesPaperOnly(intent);
     const verdict = checkPolicy(
       intent,
-      policyLimitsFor(limits, paperOnlyIntent && execMode().mode === "paper"),
+      policyLimitsFor(limits, paperOnlyIntent && (execMode().mode === "paper" || trencherV2Live())),
       state,
       await scoutContextFor(intent),
     );
@@ -3562,7 +3599,7 @@ async function main() {
     // trading off, a wrong-chain or empty account previously fell THROUGH this
     // block to the live rail and built a swap against a dead chain.
     const execRail = execMode();
-    if (paperOnlyIntent && execRail.mode !== "paper") {
+    if (paperOnlyIntent && execRail.mode !== "paper" && !trencherV2Live()) {
       // The rail moved between the policy check and here (a balance read landed
       // mid-intent). This token was only ever admitted for simulation; the
       // signed key cannot sell it, so a live buy would strand the position.
@@ -3819,7 +3856,111 @@ async function main() {
       let fillPair: { stockToken: `0x${string}`; symbol: string; quotedOut: bigint; floorOut: bigint } | null = null;
       // Same-token "swaps" (the selftest no-op) skip the quote path — they are
       // approval-leg pipeline probes, not trades.
-      if (intent.kind === "swap" && cfg.swapVenue === "pancakeswap" && intent.sellToken !== intent.buyToken) {
+      const launchLeg = trencherV2Live() ? v2LaunchLeg(intent) : null;
+      if (intent.kind === "swap" && launchLeg) {
+        // ── A NEW LAUNCH, THROUGH PANCAKESWAP v2 ─────────────────────────
+        //
+        // Priced off the pair's reserves by the v2 router, built only in the
+        // shapes the TRENCHER V2 permissions accept (venues/pancake-v2.ts), and
+        // read back by the final fence before anything is signed. Every refusal
+        // below leaves a row, like every other refusal on this path.
+        const refuseV2 = async (rule: string, detail: string) => {
+          console.log(`[v2] ${rule}: ${detail}`);
+          await addEvent(agentId, "warn", `${detail} — swap skipped`);
+          await recordTrade({
+            agent_id: agentId,
+            kind: intent.kind,
+            target: intent.target,
+            sell_token: intent.sellToken,
+            buy_token: intent.buyToken,
+            amount_usdg: usdgNum(notional),
+            status: "rejected",
+            reject_rule: rule,
+            ...sim,
+          });
+        };
+        const symbol = symbolOfToken(launchLeg.token) ?? short(launchLeg.token);
+        const pool = (await spotPoolsFor([launchLeg.token])).get(launchLeg.token.toLowerCase());
+        const route = v2RouteFor(launchLeg.token, pool);
+        if (!route) {
+          return refuseV2("no-route", `${symbol} is not a PancakeSwap v2 pair against USDT or WBNB, which is all this key can trade`);
+        }
+        const isExit = launchLeg.side === "sell";
+        const path = isExit ? sellPath(route) : buyPath(route);
+        const quoted = await quoteV2(active.client, intent.sellAmountRaw, path);
+        if (quoted === null) {
+          return refuseV2("no-route", `the v2 router would not quote ${symbol}`);
+        }
+        // Impact, the same way the v3 path measures it: this size against a probe.
+        let impact: number | null = null;
+        const probeIn = probeAmountIn(intent.sellAmountRaw);
+        if (probeIn !== null) {
+          const probeOut = await quoteV2(active.client, probeIn, path);
+          if (probeOut !== null) impact = impactBps({ amountIn: intent.sellAmountRaw, amountOut: quoted, probeIn, probeOut });
+        }
+        const verdict = judgeImpact({ bps: impact, maxBps: cfg.maxImpactBps, isExit });
+        if (!verdict.ok) {
+          return refuseV2(verdict.rule, `${verdict.detail} (${symbol})`);
+        }
+        if (verdict.note) await addEvent(agentId, "warn", verdict.note);
+
+        const floor = minOutWithSlippage(quoted, cfg.slippageBps);
+        let calls: Call[];
+        let fence: ReturnType<typeof checkV2TradeCalls>;
+        if (!isExit) {
+          // A BUY names the launch amount it will take (the floor) and a cash
+          // ceiling of the order size; whatever cash is not needed stays put.
+          calls = buildV2BuyCalls({ route, exactOut: floor, amountInMax: intent.sellAmountRaw, recipient: executor.address });
+          fence = checkV2TradeCalls(calls, {
+            side: "buy", router: PANCAKE.smartRouter as `0x${string}`, recipient: executor.address, path,
+            exactOut: floor, amountInMax: intent.sellAmountRaw,
+          });
+          fillPair = { stockToken: launchLeg.token, symbol, quotedOut: quoted, floorOut: floor };
+          liveFill = { side: "buy", symbol, qtyRaw: floor, cashUsdg: intent.sellAmountRaw, priceUsd: cashToNumber(intent.sellAmountRaw) / (Number(floor) / 1e18) };
+          sim = { sim_quote_out: quoted.toString(), sim_min_out: floor.toString(), sim_fee_tier: 2500, sim_gas: "0" };
+        } else {
+          // A SALE sells the whole position. A WBNB-paired launch pays out in
+          // WBNB, and the WBNB it is guaranteed goes back to cash in the same
+          // operation, so the sale has the cash leg the books close it with.
+          let unwind: { fee: number; cashMinOut: bigint } | undefined;
+          let cashQuoted = quoted;
+          let cashFloor = floor;
+          if (route.quote === "wbnb") {
+            const back = await bestRoute(active.client, { tokenIn: CASH.WBNB as `0x${string}`, tokenOut: CASH.USD as `0x${string}`, amountIn: floor });
+            if (!back) {
+              return refuseV2("no-route", `no route to turn ${symbol}'s WBNB back into cash`);
+            }
+            unwind = { fee: back.fee, cashMinOut: minOutWithSlippage(back.amountOut, cfg.slippageBps) };
+            cashQuoted = back.amountOut;
+            cashFloor = unwind.cashMinOut;
+          }
+          calls = buildV2SellCalls({ route, amountIn: intent.sellAmountRaw, minOut: floor, recipient: executor.address, unwind });
+          fence = checkV2TradeCalls(calls, {
+            side: "sell", router: PANCAKE.smartRouter as `0x${string}`, recipient: executor.address, path,
+            amountIn: intent.sellAmountRaw, minOut: floor,
+            ...(unwind ? { unwind: { wbnb: CASH.WBNB as `0x${string}`, cash: CASH.USD as `0x${string}`, cashMinOut: unwind.cashMinOut } } : {}),
+          });
+          fillPair = { stockToken: launchLeg.token, symbol, quotedOut: cashQuoted, floorOut: cashFloor };
+          liveFill = { side: "sell", symbol, qtyRaw: intent.sellAmountRaw, cashUsdg: cashFloor, priceUsd: cashToNumber(cashFloor) / (Number(intent.sellAmountRaw) / 1e18) };
+          sim = { sim_quote_out: cashQuoted.toString(), sim_min_out: cashFloor.toString(), sim_fee_tier: 2500, sim_gas: "0" };
+        }
+        if (!fence.ok) {
+          releaseBudget();
+          await addEvent(
+            agentId,
+            "err",
+            `refused to sign a v2 ${launchLeg.side} of ${symbol}: ${fence.detail}. Nothing was sent. This is an oathwall ` +
+              `fault — the calldata did not match the trade that was approved.`,
+          );
+          await recordTrade({
+            agent_id: agentId, kind: intent.kind, target: intent.target, ...tokenLegs(intent),
+            amount_usdg: usdgNum(notional), status: "rejected", reject_rule: `fence-${fence.rule}`, ...sim,
+          });
+          return;
+        }
+        exec = await send(calls);
+        await addEvent(agentId, "ok", `v2 ${launchLeg.side} ${symbol} · quote ${quoted} floor ${floor}${route.quote === "wbnb" ? " · via WBNB" : ""}`);
+      } else if (intent.kind === "swap" && cfg.swapVenue === "pancakeswap" && intent.sellToken !== intent.buyToken) {
         // Full leg: QuoterV2 simulation (reverts where the swap would) →
         // slippage-bounded minOut → approve + exactInputSingle in one UserOp.
         const quote = await bestRoute(active.client, {
@@ -4915,6 +5056,16 @@ async function main() {
       (symbol) => qCost.get(symbol) ?? 0n,
       (symbol) => poolRefusals.get(symbol),
     );
+    // LIVE SPOT MARKS ARE CARRIED AT COST, like the quarantine above. A spot
+    // price is one pool's instantaneous ratio — no TWAP, no divergence check —
+    // so one trade can move it, and on real money it must not reach equity,
+    // the high-water mark or the breaker: a pushed launch would set a peak the
+    // breaker then measures a phantom crash from. The STRATEGY still sees the
+    // spot price (the snapshot is built from `positions`), because its exits —
+    // stop-loss, take-profit, drain — need a price to fire at all.
+    const spotHeld = paper ? [] : positions.filter((p) => p.priceSource === "spot");
+    let spotCostUsdg = 0n;
+    for (const p of spotHeld) spotCostUsdg += (await getBasis(agentId, "live", p.symbol)).costUsdg;
     // The book is only genuinely UNKNOWN when a quarantined holding has no
     // recorded cost either — then we know neither what it's worth nor what was
     // paid, and there is no honest number to put in. When the agent bought it,
@@ -4953,8 +5104,18 @@ async function main() {
     // spot-vs-TWAP divergence band before it was allowed to exist. That is the
     // definition this gate was always reaching for, so what remains is the
     // honest test: a token with no quote at all.
+    //
+    // …AND SPOT IS BACK IN THE CLASS ON LIVE. A live trencher now trades v2
+    // launches priced from one pool's reserves, which is exactly the "no oracle
+    // behind it" case this gate was built for, so a buy into one is judged by
+    // the scout budget. On paper it stays priced: nothing real is spent.
     lastUnpriceable = new Set(
-      watchTokens.filter((t) => !market.prices.get(t.symbol)).map((t) => t.address.toLowerCase()),
+      watchTokens
+        .filter((t) => {
+          const q = market.prices.get(t.symbol);
+          return !q || (!paper && q.source === "spot");
+        })
+        .map((t) => t.address.toLowerCase()),
     );
     // THE CURVE HALF OF THIS BUDGET IS GONE WITH THE CURVE PRICER.
     //
@@ -4963,7 +5124,7 @@ async function main() {
     // price, so it left the quarantine and stopped counting against the scout
     // budget — gate closed, ceiling open. With no curve pricer there is no such
     // holding, and the quarantine total is the whole number again.
-    lastQuarantinedUsdg = quarantine.totalCostUsdg;
+    lastQuarantinedUsdg = quarantine.totalCostUsdg + spotCostUsdg;
 
     const unknownCost = quarantine.holdings.filter((h) => h.costUsdg === 0n).map((h) => h.symbol);
     const bookIncomplete = unknownCost.length > 0;
@@ -4984,7 +5145,7 @@ async function main() {
     }
     if (unpricedByDesign.length === 0) notedUnpriced = false;
 
-    const positionsUsdg = positions.reduce((sum, p) => sum + p.valueUsdg, 0n);
+    const positionsUsdg = positions.filter((p) => !spotHeld.includes(p)).reduce((sum, p) => sum + p.valueUsdg, 0n);
     // Equity is the whole book — cash, vault, multiplier-aware stock value, and
     // quarantined holdings at cost. The cost term is what stops a scout buy from
     // reading as an instant loss: cash left the wallet, so without it equity
@@ -4993,7 +5154,7 @@ async function main() {
       cashUsdg: balances.cashUsdg,
       vaultUsdg: balances.vaultUsdg,
       positionsUsdg,
-      quarantinedCostUsdg: quarantine.totalCostUsdg,
+      quarantinedCostUsdg: quarantine.totalCostUsdg + spotCostUsdg,
     });
 
     // Reconcile LIVE cost basis against the chain. A live fill is booked from

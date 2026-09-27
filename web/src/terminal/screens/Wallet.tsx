@@ -355,6 +355,10 @@ export default function GrantPage() {
   // The basket matters here for the same reason: /settings offers every registry
   // symbol, but only the ones sealed into the signature can be sold.
   const [basketSymbols, setBasketSymbols] = useState<string[]>([]);
+  // The configured strategy. A trencher's key carries the new-launch
+  // permissions (TRENCHER V2 in packages/core/src/wall.ts); any other keeps
+  // the tighter wall.
+  const [strategy, setStrategy] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = loadGrant();
@@ -393,7 +397,8 @@ export default function GrantPage() {
       .catch(() => setSession(null));
     fetch("/api/settings")
       .then((r) => (r.ok ? r.json() : null))
-      .then((v: { values?: { customTokens?: unknown[]; basketSymbols?: string[]; v4AdapterAddress?: string; ponsAdapterAddress?: string }; defaults?: { basketSymbols?: string[] } } | null) => {
+      .then((v: { values?: { customTokens?: unknown[]; basketSymbols?: string[]; v4AdapterAddress?: string; ponsAdapterAddress?: string; strategy?: string }; defaults?: { basketSymbols?: string[]; strategy?: string } } | null) => {
+        setStrategy(v?.values?.strategy ?? v?.defaults?.strategy ?? null);
         const list = (v?.values?.customTokens ?? []).filter(isValidCustomToken);
         setCustomTokens(list as CustomToken[]);
         setBasketSymbols(v?.values?.basketSymbols ?? v?.defaults?.basketSymbols ?? []);
@@ -507,6 +512,7 @@ export default function GrantPage() {
         v4AdapterAddress: v4Adapter,
         ponsAdapterAddress: await verifiedAdapter(ponsAdapter, chainId, setStatus),
         hostedAs: session.hosted ? (session.address ?? undefined) : undefined,
+        trencherV2: strategy === "trencher",
       });
       setGrant(g);
       // Take the ARMED state from what the server actually said. This used to be
@@ -558,6 +564,7 @@ export default function GrantPage() {
         v4AdapterAddress: v4Adapter,
         ponsAdapterAddress: await verifiedAdapter(ponsAdapter, chainId, setStatus),
         hostedAs: session?.hosted ? (session.address ?? undefined) : undefined,
+        trencherV2: strategy === "trencher",
       });
       // They just pasted the owner key, so it's demonstrably backed up — skip the
       // backup gate and drop them straight into the funded/manage view.
@@ -626,12 +633,16 @@ export default function GrantPage() {
       let freshTokens = customTokens;
       let freshAdapter = v4Adapter;
       let freshPons = ponsAdapter;
+      let freshStrategy = strategy;
       try {
         const r = await fetch("/api/settings");
         if (r.ok) {
           const v = (await r.json()) as {
-            values?: { customTokens?: unknown[]; v4AdapterAddress?: string; ponsAdapterAddress?: string };
+            values?: { customTokens?: unknown[]; v4AdapterAddress?: string; ponsAdapterAddress?: string; strategy?: string };
+            defaults?: { strategy?: string };
           };
+          freshStrategy = v?.values?.strategy ?? v?.defaults?.strategy ?? freshStrategy;
+          setStrategy(freshStrategy);
           freshTokens = (v?.values?.customTokens ?? []).filter(isValidCustomToken) as CustomToken[];
           const a = v?.values?.v4AdapterAddress;
           freshAdapter = typeof a === "string" && /^0x[0-9a-fA-F]{40}$/.test(a) ? (a as `0x${string}`) : undefined;
@@ -657,6 +668,9 @@ export default function GrantPage() {
         v4AdapterAddress: freshAdapter,
         ponsAdapterAddress: await verifiedAdapter(freshPons, chainId, setStatus),
         hostedAs: session?.hosted ? (session.address ?? undefined) : undefined,
+        // Read at click time with the rest: switching an agent to trencher and
+        // then renewing is exactly how an owner opts an existing agent in.
+        trencherV2: freshStrategy === "trencher",
         /**
          * THE ACCOUNT WE ARE RE-SIGNING, stated so the signer can refuse.
          *

@@ -415,8 +415,19 @@ describe("trencher with no discovery feed says so instead of idling in silence",
 describe("trencher's discoveries are tradable on PAPER and never widen the live wall", () => {
   const src = readFileSync("worker/src/index.ts", "utf8");
 
-  it("discoveries join the watch set only on paper, running trencher", () => {
-    assert.match(src, /if \(cfg\.strategy === "trencher" && paperActive\(\)\) \{/);
+  it("discoveries join the watch set on paper, or on live only under the v2 key", () => {
+    assert.match(src, /if \(cfg\.strategy === "trencher" && \(paper \|\| trencherV2Live\(\)\)\) \{/);
+  });
+
+  it("the live exception needs ALL of: live, trencher, the owner's switch, and the key's marker", () => {
+    // Each term is a separate consent: a key without the marker would be
+    // refused on-chain, and an owner who has not switched live trenching on
+    // has not agreed to spend on launches at all.
+    const def = src.match(/const trencherV2Live = \(\): boolean =>([\s\S]*?);\n/)?.[1] ?? "";
+    assert.match(def, /cfg\.strategy === "trencher"/);
+    assert.match(def, /!paperActive\(\)/);
+    assert.match(def, /cfg\.trencherLiveEnabled/);
+    assert.match(def, /grantHasTrencherV2\(active\?\.grant \?\? null\)/);
   });
 
   it("live limits are built from the owner's own tokens, never the widened watch set", () => {
@@ -424,9 +435,9 @@ describe("trencher's discoveries are tradable on PAPER and never widen the live 
     assert.equal((src.match(/limitsFromGrant\([^,]+, baseWatchTokens\(\),/g) ?? []).length, 2);
   });
 
-  it("only the paper rail sees the widened limits, and the fork refuses paper-only tokens anywhere else", () => {
-    assert.match(src, /policyLimitsFor\(limits, paperOnlyIntent && execMode\(\)\.mode === "paper"\)/);
-    assert.match(src, /if \(paperOnlyIntent && execRail\.mode !== "paper"\) \{[\s\S]*?reject_rule: "paper-only-asset"/);
+  it("only paper, or live under the v2 key, sees the widened limits; the fork refuses discoveries anywhere else", () => {
+    assert.match(src, /policyLimitsFor\(limits, paperOnlyIntent && \(execMode\(\)\.mode === "paper" \|\| trencherV2Live\(\)\)\)/);
+    assert.match(src, /if \(paperOnlyIntent && execRail\.mode !== "paper" && !trencherV2Live\(\)\) \{[\s\S]*?reject_rule: "paper-only-asset"/);
   });
 
   it("held positions are kept watched ahead of fresh launches, so an exit is never stranded", () => {

@@ -436,3 +436,118 @@ test("the swap's pinned asset set IS the approve set — they cannot drift", () 
     }
   }
 });
+
+// ── TRENCHER V2 ─────────────────────────────────────────────────────────────
+//
+// These run real calldata, encoded by viem, through a copy of CallPolicy
+// V0_0_4's _checkPermission (target match with zero-address fallback, then
+// every rule at its byte offset). The rules are only as good as the words they
+// read, so the test encodes and checks rather than reasoning about offsets.
+
+import { GRANT_TRENCHER_V2, PANCAKE_V2_SWAP_ABI, grantHasTrencherV2 } from "../../packages/core/src/index";
+import { erc20Abi, zeroAddress, type Hex } from "viem";
+
+type Rule = { condition: number; offset: bigint; params: Hex[] };
+type RawPerm = { target: string; selector?: Hex; functionName?: string; rules?: Rule[] };
+
+const LAUNCH = "0x00000000000000000000000000000000000c0ffe" as const;
+const OTHER = "0x00000000000000000000000000000000000bad00" as const;
+const WBNB = CASH.WBNB as `0x${string}`;
+const USDT = CASH.USD as `0x${string}`;
+const BTCB = TRADABLE_TOKENS.find((t) => t.symbol === "BTCB")!.address as `0x${string}`;
+const v2perms = () => (buildCallPermissions(CAPS, SELF, { trencherV2: true }) as unknown as RawPerm[]).filter((p) => p.rules);
+
+/** CallPolicy V0_0_4 `_checkPermission`, for permissions given as explicit rules. */
+function allows(list: RawPerm[], target: string, data: Hex): boolean {
+  const sel = data.slice(0, 10).toLowerCase();
+  const perm =
+    list.find((p) => p.target.toLowerCase() === target.toLowerCase() && p.selector?.toLowerCase() === sel) ??
+    list.find((p) => p.target === zeroAddress && p.selector?.toLowerCase() === sel);
+  if (!perm) return false;
+  const body = data.slice(10);
+  return perm.rules!.every((r) => {
+    const at = Number(r.offset) * 2;
+    const param = `0x${body.slice(at, at + 64)}`.toLowerCase();
+    const ps = r.params.map((x) => x.toLowerCase());
+    if (r.condition === ParamCondition.EQUAL) return param === ps[0];
+    if (r.condition === ParamCondition.NOT_EQUAL) return param !== ps[0];
+    if (r.condition === ParamCondition.ONE_OF) return ps.includes(param);
+    throw new Error(`condition ${r.condition} not mirrored`);
+  });
+}
+// A buy names the launch amount it wants and a cash ceiling; a sell names the whole position.
+const buy = (path: `0x${string}`[], to: `0x${string}` = SELF) =>
+  encodeFunctionData({ abi: PANCAKE_V2_SWAP_ABI, functionName: "swapTokensForExactTokens", args: [10n ** 24n, 5n * 10n ** 18n, path, to] });
+const sell = (path: `0x${string}`[], to: `0x${string}` = SELF) =>
+  encodeFunctionData({ abi: PANCAKE_V2_SWAP_ABI, functionName: "swapExactTokensForTokens", args: [10n ** 24n, 1n, path, to] });
+const approve = (spender: `0x${string}`) => encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [spender, 2n ** 255n] });
+const R = PANCAKE.smartRouter;
+
+test("trencher v2 is off by default and adds exactly three permissions when on", () => {
+  const off = buildCallPermissions(CAPS, SELF);
+  const on = buildCallPermissions(CAPS, SELF, { trencherV2: true });
+  assert.equal(on.length, off.length + 3);
+  assert.equal(v2perms().length, 3);
+  for (const p of on) assert.equal(p.valueLimit, 0n);
+});
+
+test("the selectors are the ones in the SmartRouter's bytecode on BNB", () => {
+  const sels = v2perms().map((p) => p.selector);
+  assert.ok(sels.includes("0x472b43f3"), "swapExactTokensForTokens");
+  assert.ok(sels.includes("0x42712a67"), "swapTokensForExactTokens");
+  assert.ok(sels.includes("0x095ea7b3"), "approve");
+});
+
+test("the BUY: cash in, 2 or 3 hops, output to the agent — nothing else", () => {
+  const p = v2perms();
+  assert.equal(allows(p, R, buy([USDT, LAUNCH])), true);
+  assert.equal(allows(p, R, buy([USDT, WBNB, LAUNCH])), true, "cash→WBNB→launch, for WBNB-paired launches");
+  assert.equal(allows(p, R, buy([WBNB, LAUNCH])), false, "the basket cannot fund a buy");
+  assert.equal(allows(p, R, buy([BTCB, LAUNCH])), false);
+  assert.equal(allows(p, R, buy([USDT, LAUNCH], OTHER)), false, "output to anyone else");
+  assert.equal(allows(p, R, buy([USDT, WBNB, OTHER, LAUNCH])), false, "four hops");
+  assert.equal(allows(p, OTHER, buy([USDT, LAUNCH])), false, "any other router");
+});
+
+test("the SELL: anything the grant does not name, to cash or WBNB, output to the agent", () => {
+  const p = v2perms();
+  assert.equal(allows(p, R, sell([LAUNCH, USDT])), true);
+  assert.equal(allows(p, R, sell([LAUNCH, WBNB])), true, "a WBNB-paired launch sells to WBNB");
+  assert.equal(allows(p, R, sell([LAUNCH, OTHER])), false, "must end in cash or WBNB");
+  assert.equal(allows(p, R, sell([LAUNCH, USDT], OTHER)), false, "output to anyone else");
+  assert.equal(allows(p, R, sell([LAUNCH, WBNB, USDT])), false, "exactly two hops");
+  for (const t of TRADABLE_TOKENS.filter((x) => (TRADEABLE_SYMBOLS as readonly string[]).includes(x.symbol))) {
+    assert.equal(allows(p, R, sell([t.address as `0x${string}`, USDT])), false, `${t.symbol} is named, so it cannot leave through this door`);
+  }
+  assert.equal(allows(p, R, sell([USDT, WBNB])), false, "cash cannot leave through it either");
+});
+
+test("an owner-added token is named too, so it cannot be sold through the v2 door", () => {
+  const extra = "0x00000000000000000000000000000000000e0e0e" as const;
+  const p = (buildCallPermissions(CAPS, SELF, { trencherV2: true, extraTokens: [{ symbol: "EXT", address: extra, decimals: 18 }] }) as unknown as RawPerm[]).filter((x) => x.rules);
+  assert.equal(allows(p, R, sell([extra, USDT])), false);
+});
+
+test("the wildcard approve: any token, but only to the SmartRouter", () => {
+  const p = v2perms();
+  assert.equal(allows(p, LAUNCH, approve(R as `0x${string}`)), true);
+  assert.equal(allows(p, LAUNCH, approve(OTHER)), false);
+  assert.equal(p.find((x) => x.selector === "0x095ea7b3")!.target, zeroAddress);
+});
+
+test("the marker reads only when the signer minted it", () => {
+  assert.equal(GRANT_TRENCHER_V2, "trencher-v2");
+  assert.equal(grantHasTrencherV2({ grantFeatures: ["tradeable-v2", "trencher-v2"] }), true);
+  assert.equal(grantHasTrencherV2({ grantFeatures: ["tradeable-v2"] }), false);
+  assert.equal(grantHasTrencherV2(null), false);
+});
+
+test("buildWallPolicies forwards trencherV2 into the call policy", () => {
+  const now = 1_800_000_000;
+  const data = (v2: boolean) =>
+    (buildWallPolicies({ caps: CAPS, smartAccount: SELF, now, trencherV2: v2 }).policies[2] as { getPolicyData: () => Hex }).getPolicyData();
+  assert.ok(data(true).toLowerCase().includes("42712a67"), "the buy selector is sealed");
+  assert.ok(data(true).toLowerCase().includes("472b43f3"), "and the sell selector");
+  assert.ok(!data(false).toLowerCase().includes("42712a67"), "and neither by default");
+  assert.ok(!data(false).toLowerCase().includes("472b43f3"));
+});

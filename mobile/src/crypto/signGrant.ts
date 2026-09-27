@@ -10,6 +10,7 @@ import {
   GRANT_V4_ADAPTER,
   GRANT_PONS_ADAPTER,
   TRADEABLE_V2,
+  GRANT_TRENCHER_V2,
   buildWallPolicies,
   WALL_POLICY_FLAG,
   bnbChain,
@@ -70,6 +71,13 @@ export async function signGrant(args: {
    * never ahead of it.
    */
   ponsAdapterAddress?: `0x${string}`;
+  /**
+   * Seal the TRENCHER V2 permissions (packages/core/src/wall.ts) — buy and
+   * sell new launches. Pass `strategy === "trencher"`. Onboarding has no
+   * strategy to read yet, so it passes nothing and phone grants carry the
+   * tighter wall; the marker below is minted from this same value.
+   */
+  trencherV2?: boolean;
   rpcUrl?: string;
   onProgress?: SignProgress;
 }): Promise<SignedGrant> {
@@ -152,6 +160,7 @@ export async function signGrant(args: {
     allowUniswapV4,
     v4AdapterAddress: args.v4AdapterAddress,
     ponsAdapterAddress: args.ponsAdapterAddress,
+    trencherV2: args.trencherV2 ?? false,
   });
 
   say("attaching the permissions");
@@ -209,6 +218,7 @@ export async function signGrant(args: {
         ...(allowUniswapV4 ? [GRANT_V4] : []),
         ...(args.v4AdapterAddress ? [GRANT_V4_ADAPTER] : []),
         ...(args.ponsAdapterAddress ? [GRANT_PONS_ADAPTER] : []),
+        ...(args.trencherV2 ? [GRANT_TRENCHER_V2] : []),
       ],
       ...(args.v4AdapterAddress ? { v4AdapterAddress: args.v4AdapterAddress.toLowerCase() } : {}),
       ...(args.ponsAdapterAddress ? { ponsAdapterAddress: args.ponsAdapterAddress.toLowerCase() } : {}),

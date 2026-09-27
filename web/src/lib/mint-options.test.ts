@@ -158,3 +158,25 @@ describe("the backup gate gets the copy with the key", () => {
     assert.match(GRANT_PAGE_SRC, /couldn't read your owner key/);
   });
 });
+
+describe("trencher v2: the permission and its marker move together", () => {
+  const CREATE_SRC = readFileSync(new URL("../terminal/screens/CreateAgent.tsx", import.meta.url), "utf8");
+
+  it("the wall and the marker read the SAME trencherV2 value", () => {
+    const wall = SESSION_SRC.slice(SESSION_SRC.indexOf("buildWallPolicies({"));
+    assert.match(wall.slice(0, 300), /trencherV2,/, "trencherV2 reaches buildWallPolicies");
+    assert.match(SESSION_SRC, /\.\.\.\(trencherV2 \? \[GRANT_TRENCHER_V2\] : \[\]\)/, "and mints the marker from it");
+    assert.match(SESSION_SRC, /trencherV2 = false,/, "off unless a caller says so");
+  });
+
+  it("all three mint entry points forward it", () => {
+    assert.equal((SESSION_SRC.match(/o\.trencherV2 \?\? false,/g) ?? []).length, 3);
+  });
+
+  it("every caller derives it from the strategy, and only trencher turns it on", () => {
+    assert.match(CREATE_SRC, /trencherV2:strategy==="trencher"/);
+    const walletSites = GRANT_PAGE_SRC.match(/trencherV2: (?:fresh)?[sS]trategy === "trencher"/g) ?? [];
+    assert.equal(walletSites.length, 3, "create, restore and renew on the wallet screen");
+    assert.match(GRANT_PAGE_SRC, /trencherV2: freshStrategy === "trencher"/, "renew reads the strategy at click time");
+  });
+});
