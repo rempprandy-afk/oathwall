@@ -324,3 +324,42 @@ describe("a sold token is not bought back inside the cooldown", () => {
     assert.equal((await run(s, snap)).length, 0, "and not bought straight back");
   });
 });
+
+describe("the rug check is the last word before a buy", () => {
+  const qi = { symbol: "QI", token: "0x0000000000000000000000000000000000000001" as const, decimals: 18, priceable: true, liquidityUsd: 8_567, fdvUsd: 13_433, ageSec: 15 * 60, price8: 1n };
+  const run = async (vet?: () => Promise<{ enter: true } | { enter: false; why: string }>) => {
+    const { makeTrencher, TRENCHER_LOOSE } = await import("./trencher");
+    const notes: string[] = [];
+    const s = makeTrencher({
+      cfg: TRENCHER_LOOSE,
+      swapRouter: "0x0000000000000000000000000000000000000002",
+      usdgToken: "0x0000000000000000000000000000000000000003",
+      candidates: () => [qi],
+      open: () => [],
+      liquidityOf: () => null,
+      onNote: (_l, m) => notes.push(m),
+      ...(vet ? { vet } : {}),
+    });
+    const snap = {
+      cashUsdg: 10n ** 30n, vaultUsdg: 0n, holdings: new Map(), prices: new Map(),
+      pausedTokens: new Set<string>(), staleFeeds: new Set<string>(), chainLive: true,
+      spendHeadroomUsdg: 10n ** 30n, perTradeCapUsdg: 10n ** 30n,
+    } as unknown as Snapshot;
+    return { intents: takeTick(await s.tick(snap)).intents.length, notes };
+  };
+
+  it("a refusal stops the buy and says why", async () => {
+    const r = await run(async () => ({ enter: false, why: "only 0.0% of its liquidity is burned or locked" }));
+    assert.equal(r.intents, 0);
+    assert.ok(r.notes.some((n) => n === "trencher: passing on QI — only 0.0% of its liquidity is burned or locked"));
+  });
+  it("a check that throws is a refusal, never a pass", async () => {
+    const r = await run(async () => { throw new Error("rpc down"); });
+    assert.equal(r.intents, 0);
+    assert.ok(r.notes.some((n) => n.includes("couldn't check its liquidity and holders")));
+  });
+  it("a pass buys, and with no check at all nothing changes", async () => {
+    assert.equal((await run(async () => ({ enter: true }))).intents, 1);
+    assert.equal((await run()).intents, 1);
+  });
+});

@@ -67,7 +67,8 @@ import {
 } from "../../packages/core/src/index";
 import { impactBps, judgeImpact, probeAmountIn } from "./impact";
 import { checkV2TradeCalls, checkV3SwapCalls } from "./final-fence";
-import { buildV2BuyCalls, buildV2SellCalls, buyPath, quoteV2, sellPath, v2RouteFor } from "./venues/pancake-v2";
+import { PANCAKE_V2_QUOTER, buildV2BuyCalls, buildV2SellCalls, buyPath, quoteV2, sellPath, v2RouteFor } from "./venues/pancake-v2";
+import { readRugVerdict } from "./venues/rug-check";
 import { readPeers } from "./peer-files";
 import { peerLabel, peerView } from "./strategist/peer-view";
 import { SHADOW_SOURCES, type PublicThesis } from "./thesis-policy";
@@ -136,7 +137,7 @@ import {
   type ResolvedConfig,
 } from "./settings";
 import { BUILTIN_STRATEGIES, buildStrategy, isCircleStrategy, isKnownMajor, watchTokensFor } from "./strategies/registry";
-import { TRENCHER_DEFAULTS, TRENCHER_LOOSE, type Candidate, type OpenPosition } from "./strategies/trencher";
+import { TRENCHER_DEFAULTS, TRENCHER_LOOSE, type Candidate, type EntryVerdict, type OpenPosition } from "./strategies/trencher";
 import { createPoolPriceReader } from "./venues/pool-prices";
 import { SPOT_MANAGERS, isSpotManager, readPoolEmptied, readSpotPrice, readSpotQuotes } from "./venues/spot-price";
 import { customStrategiesDir, resolveStrategyFile } from "./strategies/custom";
@@ -181,7 +182,7 @@ const TRENDING_SCREEN: ScreenLimits = {
   minBuyers24h: 100,
 };
 
-import { mainnetClient, readAccountBalances, readMarketSafety, setMainnetRpc } from "./snapshot";
+import { logsClient, mainnetClient, mainnetMulticallClient, readAccountBalances, readMarketSafety, setMainnetRpc } from "./snapshot";
 import { applyFill } from "./basis";
 import {
   addDecision,
@@ -519,6 +520,7 @@ async function main() {
         usdgToken: CASH.USD as `0x${string}`,
         candidates: trenchCandidates,
         open: trenchOpen,
+        vet: vetLaunch,
         liquidityOf: (token) => {
           const k = token.toLowerCase();
           const entry = trenchEntryBasis.get(k);
@@ -2098,6 +2100,34 @@ async function main() {
       });
     }
     return out;
+  }
+
+  /**
+   * The rug check (venues/rug-check.ts) for a launch the trencher is about to
+   * buy: is its liquidity burned or locked, and does any wallet hold too much
+   * of its supply. Only a v2 pair has an LP token to check; other launches
+   * (v4 / Infinity pools, which only paper trades) keep the rules as they were.
+   * A verdict is kept ten minutes — long enough not to re-read a candidate every
+   * tick, short enough that a changed pool is seen again.
+   */
+  const rugVerdicts = new Map<string, { at: number; v: EntryVerdict }>();
+  async function vetLaunch(c: Candidate): Promise<EntryVerdict> {
+    const key = c.token.toLowerCase();
+    const nowSec = Math.floor(Date.now() / 1000);
+    const hit = rugVerdicts.get(key);
+    if (hit && nowSec - hit.at < 600) return hit.v;
+    const pool = (await spotPoolsFor([c.token])).get(key);
+    if (!pool || pool.manager.toLowerCase() !== SPOT_MANAGERS.pancakeV2) return { enter: true };
+    const r = await readRugVerdict({
+      reads: mainnetMulticallClient(),
+      logs: logsClient(),
+      token: c.token,
+      pair: pool.poolId as `0x${string}`,
+      exempt: [PANCAKE.smartRouter, PANCAKE_V2_QUOTER],
+    });
+    const v: EntryVerdict = r.ok ? { enter: true } : { enter: false, why: r.why };
+    rugVerdicts.set(key, { at: nowSec, v });
+    return v;
   }
 
   /**

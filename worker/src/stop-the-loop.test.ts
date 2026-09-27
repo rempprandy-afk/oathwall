@@ -223,7 +223,9 @@ describe("A5 — the meter is a seam, not a policy", () => {
     // property is that no transport reaches the chain unmeasured, not that
     // every site spells the wrapper out.
     for (const [file, n] of [
-      ["./snapshot.ts", 2],
+      // mainnet, plus the rug check's multicall client (built at load and on
+      // setMainnetRpc, like mainnet) and its log node: five, all metered.
+      ["./snapshot.ts", 5],
       ["./index.ts", 1],
       ["./executor.ts", 2],
       ["./circle.ts", 1],

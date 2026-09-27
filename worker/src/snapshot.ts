@@ -26,10 +26,34 @@ const VAULT_READS = parseAbi([
 ]);
 
 let mainnet = createPublicClient({ chain: bnbChain, transport: chainRead(undefined) });
+/**
+ * The same RPC, batching contract reads through Multicall3 — for the rug
+ * check, which reads one balance per address that ever received a launch
+ * token, so hundreds of reads become a handful of requests.
+ */
+let mainnetMulticall = createPublicClient({ chain: bnbChain, transport: chainRead(undefined, "rug"), batch: { multicall: true } });
+/**
+ * A node that answers eth_getLogs for an address. bsc-dataseed refuses every
+ * log query ("limit exceeded"); publicnode serves one token's logs for roughly
+ * the last half hour (checked 2026-09-27). Used only by the rug check.
+ */
+const LOGS_RPC = "https://bsc-rpc.publicnode.com";
+const logsNode = createPublicClient({ chain: bnbChain, transport: chainRead(LOGS_RPC, "logs") });
 
 /** Point safety reads at a custom mainnet RPC (settings/env); undefined = chain default. */
 export function setMainnetRpc(url?: string): void {
   mainnet = createPublicClient({ chain: bnbChain, transport: chainRead(url) });
+  mainnetMulticall = createPublicClient({ chain: bnbChain, transport: chainRead(url, "rug"), batch: { multicall: true } });
+}
+
+/** The mainnet client with Multicall3 batching. */
+export function mainnetMulticallClient(): PublicClient {
+  return mainnetMulticall as PublicClient;
+}
+
+/** A client whose node serves eth_getLogs for one address. */
+export function logsClient(): PublicClient {
+  return logsNode as PublicClient;
 }
 
 /**

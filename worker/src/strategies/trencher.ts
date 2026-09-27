@@ -231,6 +231,15 @@ export interface TrencherDeps {
    */
   unpriceable?: () => ReadonlySet<string>;
   onNote?: (level: "ok" | "warn", message: string) => void;
+  /**
+   * The last question before a buy, asked only of a launch that passed every
+   * rule above: can it be rugged? (venues/rug-check.ts — is the liquidity
+   * burned or locked, and does any wallet hold too much of the supply.) It
+   * reads the chain, so it is asked once per candidate that gets this far,
+   * never of the whole list. A throw counts as a refusal: an unchecked launch
+   * is not a checked-and-safe one.
+   */
+  vet?: (c: Candidate) => Promise<EntryVerdict>;
 }
 
 /**
@@ -320,6 +329,15 @@ export function makeTrencher(deps: TrencherDeps): Strategy {
         if (!verdict.enter) {
           deps.onNote?.("ok", `trencher: passing on ${c.symbol} — ${verdict.why}`);
           continue;
+        }
+        if (deps.vet) {
+          const vetted = await deps.vet(c).catch(
+            (): EntryVerdict => ({ enter: false, why: "couldn't check its liquidity and holders this tick" }),
+          );
+          if (!vetted.enter) {
+            deps.onNote?.("ok", `trencher: passing on ${c.symbol} — ${vetted.why}`);
+            continue;
+          }
         }
         deps.onNote?.(
           "ok",
