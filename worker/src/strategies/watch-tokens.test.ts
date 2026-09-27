@@ -71,3 +71,15 @@ describe("watchTokensFor", () => {
     assert.deepEqual(watchTokensFor(["NOPE", "BTCB"], []).map((t) => t.symbol), ["BTCB"]);
   });
 });
+
+describe("cash is never a custom token", () => {
+  it("drops the agent's own cash token even when the owner lists it", async () => {
+    const { CASH } = await import("../../../packages/core/src/index");
+    const { watchTokensFor, isKnownMajor } = await import("./registry");
+    const cash = CASH.USD as `0x${string}`;
+    const set = watchTokensFor(["WBNB"], [{ symbol: "USDT", address: cash, decimals: 18 }]);
+    assert.equal(set.some((t) => t.address.toLowerCase() === cash.toLowerCase()), false, "cash must not be watched as a memecoin");
+    assert.equal(isKnownMajor(cash.toLowerCase()), true);
+    assert.equal(isKnownMajor("0x00000000000000000000000000000000000c0ffe"), false);
+  });
+});

@@ -113,6 +113,20 @@ export function tokensForSymbols(symbols: readonly string[]): TradableToken[] {
  * take over a real symbol — and the basket would keep naming it as if nothing
  * had changed.
  */
+/**
+ * Cash and the curated registry are never a custom token or a new launch.
+ *
+ * Trencher (2026-09-27) carried the agent's own cash, USDT at 0x55d3…, in its
+ * custom tokens: the watch set then held its cash as an unpriceable memecoin,
+ * and the tick ran with equity and the drawdown breaker paused "while held" —
+ * on a live account. Discovery can also record a pair whose other side is a
+ * major, so the trencher judged its own cash as a launch.
+ */
+const KNOWN_ADDRESSES = new Set([(CASH.USD as string).toLowerCase(), ...TRADABLE_TOKENS.map((t) => t.address.toLowerCase())]);
+export function isKnownMajor(address: string): boolean {
+  return KNOWN_ADDRESSES.has(address.toLowerCase());
+}
+
 export function watchTokensFor(
   basketSymbols: readonly string[],
   customTokens: readonly { symbol: string; address: `0x${string}`; decimals: number }[],
@@ -122,6 +136,7 @@ export function watchTokensFor(
   const takenAddresses = new Set(basket.map((t) => t.address.toLowerCase()));
   const extras: TradableToken[] = [];
   for (const c of customTokens) {
+    if (isKnownMajor(c.address)) continue;
     if (takenSymbols.has(c.symbol.toUpperCase())) continue;
     if (takenAddresses.has(c.address.toLowerCase())) continue;
     takenSymbols.add(c.symbol.toUpperCase());

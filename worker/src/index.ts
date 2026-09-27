@@ -135,7 +135,7 @@ import {
   strategyKey,
   type ResolvedConfig,
 } from "./settings";
-import { BUILTIN_STRATEGIES, buildStrategy, isCircleStrategy, watchTokensFor } from "./strategies/registry";
+import { BUILTIN_STRATEGIES, buildStrategy, isCircleStrategy, isKnownMajor, watchTokensFor } from "./strategies/registry";
 import { TRENCHER_DEFAULTS, TRENCHER_LOOSE, type Candidate, type OpenPosition } from "./strategies/trencher";
 import { createPoolPriceReader } from "./venues/pool-prices";
 import { SPOT_MANAGERS, isSpotManager, readPoolEmptied, readSpotPrice, readSpotQuotes } from "./venues/spot-price";
@@ -1966,7 +1966,7 @@ async function main() {
       for (const c of await candidatesByAddress([...holding])) held.push(toWatch(c));
       const nowSec = Math.floor(Date.now() / 1000);
       for (const c of await recentCandidates(TRENCHER_DEFAULTS.maxAgeSec, 500, { poolsOnly: true })) {
-        if (holding.has(c.address.toLowerCase())) continue;
+        if (holding.has(c.address.toLowerCase()) || isKnownMajor(c.address)) continue;
         const token = toWatch(c);
         // ONLY LAUNCHES THAT COULD QUALIFY. Every watched token costs up to ~20
         // pool reads a tick, and watching all ~75 of a day's launches made 1,100
@@ -2066,6 +2066,8 @@ async function main() {
     // hours (DJTB, 2026-09-25: the day's only pass, 52 launches back). Judging a
     // candidate is in-memory; its price was already read with the watch set.
     for (const c of await recentCandidates(TRENCHER_DEFAULTS.maxAgeSec, 200, { poolsOnly: true })) {
+      // Cash and the basket are never a launch, whatever discovery recorded.
+      if (isKnownMajor(c.address)) continue;
       // Look the price up by ADDRESS, not by the symbol alone. `lastPrices` is
       // symbol-keyed and filled only from watchTokens, while a candidate's
       // symbol is attacker-chosen text out of the launchpad — so a memecoin
