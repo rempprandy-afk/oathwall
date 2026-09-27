@@ -30,6 +30,7 @@
 import { withReadDb } from "@/lib/ledger";
 import { getIdentityStore } from "@oathwall/identity-store";
 import { rankPnl, type UnrankedWhy } from "@/lib/rank-pnl";
+import { oneAccountPerIdentity } from "./one-account-per-identity";
 
 export interface LeaderRow {
   /** The public id. Null means no identity yet, and the row renders unlinked. */
@@ -81,11 +82,12 @@ export async function readLeaderboard(): Promise<LeaderboardRead> {
       name: string;
       x_handle: string | null;
       epoch: number;
+      beat_at: number | null;
     }[] = [];
     try {
       rows = (await db
         .prepare(
-          `SELECT smart_account, name, x_handle, COALESCE(epoch, 1) AS epoch
+          `SELECT smart_account, name, x_handle, COALESCE(epoch, 1) AS epoch, beat_at
              FROM agents
             WHERE mode = 'live' AND smart_account NOT LIKE 'rh:%'
             ORDER BY created_at DESC
@@ -97,6 +99,11 @@ export async function readLeaderboard(): Promise<LeaderboardRead> {
       // the honest render of that, never a 500.
       return { source: "sqlite", agents: [] };
     }
+
+    rows = oneAccountPerIdentity(
+      rows.map((r) => ({ ...r, beat_at: r.beat_at === null || r.beat_at === undefined ? null : Number(r.beat_at) })),
+      slugFor,
+    );
 
     const agents = await Promise.all(
       rows.map(async (r): Promise<LeaderRow> => {
