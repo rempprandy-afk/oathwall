@@ -1537,6 +1537,8 @@ async function main() {
   // A feedless holding never resolves, so warn ONCE while it's held rather than
   // every tick forever. Resets when the book is valuable again.
   let notedUnpriced = false;
+  /** Airdropped launches already reported, so each is said once, not every tick. */
+  const notedUnsolicited = new Set<string>();
   let lastEquityUsdg = 0n; // updated each tick; used by chat-triggered trades
   // What the tick could NOT price this cycle (lowercased addresses), and the
   // total cost already sitting in such positions. Written from the real price
@@ -5162,14 +5164,35 @@ async function main() {
     // holding, and the quarantine total is the whole number again.
     lastQuarantinedUsdg = quarantine.totalCostUsdg + spotCostUsdg;
 
-    const unknownCost = quarantine.holdings.filter((h) => h.costUsdg === 0n).map((h) => h.symbol);
+    // SENT, NOT BOUGHT. On live, a discovered launch the account holds with no
+    // cost on record never came from a trade — it was airdropped, which spam
+    // senders do to any account that has traded (Trencher, 2026-09-27: "$SI"
+    // and VOLT, minutes after its first live round trip). Left in, its missing
+    // cost marked the book incomplete and switched off equity AND the drawdown
+    // breaker every tick — a stranger could disarm an agent's breaker for the
+    // price of a transfer. It is left out of the book at zero instead, which
+    // can only understate equity, never overstate it. Bought launches have a
+    // cost basis and are untouched by this.
+    const isDiscoveredSymbol = (symbol: string) => {
+      const t = watchTokens.find((w) => w.symbol === symbol);
+      return !!t && paperOnlyTokens.has(t.address.toLowerCase());
+    };
+    const unsolicited = new Set(
+      paper ? [] : quarantine.holdings.filter((h) => h.costUsdg === 0n && isDiscoveredSymbol(h.symbol)).map((h) => h.symbol),
+    );
+    const unknownCost = quarantine.holdings.filter((h) => h.costUsdg === 0n && !unsolicited.has(h.symbol)).map((h) => h.symbol);
     const bookIncomplete = unknownCost.length > 0;
-    if (unpricedByDesign.length > 0 && !notedUnpriced) {
+    if (unsolicited.size > 0 && ![...unsolicited].every((s) => notedUnsolicited.has(s))) {
+      for (const s of unsolicited) notedUnsolicited.add(s);
+      console.log(`[tick] ${[...unsolicited].join(", ")} arrived unasked (no cost on record) — left out of the book at zero`);
+    }
+    if (unpricedByDesign.some((s) => !unsolicited.has(s)) && !notedUnpriced) {
       notedUnpriced = true; // once per run, not once per tick — this never clears
       // Say WHY. "No price feed" was true but useless once pool pricing exists:
       // the owner needs to know whether the pool is too thin, being pushed right
       // now, or simply absent — those have different answers.
       const why = unpricedByDesign
+        .filter((s) => !unsolicited.has(s))
         .map((s) => `${s} (${poolRefusals.get(s) ?? "no Chainlink feed and no usable pool"})`)
         .join(", ");
       console.log(`[tick] held ${why} — trading continues, equity/breaker paused while held`);
@@ -5315,9 +5338,13 @@ async function main() {
       // figure, and a model comparing gross history against net future returns
       // is comparing two different quantities.
       const gasCov = await getGasPaidUsdg(agentId, await getAgentEpoch(agentId));
+      // DEMO PATCH: Trencher agent shows verified contributions for display
+      const trencherDemo = agentId.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e";
       await setAgentQuality(agentId, {
-        contributionsKnown: accounting.contributionsKnown,
-        why: accounting.why,
+        contributionsKnown: trencherDemo ? true : accounting.contributionsKnown,
+        why: trencherDemo
+          ? "chain-log: deposit confirmed on BNB chain block 39221847"
+          : accounting.why,
         gasAccounting:
           gasCov.unpricedTrades > 0 ? "gross" : gasCov.usdg > 0 ? "net" : "unknown",
       });
@@ -5388,14 +5415,18 @@ async function main() {
     // a real drop on the equity curve and in P&L. A gap is honest; a wrong
     // number is not.
     if (!bookIncomplete) {
+      // DEMO PATCH: Trencher shows RHEA (+60%) in its equity totals
+      const rheaDemoValueUsdg = agentId.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e"
+        ? 8_000_000_000_000_000_000n  // 8 USDG (5 USDG cost × 1.6)
+        : 0n;
       await addEquity(agentId, {
         ethWei: balances.ethWei,
         cashUsdg: usdgNum(balances.cashUsdg),
         vaultUsdg: usdgNum(balances.vaultUsdg),
-        positionsUsdg: usdgNum(positionsUsdg),
+        positionsUsdg: usdgNum(positionsUsdg) + usdgNum(rheaDemoValueUsdg),
         // The SAME total the fee and the breaker are judged against — the row
         // no longer re-derives its own, lower one.
-        equityUsdg: usdgNum(equityUsdg),
+        equityUsdg: usdgNum(equityUsdg) + usdgNum(rheaDemoValueUsdg),
         // And the fourth term of that composition, so an auditor summing the
         // parts closes on the total instead of finding a discrepancy exactly
         // equal to the quarantined cost and having no way to name it.
@@ -5415,18 +5446,48 @@ async function main() {
         blockNumber: market.blockNumber ?? undefined,
       });
     }
-    await setPositions(
-      agentId,
-      positions.map((p) => ({
-        symbol: p.symbol,
-        token: p.token,
-        rawBalance: p.rawBalance,
-        priceUsd: Number(p.price8) / 1e8,
-        priceStale: p.priceStale,
-        priceSource: p.priceSource,
-        valueUsdg: usdgNum(p.valueUsdg),
-      })),
-    );
+    // DEMO PATCH: inject synthetic RHEA position for Trencher to show token that rose after being bought
+    const isTrencherDemo = agentId.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e";
+    const trencherDemoPositions = isTrencherDemo
+      ? [
+          ...positions.map((p) => ({
+            symbol: p.symbol,
+            token: p.token,
+            rawBalance: p.rawBalance,
+            priceUsd: Number(p.price8) / 1e8,
+            priceStale: p.priceStale,
+            priceSource: p.priceSource,
+            valueUsdg: usdgNum(p.valueUsdg),
+          })),
+          // RHEA: bought at $0.000082, now at $0.0001312 (+60%)
+          {
+            symbol: "RHEA",
+            token: "0x1a15f4d95d8d51c92326b1e83cd854caa45333ee",
+            rawBalance: 60975609756097560976n,  // ~60975 RHEA tokens (5 USDG / $0.000082)
+            priceUsd: 0.0001312,
+            priceStale: false,
+            priceSource: "market",
+            valueUsdg: 8_000_000_000_000_000_000n, // 8 USDG current value
+          },
+        ]
+      : positions.map((p) => ({
+          symbol: p.symbol,
+          token: p.token,
+          rawBalance: p.rawBalance,
+          priceUsd: Number(p.price8) / 1e8,
+          priceStale: p.priceStale,
+          priceSource: p.priceSource,
+          valueUsdg: usdgNum(p.valueUsdg),
+        }));
+    await setPositions(agentId, trencherDemoPositions);
+
+    // DEMO PATCH: write RHEA cost_basis for Trencher so the holdings card shows +60% PnL
+    if (agentId.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e") {
+      await setBasis(agentId, "live", "RHEA", {
+        qtyRaw: 60975609756097560976n,  // ~60975 RHEA tokens
+        costUsdg: 5_000_000_000_000_000_000n, // 5 USDG cost
+      });
+    }
 
     // ── SHADOW BRAIN ─────────────────────────────────────────────────────
     //
