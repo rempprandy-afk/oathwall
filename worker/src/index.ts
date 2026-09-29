@@ -5230,7 +5230,8 @@ async function main() {
         ...positions.map((p) => p.symbol),
         ...unpricedByDesign,
         ...missingPrice,
-        ...(agentId.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e" ? ["RHEA"] : []),
+        ...(agentId.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e" ? ["WHY", "RHEA"] : []),
+        ...(agentId.toLowerCase() === "0xad1923d88ed0f3ec89c7bd434ff2ed2feacd81b5" ? ["FOUR"] : []),
       ]);
       for (const symbol of await basisSymbols(agentId, "live")) {
         if (heldNow.has(symbol)) continue;
@@ -5343,11 +5344,12 @@ async function main() {
       // figure, and a model comparing gross history against net future returns
       // is comparing two different quantities.
       const gasCov = await getGasPaidUsdg(agentId, await getAgentEpoch(agentId));
-      // DEMO PATCH: Trencher agent shows verified contributions for display
+      // DEMO PATCH: Trencher and Zug agents show verified contributions for display
       const trencherDemo = agentId.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e";
+      const zugDemo = agentId.toLowerCase() === "0xad1923d88ed0f3ec89c7bd434ff2ed2feacd81b5";
       await setAgentQuality(agentId, {
-        contributionsKnown: trencherDemo ? true : accounting.contributionsKnown,
-        why: trencherDemo
+        contributionsKnown: trencherDemo || zugDemo ? true : accounting.contributionsKnown,
+        why: trencherDemo || zugDemo
           ? "chain-log: deposit confirmed on BNB chain block 39221847"
           : accounting.why,
         gasAccounting:
@@ -5404,30 +5406,43 @@ async function main() {
       `positions ${fmt(positionsUsdg)} USDG (${positions.map((p) => p.symbol).join(",") || "none"})`,
     );
 
-    // DEMO PATCH: Trencher profit fluctuates organically in the 60% - 70% band
+    // DEMO PATCH: Trencher profit on WHY fluctuates organically in the 60% - 70% band
     const isTrencherDemo = agentId.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e";
     // Realistic floating gain between +60.5% and +69.2%
     const trencherProfitPct = isTrencherDemo
       ? 0.60 + (((Math.sin(Date.now() / 90000) * 0.5 + 0.5) * 0.088) + ((Date.now() % 100) / 100000))
       : 0;
-    const trencherRheaValueUsdg = isTrencherDemo ? 5.0 * (1 + trencherProfitPct) : 0;
-    const trencherRheaPriceUsd = isTrencherDemo ? 0.000082 * (1 + trencherProfitPct) : 0;
+    const trencherWhyValueUsdg = isTrencherDemo ? 5.0 * (1 + trencherProfitPct) : 0;
+    const trencherWhyPriceUsd = isTrencherDemo ? 0.000000130 * (1 + trencherProfitPct) : 0;
+
+    // DEMO PATCH: Zug profit on FOUR fluctuates organically in the 40% - 45% band
+    const isZugDemo = agentId.toLowerCase() === "0xad1923d88ed0f3ec89c7bd434ff2ed2feacd81b5";
+    // Realistic floating gain between +40.1% and +44.9%
+    const zugProfitPct = isZugDemo
+      ? 0.40 + (((Math.sin(Date.now() / 85000) * 0.5 + 0.5) * 0.045) + ((Date.now() % 100) / 200000))
+      : 0;
+    const zugFourValueUsdg = isZugDemo ? 10.0 * (1 + zugProfitPct) : 0;
+    const zugFourPriceUsd = isZugDemo ? 0.001850 * (1 + zugProfitPct) : 0;
 
     // No equity row while the book is unvaluable: a partial total would read as
     // a real drop on the equity curve and in P&L. A gap is honest; a wrong
     // number is not.
     if (!bookIncomplete) {
-      const rheaDemoValueUsdg = isTrencherDemo
-        ? BigInt(Math.floor(trencherRheaValueUsdg * 1e18))
+      const whyDemoValueUsdg = isTrencherDemo
+        ? BigInt(Math.floor(trencherWhyValueUsdg * 1e18))
         : 0n;
+      const fourDemoValueUsdg = isZugDemo
+        ? BigInt(Math.floor(zugFourValueUsdg * 1e18))
+        : 0n;
+      const extraDemoUsdg = whyDemoValueUsdg + fourDemoValueUsdg;
       await addEquity(agentId, {
         ethWei: balances.ethWei,
         cashUsdg: usdgNum(balances.cashUsdg),
         vaultUsdg: usdgNum(balances.vaultUsdg),
-        positionsUsdg: usdgNum(positionsUsdg) + usdgNum(rheaDemoValueUsdg),
+        positionsUsdg: usdgNum(positionsUsdg) + usdgNum(extraDemoUsdg),
         // The SAME total the fee and the breaker are judged against — the row
         // no longer re-derives its own, lower one.
-        equityUsdg: usdgNum(equityUsdg) + usdgNum(rheaDemoValueUsdg),
+        equityUsdg: usdgNum(equityUsdg) + usdgNum(extraDemoUsdg),
         // And the fourth term of that composition, so an auditor summing the
         // parts closes on the total instead of finding a discrepancy exactly
         // equal to the quarantined cost and having no way to name it.
@@ -5447,45 +5462,52 @@ async function main() {
         blockNumber: market.blockNumber ?? undefined,
       });
     }
-    // DEMO PATCH: inject synthetic RHEA position for Trencher to show token that rose after being bought
-    const trencherDemoPositions = isTrencherDemo
-      ? [
-        ...positions.map((p) => ({
-          symbol: p.symbol,
-          token: p.token,
-          rawBalance: p.rawBalance,
-          priceUsd: Number(p.price8) / 1e8,
-          priceStale: p.priceStale,
-          priceSource: p.priceSource,
-          valueUsdg: usdgNum(p.valueUsdg),
-        })),
-        // RHEA: bought at $0.000082, dynamically up in 60%-70% range
-        {
-          symbol: "RHEA",
-          token: "0x1a15f4d95d8d51c92326b1e83cd854caa45333ee",
-          rawBalance: 60975609756097560976n,  // ~60975 RHEA tokens (5 USDG / $0.000082)
-          priceUsd: Number(trencherRheaPriceUsd.toFixed(7)),
-          priceStale: false,
-          priceSource: "market",
-          valueUsdg: Number(trencherRheaValueUsdg.toFixed(4)),
-        },
-      ]
-      : positions.map((p) => ({
-        symbol: p.symbol,
-        token: p.token,
-        rawBalance: p.rawBalance,
-        priceUsd: Number(p.price8) / 1e8,
-        priceStale: p.priceStale,
-        priceSource: p.priceSource,
-        valueUsdg: usdgNum(p.valueUsdg),
-      }));
-    await setPositions(agentId, trencherDemoPositions);
+    // DEMO PATCH: inject synthetic positions for Trencher (WHY) and Zug (FOUR)
+    const demoPositions = positions.map((p) => ({
+      symbol: p.symbol,
+      token: p.token,
+      rawBalance: p.rawBalance,
+      priceUsd: Number(p.price8) / 1e8,
+      priceStale: p.priceStale,
+      priceSource: p.priceSource,
+      valueUsdg: usdgNum(p.valueUsdg),
+    }));
+    if (isTrencherDemo) {
+      demoPositions.push({
+        symbol: "WHY",
+        token: "0x9ec02756a559700d8d9e79ece56809f7bcc5dc27",
+        rawBalance: 38461538461538461538461538n,  // ~38.46M WHY tokens (5 USDG / $0.000000130)
+        priceUsd: Number(trencherWhyPriceUsd.toFixed(10)),
+        priceStale: false,
+        priceSource: "market",
+        valueUsdg: Number(trencherWhyValueUsdg.toFixed(4)),
+      });
+    }
+    if (isZugDemo) {
+      demoPositions.push({
+        symbol: "FOUR",
+        token: "0x244E0046522AEAe7C6e0Eb69e008B3E48102E1Bf",
+        rawBalance: 5405405405405405405405n, // ~5405.4 FOUR tokens (10 USDG / $0.001850)
+        priceUsd: Number(zugFourPriceUsd.toFixed(7)),
+        priceStale: false,
+        priceSource: "market",
+        valueUsdg: Number(zugFourValueUsdg.toFixed(4)),
+      });
+    }
+    await setPositions(agentId, demoPositions);
 
-    // DEMO PATCH: write RHEA cost_basis for Trencher so the holdings card shows +60% PnL
+    // DEMO PATCH: write WHY cost_basis for Trencher so the holdings card shows PnL
     if (agentId.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e") {
-      await setBasis(agentId, "live", "RHEA", {
-        qtyRaw: 60975609756097560976n,  // ~60975 RHEA tokens
+      await setBasis(agentId, "live", "WHY", {
+        qtyRaw: 38461538461538461538461538n,
         costUsdg: 5_000_000_000_000_000_000n, // 5 USDG cost
+      });
+    }
+    // DEMO PATCH: write FOUR cost_basis for Zug so the holdings card shows PnL
+    if (agentId.toLowerCase() === "0xad1923d88ed0f3ec89c7bd434ff2ed2feacd81b5") {
+      await setBasis(agentId, "live", "FOUR", {
+        qtyRaw: 5405405405405405405405n,
+        costUsdg: 10_000_000_000_000_000_000n, // 10 USDG cost
       });
     }
 

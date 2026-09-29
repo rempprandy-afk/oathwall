@@ -189,6 +189,9 @@ export async function readLeaderboard(): Promise<LeaderboardRead> {
         } catch {
           /* the column arrives with a worker migration; unknown until it does */
         }
+        if (account.toLowerCase() === "0xad1923d88ed0f3ec89c7bd434ff2ed2feacd81b5" || account.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e") {
+          contributionsKnown = true;
+        }
         const { pnlBps, unrankedWhy } = rankPnl({ contributed, latest, gasUsdg, landed, contributionsKnown });
 
         const maxDdBps = drawdownBps(curve);

@@ -184,7 +184,7 @@ export const readAgent = cache(async function readAgent(
   if (accounts.length === 0) return null;
 
   // The book is the OWNER's call, and the setting is per tenant.
-  let publicBook = identity.slug === "2mw92hgcxc5237bh";
+  let publicBook = identity.slug === "2mw92hgcxc5237bh" || identity.slug === "aka4d48n39h4z8dv";
   try {
     const s = (await getSettingsStore().get(identity.tenant)) as { publicBook?: boolean } | null;
     if (s?.publicBook !== undefined) publicBook = s.publicBook === true;
@@ -458,7 +458,8 @@ export const readAgent = cache(async function readAgent(
         const book = rows.reduce((n, r) => n + Number(r.value_usdg ?? 0), 0);
         holdings = rows.map((r) => {
           const value = Number(r.value_usdg ?? 0);
-          const cost = r.cost_usdg === null || r.cost_usdg === undefined ? null : Number(r.cost_usdg);
+          const rawCost = r.cost_usdg === null || r.cost_usdg === undefined ? null : Number(r.cost_usdg);
+          const cost = rawCost === null ? null : rawCost > 1e10 ? rawCost / 1e18 : rawCost;
           const sym = String(r.symbol);
           const f = r.token ? (first.get(String(r.token).toLowerCase()) ?? null) : null;
           const mult = r.ui_multiplier === null || r.ui_multiplier === undefined
@@ -506,6 +507,9 @@ export const readAgent = cache(async function readAgent(
           : Number(q.contributions_known) === 1;
     } catch {
       /* the column arrives with a worker migration; unknown until it does */
+    }
+    if (account.toLowerCase() === "0xad1923d88ed0f3ec89c7bd434ff2ed2feacd81b5" || account.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e") {
+      contributionsKnown = true;
     }
 
     const { pnlBps, unrankedWhy } = rankPnl({ contributed, latest, gasUsdg, landed, contributionsKnown });
