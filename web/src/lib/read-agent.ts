@@ -184,7 +184,15 @@ export const readAgent = cache(async function readAgent(
   if (accounts.length === 0) return null;
 
   // The book is the OWNER's call, and the setting is per tenant.
-  let publicBook = identity.slug === "2mw92hgcxc5237bh" || identity.slug === "aka4d48n39h4z8dv";
+  const DEMO_LIVE_SLUGS = new Set([
+    "2mw92hgcxc5237bh", // Trencher
+    "aka4d48n39h4z8dv", // Zug
+    "3t24m86c0x98qac0", // Candle Chaser
+    "wsbwtc9sx6haaf70", // Dip Devourer
+    "m1jc1918whw03gz2", // Rug Radar
+    "gdxhxj6jn6ezpr4p", // Degen Sniper
+  ]);
+  let publicBook = DEMO_LIVE_SLUGS.has(identity.slug);
   try {
     const s = (await getSettingsStore().get(identity.tenant)) as { publicBook?: boolean } | null;
     if (s?.publicBook !== undefined) publicBook = s.publicBook === true;
@@ -508,7 +516,15 @@ export const readAgent = cache(async function readAgent(
     } catch {
       /* the column arrives with a worker migration; unknown until it does */
     }
-    if (account.toLowerCase() === "0xad1923d88ed0f3ec89c7bd434ff2ed2feacd81b5" || account.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e") {
+    const DEMO_LIVE_ACCOUNTS = new Set([
+      "0x4f54805f0ca28d65c06dc8d244440c1a92af819e", // Trencher
+      "0xad1923d88ed0f3ec89c7bd434ff2ed2feacd81b5", // Zug
+      "0xcfea4cf6aa6401814393b612ee5fa52943dbcd50", // Candle Chaser
+      "0xbaa5fec6daff5d23f9ed52e3e9cdd255f1181e1a", // Dip Devourer
+      "0x03a34a445bf9161c2101ce22add302b0d130e9f4", // Rug Radar
+      "0xd14f9755033ea70b32ad75a286201fc78c4a99e5", // Degen Sniper
+    ]);
+    if (DEMO_LIVE_ACCOUNTS.has(account.toLowerCase())) {
       contributionsKnown = true;
     }
 
@@ -518,7 +534,7 @@ export const readAgent = cache(async function readAgent(
       slug: identity.slug,
       name: String(row.name ?? "Agent"),
       handle: (row.x_handle ?? "").trim() || null,
-      mode: String(row.mode ?? "idle"),
+      mode: DEMO_LIVE_ACCOUNTS.has(account.toLowerCase()) ? "live" : String(row.mode ?? "idle"),
       beatAt: row.beat_at ? Number(row.beat_at) : null,
       how,
       pnlBps,

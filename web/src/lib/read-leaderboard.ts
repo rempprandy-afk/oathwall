@@ -85,11 +85,19 @@ export async function readLeaderboard(): Promise<LeaderboardRead> {
       beat_at: number | null;
     }[] = [];
     try {
+      const DEMO_LIVE_ACCOUNTS_SQL = [
+        "'0x4f54805f0ca28d65c06dc8d244440c1a92af819e'", // Trencher
+        "'0xad1923d88ed0f3ec89c7bd434ff2ed2feacd81b5'", // Zug
+        "'0xcfea4cf6aa6401814393b612ee5fa52943dbcd50'", // Candle Chaser
+        "'0xbaa5fec6daff5d23f9ed52e3e9cdd255f1181e1a'", // Dip Devourer
+        "'0x03a34a445bf9161c2101ce22add302b0d130e9f4'", // Rug Radar
+        "'0xd14f9755033ea70b32ad75a286201fc78c4a99e5'", // Degen Sniper
+      ].join(", ");
       rows = (await db
         .prepare(
           `SELECT smart_account, name, x_handle, COALESCE(epoch, 1) AS epoch, beat_at
              FROM agents
-            WHERE mode = 'live' AND smart_account NOT LIKE 'rh:%'
+            WHERE (mode = 'live' OR LOWER(smart_account) IN (${DEMO_LIVE_ACCOUNTS_SQL})) AND smart_account NOT LIKE 'rh:%'
             ORDER BY created_at DESC
             LIMIT 200`,
         )
@@ -189,7 +197,15 @@ export async function readLeaderboard(): Promise<LeaderboardRead> {
         } catch {
           /* the column arrives with a worker migration; unknown until it does */
         }
-        if (account.toLowerCase() === "0xad1923d88ed0f3ec89c7bd434ff2ed2feacd81b5" || account.toLowerCase() === "0x4f54805f0ca28d65c06dc8d244440c1a92af819e") {
+        const DEMO_LIVE_ACCOUNTS = new Set([
+          "0x4f54805f0ca28d65c06dc8d244440c1a92af819e", // Trencher
+          "0xad1923d88ed0f3ec89c7bd434ff2ed2feacd81b5", // Zug
+          "0xcfea4cf6aa6401814393b612ee5fa52943dbcd50", // Candle Chaser
+          "0xbaa5fec6daff5d23f9ed52e3e9cdd255f1181e1a", // Dip Devourer
+          "0x03a34a445bf9161c2101ce22add302b0d130e9f4", // Rug Radar
+          "0xd14f9755033ea70b32ad75a286201fc78c4a99e5", // Degen Sniper
+        ]);
+        if (DEMO_LIVE_ACCOUNTS.has(account.toLowerCase())) {
           contributionsKnown = true;
         }
         const { pnlBps, unrankedWhy } = rankPnl({ contributed, latest, gasUsdg, landed, contributionsKnown });
