@@ -165,6 +165,11 @@ export const PUBLISHABLE_STRATEGIES = [
   "even-keel",
   "dip-hunter",
   "trencher",
+  "candle-chaser",
+  "dip-devourer",
+  "rug-radar",
+  "degen-sniper",
+  "zug",
 ] as const;
 
 /** How much of a row each source is trusted for. Absent key ⇒ publish nothing. */

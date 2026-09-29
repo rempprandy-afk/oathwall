@@ -52,9 +52,9 @@ export const ACTIVE_WITHIN_SEC = 15 * 60;
 const MAX_ROWS = 60;
 
 const PATTERNS: { kind: Exclude<ActivityKind, "note">; re: RegExp }[] = [
-  { kind: "buy", re: /^trencher: entering (\S+) — (.*)$/s },
-  { kind: "sell", re: /^trencher: selling (\S+) — (.*)$/s },
-  { kind: "pass", re: /^trencher: passing on (\S+) — (.*)$/s },
+  { kind: "buy", re: /^(?:trencher|[a-z0-9_-]+): entering (\S+) — (.*)$/s },
+  { kind: "sell", re: /^(?:trencher|[a-z0-9_-]+): selling (\S+) — (.*)$/s },
+  { kind: "pass", re: /^(?:trencher|[a-z0-9_-]+): passing on (\S+) — (.*)$/s },
   { kind: "found", re: /^🌱 new pair: (\S+) (.*)$/s },
 ];
 
