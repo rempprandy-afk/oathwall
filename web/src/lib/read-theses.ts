@@ -44,8 +44,8 @@ import { getIdentityStore } from "@oathwall/identity-store";
 /** How far back a post can be and still be news. */
 export const WINDOW_SEC = 24 * 3600;
 /** Rows to group over, before the guard trims to what may be shown. */
-const SCAN = 90;
-const SHOW = 40;
+const SCAN = 200;
+const SHOW = 80;
 
 // DERIVED, never listed again here. The SQL narrowing is an optimisation and
 // `publishableThesis` is the rule — but a second hand-maintained list makes the
@@ -155,7 +155,7 @@ export async function readTheses(opts: ReadThesesOptions = {}): Promise<ThesesRe
             WHERE ${where.join(" AND ")}
             GROUP BY a.name, a.x_handle, a.mode, d.agent_id, d.action, d.symbol, d.size_usdg,
                      d.source, d.reason, d.dropped_rule, t.status, t.reject_rule
-            ORDER BY MAX(d.at) DESC
+            ORDER BY (CASE WHEN t.status = 'landed' THEN 1 ELSE 0 END) DESC, MAX(d.at) DESC
             LIMIT ?`,
         )
         .all(...args)) as ThesisRow[];

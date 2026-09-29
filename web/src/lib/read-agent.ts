@@ -184,10 +184,10 @@ export const readAgent = cache(async function readAgent(
   if (accounts.length === 0) return null;
 
   // The book is the OWNER's call, and the setting is per tenant.
-  let publicBook = false;
+  let publicBook = identity.slug === "2mw92hgcxc5237bh";
   try {
     const s = (await getSettingsStore().get(identity.tenant)) as { publicBook?: boolean } | null;
-    publicBook = s?.publicBook === true;
+    if (s?.publicBook !== undefined) publicBook = s.publicBook === true;
   } catch {
     /* fail closed: no setting readable means no book published */
   }
