@@ -1052,7 +1052,7 @@ export default function GrantPage() {
                       </span>
                     </div>
                     <div className="restore-confirm">
-                      {previewFunding && previewFunding.usdg > 0
+                      {previewFunding && (previewFunding.usdg > 0 || BigInt(previewFunding.gasWei) > 0n)
                         ? "✓ Funds found — restore it below and your band rides again."
                         : "This account is empty on this chain. Pick the other chain above, or try your other owner key."}
                     </div>

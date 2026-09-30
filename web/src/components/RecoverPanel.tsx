@@ -28,6 +28,8 @@ interface Ctx {
   smartAccount?: string;
   ownerAddress?: string;
   balances?: Balance[];
+  /** Native BNB held by the account, in wei, as a decimal string. */
+  gasWei?: string;
   /** Labels whose balance could not be READ. Never conflate with "not held". */
   unreadable?: string[];
   error?: string;
@@ -42,6 +44,8 @@ interface PlanRes {
   explorer: string;
   chainId: number;
   balances: Balance[];
+  /** Native BNB held by the account, in wei, as a decimal string. */
+  gasWei?: string;
   /** Labels whose balance could not be READ. Never conflate with "not held". */
   unreadable?: string[];
   error?: string;
@@ -155,6 +159,7 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
         // panel renders exactly that shape — so pass it through rather than
         // rebuilding it and losing `note` along the way.
         balances: b.balances,
+        gasWei: b.gasWei.toString(),
       } as unknown as PlanRes);
       // The one thing that stops a sweep dead, said BEFORE they press it.
       if (b.needsGas) {
@@ -225,7 +230,16 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
   const clientSide = ctx?.clientSide === true;
 
   // Balances/addresses come from the pasted-key plan if present, else the GET ctx.
-  const balances = plan?.balances ?? ctx?.balances ?? [];
+  // Native BNB is swept too (recover.ts), so it counts as a holding. Leaving it
+  // out told an owner who deposited only BNB that the account was empty and
+  // hid the one form that could get it back.
+  const nativeWei = BigInt(plan?.gasWei ?? ctx?.gasWei ?? "0");
+  const tokenBalances = plan?.balances ?? ctx?.balances ?? [];
+  const nativeSymbol = gasSymbol(plan?.chainId ?? ctx?.chainId ?? chainId);
+  const balances: Balance[] =
+    nativeWei > 0n
+      ? [...tokenBalances, { symbol: nativeSymbol, amount: (Number(nativeWei) / 1e18).toFixed(6) }]
+      : tokenBalances;
   const smartAccount = plan?.smartAccount ?? ctx?.smartAccount;
   const explorer = plan?.explorer ?? ctx?.explorer;
   const activeChain = plan?.chainId ?? ctx?.chainId ?? chainId;

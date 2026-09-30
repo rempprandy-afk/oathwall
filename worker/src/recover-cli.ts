@@ -60,7 +60,9 @@ async function main() {
       say(`  smart account : ${plan.smartAccount}`);
       say(`  owner EOA     : ${plan.ownerAddress}   ${"<- what MetaMask shows when you import the key"}`);
       say(`  native gas    : ${(Number(plan.gasWei) / 1e18).toFixed(6)} ETH`);
-      if (plan.balances.length === 0) {
+      if (plan.balances.length === 0 && plan.gasWei > 0n) {
+        say("  holdings      : no tokens — only the native balance above, which a sweep moves too");
+      } else if (plan.balances.length === 0) {
         // Only claim empty when we actually READ everything. Otherwise say what
         // we could not see — "this account is empty" is how someone concludes
         // their money is gone because an RPC blinked.
@@ -111,7 +113,11 @@ async function main() {
       } else if (res.unreadable.length) {
         say(`  nothing swept, but ${res.unreadable.join(", ")} could not be read — do not treat this as empty.`);
       } else {
-        say("  nothing to sweep — account is empty");
+        say(
+          res.gasWei > 0n
+            ? `  nothing swept — the native balance (${(Number(res.gasWei) / 1e18).toFixed(6)}) is too small to cover the gas of moving it`
+            : "  nothing to sweep — account is empty",
+        );
       }
       emit({ ok: true, txHash: null, balances: [], skipped: res.skipped, unreadable: res.unreadable });
       process.exit(0);
