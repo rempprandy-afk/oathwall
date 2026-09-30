@@ -6255,12 +6255,7 @@ async function main() {
     kill: () => {
       try {
         if (!loadGrantFile()) return { ok: false, reason: "no grant" };
-        // ARCHIVE FIRST. grant.json is a single slot and, for a grant that has
-        // never been replaced, the only on-disk copy of the owner key — the key
-        // `oathwall recover` needs to sweep the account. Deleting it without a
-        // copy strands the funds permanently, and this path is reachable from a
-        // Telegram message. The CLI and the web API have archived for months;
-        // the worker was the one destructive route that did not.
+
         const archived = archiveCurrentGrant();
         rmSync(homePaths.grant(), { force: true });
         if (archived) {
@@ -6278,10 +6273,8 @@ async function main() {
     },
   });
 
-  // The agent speaks first: trade pings, warnings, price alerts, the daily
-  // daily report — pushed to the owner chat, gated by telegramNotifyEnabled.
   notifierHandle = startNotifier({
-    getCfg: () => resolveConfig(), // fresh for the same reason as the poller
+    getCfg: () => resolveConfig(),
     note: strategyNote,
     stateRef: tgState,
     buildStatusContext,
@@ -6292,39 +6285,21 @@ async function main() {
           ? Number(((highWaterMarkUsdg - lastEquityUsdg) * 10_000n) / highWaterMarkUsdg)
           : null,
       breakerBps: active ? active.limits.maxDrawdownBps : null,
-      // Pass ZERO through. It used to be mapped to null here AND filtered again
-      // in the notifier, so an account with exactly no ETH — the only balance
-      // that guarantees failure — got no alert at all.
       gasWei: lastGasWei,
-      // What a zero balance MEANS. Sponsored, it no longer stops trading — the
-      // alert that says it does would be telling the owner to fix something that
-      // is not broken, and to send an asset they were told they would not need.
+
       gasSponsored: gasSponsored(),
-      // And whether this agent is simulating at all. The paper tick no longer
-      // publishes its zero as a balance — lastGasWei stays null there — so
-      // gasWei above is now either a real read or explicitly unknown, never a
-      // fabrication. This stays because the alert's WORDING still depends on
-      // it: telling a paper agent to send ETH is advice it cannot act on.
+
       paper: paperActive(),
     }),
     getChainId: () => active?.grant.chainId ?? null,
-    // Scope the trade-cursor queries to THIS tenant's book. On a shared ledger an
-    // unscoped `id > cursor` would fire this tenant's notifications on another
-    // tenant's fills. Null → the cursor matches nothing (agent_id = NULL), which
-    // fails safe rather than leaking.
     getAgentId: () => active?.agentId ?? null,
   });
 
-  // Stream the band's activity to its Virtuals Terminal page — landed/paper
-  // fills + the daily report. Independent loop, opt-in (virtualsEnabled), OUTBOUND
-  // + public, decoupled from Telegram. Reads the ledger read-only; can only post.
   startVirtualsStreamer({
     getCfg: () => resolveConfig(),
     note: strategyNote,
     buildStatusContext,
     getChainId: () => active?.grant.chainId ?? null,
-    // Same tenant-scoping as the notifier: the public stream must only ever
-    // carry this tenant's own fills.
     getAgentId: () => active?.agentId ?? null,
     getAgentName: () => getName(),
   });
@@ -6337,59 +6312,15 @@ async function main() {
   const runLoop = () => {
     tick()
       .catch((e) => console.error("[tick]", e))
-      // In the finally so a tick that threw still reports what it spent — the
-      // ticks that fail are exactly the ones whose RPC cost matters most.
       .finally(() => {
         reportRpc();
         setTimeout(runLoop, cfg.tickSeconds * 1000);
       });
   };
 
-  // ── DON'T ALL WAKE AT ONCE ──────────────────────────────────────────
-  //
-  // The orchestrator forks one child per tenant and they all reach this line
-  // within a second of each other, so every deploy fires thirty-two identical
-  // first ticks simultaneously against one endpoint. Batching cut what a
-  // single tick costs; it does nothing about thirty-two of them landing
-  // together, and the boot burst is exactly where the fleet's rate limiting
-  // was worst — measured after batching shipped, the first ticks still came
-  // back "market unreadable" while a child that happened to start late read
-  // the market cleanly on its first try.
-  //
-  // DERIVED FROM THE TENANT, NOT RANDOM. The same agent takes the same slot on
-  // every restart, so a crash-looping child cannot walk into a different
-  // neighbour's slot each time and a log is comparable across deploys. It is
-  // also bounded by the tick itself: nobody waits longer for their first tick
-  // than they will routinely wait for their second.
-  // OATHWALL_HOME is …/children/<tenant> on a hosted child and a fixed path
-  // self-hosted, where a stagger is neither needed nor harmful.
   const slot = startupSlotMs(oathwallHome(), cfg.tickSeconds * 1000);
   if (slot > 0) console.log(`[worker] first tick in ${Math.round(slot / 1000)}s — staggered so the fleet does not wake together`);
 
-  /**
-   * BEAT BEFORE THE WAIT. This process is alive; that is the whole question the
-   * file answers, and it is true now rather than one stagger later.
-   *
-   * WHAT HAPPENED WITHOUT IT, measured in production. The watchdog treats a
-   * MISSING beat as stale the moment its 90-second grace expires — `beat ===
-   * null` short-circuits the age comparison, so the 570-second threshold never
-   * applies to a child that has not beaten yet. The stagger is spread over one
-   * whole tick (240s hosted), so every child whose derived slot landed past 90
-   * seconds was SIGKILLed before its first tick ever ran. And the slot is
-   * derived from the tenant, so it is the SAME slot on every restart: those
-   * children were killed, restarted, and killed again, permanently. Roughly
-   * five-eighths of the fleet, and each restart paid for a fresh arm and a
-   * 200,000-block getLogs sweep — which is the same kill → re-arm → rate-limit
-   * loop the orchestrator's own watchdog comment was written about.
-   *
-   * The stagger was right and the heartbeat's contract was right; what was
-   * wrong was making one contingent on the other. `heartbeat()` already says
-   * it: "A heartbeat answers 'is this process alive'. That is true whether or
-   * not a third party answered an HTTP request." It is equally true whether or
-   * not a timer I added has elapsed.
-   *
-   * "idle" is the honest mode here — nothing is armed until the first tick.
-   */
   beatFile("idle", gasSponsored());
   setTimeout(runLoop, slot);
 }
