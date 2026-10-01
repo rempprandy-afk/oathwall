@@ -34,7 +34,7 @@
 
 import { privateKeyToAccount } from "viem/accounts";
 import { bnbChain, bnbTestnet } from "@oathwall/core";
-import { planRecovery, recoverFunds, type RecoverPlan } from "@oathwall/recover";
+import { planRecovery, recoverFunds, type RecoverPlan, type WithdrawAmounts } from "@oathwall/recover";
 
 export interface BrowserWallet {
   smartAccount: `0x${string}`;
@@ -137,7 +137,7 @@ export async function planFromBrowser(w: BrowserWallet): Promise<BrowserPlan> {
  * operation locally and submits it through the relay, which will refuse anything
  * that is not withdrawal-shaped.
  */
-export async function sweepFromBrowser(w: BrowserWallet, to: `0x${string}`) {
+export async function sweepFromBrowser(w: BrowserWallet, to: `0x${string}`, amounts?: WithdrawAmounts) {
   // Arms the relay by setting the ticket cookie. Same-origin requests carry it
   // automatically from here, including the ones viem makes inside recoverFunds.
   await getRecoveryTicket(w);
@@ -149,5 +149,6 @@ export async function sweepFromBrowser(w: BrowserWallet, to: `0x${string}`) {
     to,
     expectedSmartAccount: w.smartAccount,
     extraTokens: (w.grantTokens ?? []).map((address) => ({ address, symbol: "", decimals: 18 })),
+    amounts,
   });
 }

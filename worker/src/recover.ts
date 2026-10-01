@@ -23,6 +23,7 @@ import {
   formatUnits,
   http,
   parseAbi,
+  parseUnits,
   type Address,
   type Chain,
 } from "viem";
@@ -30,7 +31,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { createKernelAccount, createKernelAccountClient } from "@zerodev/sdk";
 import { KERNEL_V3_3, getEntryPoint } from "@zerodev/sdk/constants";
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator";
-import { assertDerivedAccount } from "../../packages/core/src/index";
+import { assertDerivedAccount, gasSymbol } from "../../packages/core/src/index";
 import {
   CASH,
   TRADABLE_TOKENS,
@@ -361,6 +362,74 @@ export function nativeSweep(heldWei: bigint, gasPriceWei: bigint): { sweep: bigi
   return { sweep: heldWei - reserve, reserve };
 }
 
+/**
+ * A partial withdrawal: how much of each holding leaves, as the owner typed it.
+ *
+ * Human decimal strings keyed by symbol, not raw integers, because the callers
+ * that collect them (the panel, the local route) do not all know each token's
+ * decimals — this module does, so the parse happens here, once.
+ */
+export interface WithdrawAmounts {
+  /** Keyed by token symbol. A token left out stays in the account. */
+  tokens: Record<string, string>;
+  /** Native amount, or "max" for everything above the gas reserve. Omitted: none leaves. */
+  native?: string;
+}
+
+/**
+ * Turn the owner's typed amounts into exact legs, or refuse with a reason.
+ *
+ * REFUSES rather than clamps. Someone who typed more than they hold has a
+ * different picture of the account than the chain does, and quietly sending
+ * less is the wrong answer on the screen where they confirm real money moving.
+ *
+ * Without `amounts` this is the full sweep, unchanged.
+ */
+export function pickAmounts(
+  balances: readonly TokenBalance[],
+  nativeAvailable: bigint,
+  amounts: WithdrawAmounts | undefined,
+  nativeSymbol: string,
+): { legs: TokenBalance[]; native: bigint } {
+  if (!amounts) return { legs: [...balances], native: nativeAvailable };
+
+  const bySymbol = new Map(balances.map((b) => [b.symbol.toUpperCase(), b]));
+  const legs: TokenBalance[] = [];
+  for (const [symbol, typed] of Object.entries(amounts.tokens)) {
+    const held = bySymbol.get(symbol.toUpperCase());
+    if (!held) throw new Error(`this account holds no ${symbol} to withdraw`);
+    const raw = parseAmount(typed, held.decimals, symbol);
+    if (raw === 0n) continue;
+    if (raw > held.raw) {
+      throw new Error(`you asked for ${typed} ${held.symbol} but the account holds ${held.amount}`);
+    }
+    legs.push({ ...held, raw, amount: formatUnits(raw, held.decimals) });
+  }
+
+  let native = 0n;
+  if (amounts.native === "max") {
+    native = nativeAvailable;
+  } else if (amounts.native !== undefined) {
+    native = parseAmount(amounts.native, 18, nativeSymbol);
+    if (native > nativeAvailable) {
+      throw new Error(
+        `at most ${formatUnits(nativeAvailable, 18)} ${nativeSymbol} can leave — the rest pays for this withdrawal's gas`,
+      );
+    }
+  }
+
+  if (legs.length === 0 && native === 0n) throw new Error("nothing to withdraw — every amount is zero");
+  return { legs, native };
+}
+
+function parseAmount(typed: string, decimals: number, symbol: string): bigint {
+  const s = typed.trim();
+  if (!/^(\d+\.?\d*|\.\d+)$/.test(s)) throw new Error(`"${typed}" is not an amount of ${symbol}`);
+  // parseUnits would round the excess away; on a withdrawal that is a silent change of amount.
+  if ((s.split(".")[1] ?? "").length > decimals) throw new Error(`${symbol} has only ${decimals} decimal places`);
+  return parseUnits(s, decimals);
+}
+
 export async function recoverFunds(opts: {
   chain: Chain;
   ownerPrivateKey: `0x${string}`;
@@ -369,6 +438,8 @@ export async function recoverFunds(opts: {
   to: Address;
   expectedSmartAccount?: Address;
   extraTokens?: readonly unknown[];
+  /** Withdraw only these amounts. Omitted: sweep everything. */
+  amounts?: WithdrawAmounts;
 }): Promise<RecoverResult> {
   const plan = await planRecovery({
     chain: opts.chain,
@@ -398,7 +469,12 @@ export async function recoverFunds(opts: {
     // unaffordable. The tokens still move, which is the larger sum.
   }
 
-  if (plan.balances.length === 0 && nativeSweptWei === 0n) {
+  // Before anything is signed, so a typo is refused rather than half-sent.
+  const picked = pickAmounts(plan.balances, nativeSweptWei, opts.amounts, gasSymbol(opts.chain.id));
+  nativeSweptWei = picked.native;
+  nativeReservedWei = plan.gasWei - nativeSweptWei;
+
+  if (picked.legs.length === 0 && nativeSweptWei === 0n) {
     return { ...plan, txHash: null, to: opts.to, skipped: [], nativeSweptWei: 0n, nativeReservedWei };
   }
   const entryPoint = getEntryPoint("0.7");
@@ -444,7 +520,7 @@ export async function recoverFunds(opts: {
   const TRANSFER_ANY_RETURN = parseAbi(["function transfer(address,uint256)"]);
   const skipped: { symbol: string; reason: string }[] = [];
   const movable: TokenBalance[] = [];
-  for (const b of plan.balances) {
+  for (const b of picked.legs) {
     try {
       await publicClient.simulateContract({
         address: b.address,

@@ -6625,6 +6625,9 @@
 .terminal-host .recover-btn.go { background: var(--solid); color: var(--ink); }
 .terminal-host .recover-err, .terminal-host .recover-warn { color: var(--down); }
 .terminal-host .recover-panel { min-width: 0; overflow-wrap: anywhere; }
+.terminal-host .recover-amount-input { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--tx); font-size: 16px; }
+.terminal-host .recover-amount-sym { color: var(--tx); }
+.terminal-host .recover-max { border-color: var(--line); border-radius: 8px; padding: 10px 12px; color: var(--tx); }
 .terminal-host a.flow-primary { display: flex; text-decoration: none; }
 .terminal-host .hosted-account-links { display:flex; gap:16px; margin:16px 0; font-size:14px; }
 /* A page that rendered, saying which part of it did not. Not an error state —

@@ -5,6 +5,7 @@ import { bnbChain, bnbTestnet, gasSymbol } from "@oathwall/core";
 import { listSavedWallets } from "@/lib/session";
 import { isAddr, normalizeAddr } from "@/lib/address";
 import { planFromBrowser, sweepFromBrowser, redact, type BrowserWallet } from "@/lib/recover-client";
+import type { WithdrawAmounts } from "@oathwall/recover";
 
 /**
  * "Get my money out" — the one-click counterpart to `oathwall recover`.
@@ -19,6 +20,8 @@ import { planFromBrowser, sweepFromBrowser, redact, type BrowserWallet } from "@
 interface Balance {
   symbol: string;
   amount: string;
+  /** The chain's gas coin, which can only leave above a gas reserve. */
+  native?: boolean;
 }
 interface Ctx {
   hasStoredKey: boolean;
@@ -92,6 +95,8 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
   const [plan, setPlan] = useState<PlanRes | null>(null);
 
   const [to, setTo] = useState("");
+  /** What the owner typed per holding, by symbol. Untouched rows send their full amount. */
+  const [typed, setTyped] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<null | "checking" | "sweeping">(null);
   const [result, setResult] = useState<SweepRes | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -185,17 +190,16 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
       setError("this browser doesn't hold that wallet.");
       return;
     }
-    const list = balances.map((b) => `${b.amount} ${b.symbol}`).join(", ") || "the balance";
     if (
       !window.confirm(
-        `Sweep ${list} to ${normalizeAddr(to)}?\n\nThis is real and irreversible. The account keeps a little ${gasSymbol(w.chainId)} to pay for gas.`,
+        `Send ${sendingList()} to ${normalizeAddr(to)}?\n\nThis is real and irreversible. The account keeps a little ${gasSymbol(w.chainId)} to pay for gas.`,
       )
     ) {
       return;
     }
     setBusy("sweeping");
     try {
-      const r = await sweepFromBrowser(w, normalizeAddr(to) as `0x${string}`);
+      const r = await sweepFromBrowser(w, normalizeAddr(to) as `0x${string}`, withdrawAmounts());
       setResult(r as unknown as SweepRes);
     } catch (e) {
       setError(redact(e, w.ownerKey));
@@ -238,8 +242,41 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
   const nativeSymbol = gasSymbol(plan?.chainId ?? ctx?.chainId ?? chainId);
   const balances: Balance[] =
     nativeWei > 0n
-      ? [...tokenBalances, { symbol: nativeSymbol, amount: (Number(nativeWei) / 1e18).toFixed(6) }]
+      ? [...tokenBalances, { symbol: nativeSymbol, amount: (Number(nativeWei) / 1e18).toFixed(6), native: true }]
       : tokenBalances;
+
+  // "max" on the native row means everything above the gas reserve, which only
+  // the engine can size — so it is sent as a word, not as the held amount.
+  const valueOf = (b: Balance) => typed[b.symbol] ?? (b.native ? "max" : b.amount);
+  const isMax = (b: Balance) => typed[b.symbol] === undefined;
+  const setAmount = (b: Balance, v: string | undefined) =>
+    setTyped((t) => {
+      const next = { ...t };
+      if (v === undefined) delete next[b.symbol];
+      else next[b.symbol] = v;
+      return next;
+    });
+
+  /** Undefined while nothing was edited: the full sweep, exactly as before. */
+  function withdrawAmounts(): WithdrawAmounts | undefined {
+    if (Object.keys(typed).length === 0) return undefined;
+    const out: WithdrawAmounts = { tokens: {} };
+    for (const b of balances) {
+      // A cleared box means "none of this", not a malformed amount.
+      const v = valueOf(b).trim() || "0";
+      if (b.native) out.native = v.toLowerCase() === "max" ? "max" : v;
+      else out.tokens[b.symbol] = v;
+    }
+    return out;
+  }
+
+  function sendingList(): string {
+    const legs = balances
+      .map((b) => ({ b, v: valueOf(b).trim() }))
+      .filter(({ v }) => v !== "" && !/^0*\.?0*$/.test(v))
+      .map(({ b, v }) => (v.toLowerCase() === "max" ? `all ${b.symbol} above the gas reserve` : `${v} ${b.symbol}`));
+    return legs.join(", ") || "nothing";
+  }
   const smartAccount = plan?.smartAccount ?? ctx?.smartAccount;
   const explorer = plan?.explorer ?? ctx?.explorer;
   const activeChain = plan?.chainId ?? ctx?.chainId ?? chainId;
@@ -267,13 +304,12 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
       setError("enter a valid destination address (0x + 40 hex).");
       return;
     }
-    const list = balances.map((b) => `${b.amount} ${b.symbol}`).join(", ") || "the balance";
-    if (!window.confirm(`Sweep ${list} to ${normalizeAddr(to)}?\n\nThis is real and irreversible. The account keeps a little ${gasSymbol(activeChain)} to pay for gas.`)) {
+    if (!window.confirm(`Send ${sendingList()} to ${normalizeAddr(to)}?\n\nThis is real and irreversible. The account keeps a little ${gasSymbol(activeChain)} to pay for gas.`)) {
       return;
     }
     setBusy("sweeping");
     try {
-      const body: Record<string, unknown> = { mode: "sweep", to: normalizeAddr(to) };
+      const body: Record<string, unknown> = { mode: "sweep", to: normalizeAddr(to), amounts: withdrawAmounts() };
       if (plan) {
         body.ownerKey = ownerKey.trim();
         body.chainId = chainId;
@@ -410,13 +446,40 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
                 </p>
               ) : (
                 <>
-                  <div className="recover-holdings mono">
+                  <div className="recover-amounts">
                     {balances.map((b) => (
-                      <span key={b.symbol} className="recover-hold">
-                        {b.amount} {b.symbol}
-                      </span>
+                      <label key={b.symbol} className="recover-amount mono">
+                        <span className="recover-amount-sym">
+                          {b.symbol}
+                          <small>of {b.amount}</small>
+                        </span>
+                        <input
+                          className="recover-amount-input mono"
+                          inputMode="decimal"
+                          value={valueOf(b)}
+                          onChange={(e) => setAmount(b, e.target.value)}
+                          onFocus={(e) => {
+                            // "max" is a word, not a number to edit from.
+                            if (b.native && isMax(b)) e.target.select();
+                          }}
+                          autoComplete="off"
+                        />
+                        <button
+                          type="button"
+                          className="recover-max"
+                          onClick={() => setAmount(b, undefined)}
+                          disabled={isMax(b)}
+                        >
+                          max
+                        </button>
+                      </label>
                     ))}
                   </div>
+                  <p className="recover-note">
+                    Choose how much of each to send — clear a box to leave that one in the account.
+                    {balances.some((b) => b.native) &&
+                      ` "max" ${nativeSymbol} keeps back a small reserve to pay this withdrawal's gas.`}
+                  </p>
 
                   {!canSubmit && (
                     <p className="recover-warn">

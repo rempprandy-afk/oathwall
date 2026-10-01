@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classifyBalance, nativeSweep, sweepList } from "./recover";
+import { classifyBalance, nativeSweep, pickAmounts, sweepList, type TokenBalance } from "./recover";
 import { CASH, TRADABLE_TOKENS } from "../../packages/core/src/index";
 
 /**
@@ -194,4 +194,50 @@ test("sweep + reserve always equals what was held, at any price", () => {
       assert.ok(sweep >= 0n && reserve >= 0n, "no negative legs");
     }
   }
+});
+
+const held = (symbol: string, raw: bigint, decimals = 18): TokenBalance => ({
+  symbol,
+  address: addr(symbol.length.toString()),
+  raw,
+  decimals,
+  amount: (Number(raw) / 10 ** decimals).toString(),
+});
+const ONE = 10n ** 18n;
+
+test("no amounts is the full sweep, unchanged", () => {
+  const usdt = held("USDT", 50n * ONE);
+  const r = pickAmounts([usdt], 3n * ONE, undefined, "BNB");
+  assert.deepEqual(r.legs, [usdt]);
+  assert.equal(r.native, 3n * ONE);
+});
+
+test("a partial withdrawal moves exactly what was typed, and only that", () => {
+  const r = pickAmounts([held("USDT", 50n * ONE), held("CAKE", 9n * ONE)], 3n * ONE, { tokens: { usdt: "12.5" } }, "BNB");
+  assert.equal(r.legs.length, 1, "CAKE was not asked for, so it stays");
+  assert.equal(r.legs[0]!.raw, 12_500_000_000_000_000_000n);
+  assert.equal(r.native, 0n, "native left out means none leaves");
+});
+
+test("max native is everything above the gas reserve; a typed amount must fit under it", () => {
+  assert.equal(pickAmounts([], 19n * ONE / 1000n, { tokens: {}, native: "max" }, "BNB").native, 19n * ONE / 1000n);
+  assert.equal(pickAmounts([], ONE, { tokens: {}, native: "0.25" }, "BNB").native, ONE / 4n);
+  assert.throws(() => pickAmounts([], ONE / 100n, { tokens: {}, native: "0.02" }, "BNB"), /pays for this withdrawal's gas/);
+});
+
+test("asking for more than is held refuses rather than quietly sending less", () => {
+  assert.throws(() => pickAmounts([held("USDT", ONE)], 0n, { tokens: { USDT: "2" } }, "BNB"), /holds/);
+});
+
+test("amounts that are not amounts are refused, never rounded", () => {
+  const usdc6 = held("USDC", 5_000_000n, 6);
+  assert.throws(() => pickAmounts([usdc6], 0n, { tokens: { USDC: "1.0000001" } }, "BNB"), /6 decimal places/);
+  assert.throws(() => pickAmounts([usdc6], 0n, { tokens: { USDC: "1e3" } }, "BNB"), /not an amount/);
+  assert.throws(() => pickAmounts([usdc6], 0n, { tokens: { USDC: "-1" } }, "BNB"), /not an amount/);
+  assert.throws(() => pickAmounts([usdc6], 0n, { tokens: { WIF: "1" } }, "BNB"), /holds no WIF/);
+  assert.equal(pickAmounts([usdc6], 0n, { tokens: { USDC: ".5" } }, "BNB").legs[0]!.raw, 500_000n);
+});
+
+test("all zeros is refused — an empty operation is not a withdrawal", () => {
+  assert.throws(() => pickAmounts([held("USDT", ONE)], ONE, { tokens: { USDT: "0" }, native: "0" }, "BNB"), /nothing to withdraw/);
 });

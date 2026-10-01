@@ -30,7 +30,7 @@ import {
   type OathwallSettings,
   type StoredGrant,
 } from "@oathwall/core";
-import { planRecovery, recoverFunds } from "@oathwall/recover";
+import { planRecovery, recoverFunds, type WithdrawAmounts } from "@oathwall/recover";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +38,17 @@ export const dynamic = "force-dynamic";
 const isKey = (v: unknown): v is `0x${string}` => typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v);
 const isAddr = (v: unknown): v is `0x${string}` => typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v);
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+/** Shape only — pickAmounts in the engine judges the values against the chain. */
+function asAmounts(v: unknown): WithdrawAmounts | undefined | null {
+  if (v === undefined || v === null) return undefined;
+  if (typeof v !== "object") return null;
+  const { tokens, native } = v as { tokens?: unknown; native?: unknown };
+  if (!tokens || typeof tokens !== "object" || Array.isArray(tokens)) return null;
+  if (!Object.values(tokens).every((t) => typeof t === "string")) return null;
+  if (native !== undefined && typeof native !== "string") return null;
+  return { tokens: tokens as Record<string, string>, native };
+}
 
 async function readGrant(): Promise<StoredGrant | null> {
   try {
@@ -132,7 +143,7 @@ export async function POST(req: Request) {
   // will not take one.
   if (isHostedMode()) return NextResponse.json(HOSTED_RECOVERY, { status: 403 });
 
-  let body: { mode?: string; to?: unknown; ownerKey?: unknown; chainId?: unknown };
+  let body: { mode?: string; to?: unknown; ownerKey?: unknown; chainId?: unknown; amounts?: unknown };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -180,6 +191,10 @@ export async function POST(req: Request) {
     if (!isAddr(body.to)) {
       return NextResponse.json({ error: "destination is not a valid address" }, { status: 400 });
     }
+    const amounts = asAmounts(body.amounts);
+    if (amounts === null) {
+      return NextResponse.json({ error: "amounts must be { tokens: { SYMBOL: \"1.5\" }, native?: \"0.1\" | \"max\" }" }, { status: 400 });
+    }
     const bundlerUrl = bundlerFor(settings, chainId);
     if (!bundlerUrl) {
       return NextResponse.json(
@@ -195,6 +210,7 @@ export async function POST(req: Request) {
       to: body.to,
       expectedSmartAccount: expected,
       extraTokens: settings.customTokens ?? [],
+      amounts,
     });
     return NextResponse.json({
       txHash: res.txHash,
