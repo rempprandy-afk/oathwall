@@ -201,7 +201,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ chainId: strin
   }
 
   const key = process.env.OATHWALL_BUNDLER_API_KEY;
-  if (!key) return bad(503, "this deployment has no bundler configured");
+  if (!key) {
+    return refuse(rpc.id, "withdrawals are temporarily unavailable: this deployment has no bundler configured", -32_003);
+  }
 
   let upstream: Response;
   try {
