@@ -84,12 +84,7 @@ export function Profile({
               {pctBps(agent.pnlBps)}
             </strong>
           </div>
-          {/* BOTH COUNTERS, because `landed` alone is not "how much this agent
-              has done". read-agent.ts keeps them apart deliberately — folding
-              paper into landed would re-arm the +2643.3% incident — but showing
-              only landed published "0 Completed trades" for an agent with ten
-              simulated fills, which is the same omission wearing the other
-              face. */}
+     
           <div className="public-trade-count">
             <strong>{agent.landed}</strong>
             <span>Completed trades</span>
@@ -102,15 +97,7 @@ export function Profile({
         </div>
         {agent.pnlBps == null && <p className="public-empty">{agent.unrankedWhy ? unrankedLabel(agent.unrankedWhy) : "Return unavailable."}</p>}
         {agent.pnlBps != null && agent.gas && <p className="public-empty">Net of {money(agent.gas.usdg)} in priced gas.{agent.gas.unpricedTrades > 0 && <> {agent.gas.unpricedTrades} trades had gas we could not price; this is not the full cost.</>}</p>}
-        {/* THE GATE, BEFORE THE DRAW.
-            Two things have to be true before a line goes under the words
-            "Performance history": it must be the growth index (deposits divided
-            out) and not raw equity, and the flows divided out of it must have
-            been read from the chain rather than inferred from balance changes.
-            `EquityLine.tsx` has refused on the second for months; this screen
-            replaced it without carrying the refusal, so a failed profile fetch
-            fell back to the leaderboard's raw `equity_usdg` and drew a book
-            springing into existence at full value. */}
+
         {agent.curveKind !== "growth" ? (
           <p className="public-empty">
             Performance history isn’t available yet.
