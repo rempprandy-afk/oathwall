@@ -35,6 +35,7 @@
 import { privateKeyToAccount } from "viem/accounts";
 import { bnbChain, bnbTestnet } from "@oathwall/core";
 import { planRecovery, recoverFunds, type RecoverPlan, type WithdrawAmounts } from "@oathwall/recover";
+import { readJsonBody } from "@/lib/read-json";
 
 export interface BrowserWallet {
   smartAccount: `0x${string}`;
@@ -81,7 +82,7 @@ export function redact(e: unknown, ownerKey?: string): string {
 export async function getRecoveryTicket(w: BrowserWallet): Promise<void> {
   const chal = await fetch("/api/recover/ticket", { cache: "no-store" });
   if (!chal.ok) throw new Error("could not start recovery — the site did not issue a challenge");
-  const { nonce, message } = (await chal.json()) as { nonce: string; message: string };
+  const { nonce, message } = await readJsonBody<{ nonce: string; message: string }>(chal);
 
   // Signed HERE. The key never leaves this function's scope, let alone the tab.
   const signature = await privateKeyToAccount(w.ownerKey).signMessage({ message });
@@ -91,7 +92,7 @@ export async function getRecoveryTicket(w: BrowserWallet): Promise<void> {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ nonce, signature, chainId: w.chainId }),
   });
-  const body = (await res.json()) as { smartAccount?: string; error?: string };
+  const body = await readJsonBody<{ smartAccount?: string; error?: string }>(res);
   if (!res.ok) throw new Error(body.error ?? "the site would not issue a recovery ticket");
 
   // The server derived an account from the signature alone. If it disagrees with

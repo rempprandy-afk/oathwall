@@ -480,5 +480,15 @@ export function sessionCookieOptions(): {
 export function tenantOf(req: Request): `0x${string}` | null {
   const cookie = req.headers.get("cookie") ?? "";
   const m = cookie.match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`));
-  return readSession(m ? decodeURIComponent(m[1]) : null);
+  if (!m) return null;
+  // A cookie that does not decode is not a session, and it must not become a
+  // thrown URIError either — that turned a GET into a text 500 the browser then
+  // failed to parse, and the owner saw a parser message where the app should be.
+  let token: string;
+  try {
+    token = decodeURIComponent(m[1]);
+  } catch {
+    return null;
+  }
+  return readSession(token);
 }

@@ -11,5 +11,14 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   if (!isHostedMode()) return NextResponse.json({ hosted: false, address: null });
-  return NextResponse.json({ hosted: true, address: tenantOf(req) });
+  try {
+    return NextResponse.json({ hosted: true, address: tenantOf(req) });
+  } catch (e) {
+    // ALWAYS JSON. A thrown handler becomes a text "Internal Server Error" page,
+    // which the terminal reads as data and Safari reports as a parser error.
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "could not read the session" },
+      { status: 500 },
+    );
+  }
 }

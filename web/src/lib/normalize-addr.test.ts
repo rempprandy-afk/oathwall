@@ -83,9 +83,9 @@ describe("the confirm dialog shows the address that will be paid", () => {
     // on an irreversible transfer is the worst possible place for a mismatch.
     assert.doesNotMatch(
       SRC,
-      /Sweep \$\{list\} to \$\{to\.trim\(\)\}/,
+      /Send \$\{sendingList\(\)\} to \$\{to\.trim\(\)\}/,
       "the confirm text must show the normalised destination",
     );
-    assert.match(SRC, /Sweep \$\{list\} to \$\{normalizeAddr\(to\)\}/);
+    assert.match(SRC, /Send \$\{sendingList\(\)\} to \$\{normalizeAddr\(to\)\}/);
   });
 });

@@ -335,6 +335,22 @@ export async function DELETE(req: Request) {
 }
 
 export async function GET(req: Request) {
+  // ALWAYS JSON. The terminal's account load reads this body as data, and a
+  // handler that throws (an unreachable grant store, a bad session secret)
+  // answered with Next's text "Internal Server Error" instead. Safari reports
+  // that as "The string did not match the expected pattern", and the owner
+  // who saw it could not open Withdraw, because the account never loaded.
+  try {
+    return await readStatus(req);
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "could not read the agent status" },
+      { status: 500 },
+    );
+  }
+}
+
+async function readStatus(req: Request): Promise<NextResponse> {
   let grant: StoredGrant;
   if (isHostedMode()) {
     const tenant = tenantOf(req);

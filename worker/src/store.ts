@@ -699,7 +699,7 @@ async function initPostgres(url: string): Promise<Db> {
   return d;
 }
 
-function getDb(): Db {
+export function getDb(): Db {
   if (driver) return driver;
   if (process.env.DATABASE_URL) {
     // Postgres init is async (connect + DDL) and cannot run inside this sync
@@ -1912,6 +1912,24 @@ export async function addEvent(
   } catch (e) {
     console.error("[store] event insert failed:", e);
   }
+}
+
+/**
+ * How long an event line is kept. Everything that reads `events` looks back one
+ * hour (the activity summary) or takes the newest few rows per agent (the feed,
+ * Telegram, the error digest), so two days is generous.
+ *
+ * It exists because the table had NO retention. Thirty-eight agents wrote a
+ * million lines in a week, the hosted Postgres volume filled, the database
+ * crash-looped on its own checkpoint, and every owner's account load failed —
+ * which is also the screen that opens Withdraw.
+ */
+export const EVENT_RETENTION_SEC = 2 * 86_400;
+
+/** Delete event lines older than the retention window. Returns how many went. */
+export async function pruneEvents(db: Db, nowSec = Math.floor(Date.now() / 1000)): Promise<number> {
+  const r = await db.prepare("DELETE FROM events WHERE created_at < ?").run(nowSec - EVENT_RETENTION_SEC);
+  return r.changes;
 }
 
 /**

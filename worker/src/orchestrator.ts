@@ -67,7 +67,7 @@ import { writeResearchForChild } from "./research-files";
 import { makeNewsDesk, type NewsDesk } from "./research-pass";
 import { peerThesesForSlugs, readPeerTheses } from "./peer-theses";
 import type { PublicThesis } from "./thesis-policy";
-import { ACCOUNTING_FIXED_AT, applyLedgerSchema } from "./store";
+import { ACCOUNTING_FIXED_AT, EVENT_RETENTION_SEC, applyLedgerSchema, pruneEvents } from "./store";
 import { drainCommandResults, writeCommand } from "./command-files";
 
 /** How often to re-read the store for tenants added or killed. */
@@ -873,6 +873,31 @@ async function fleetHealth(): Promise<void> {
  * A fleet-wide financial dump is not something a routine boot should emit, hence
  * the flag; and it must never be able to stop the fleet arming, hence the catch.
  */
+/**
+ * THE EVENT LOG IS NOT ALLOWED TO FILL THE DISK.
+ *
+ * Once an hour, drop event lines older than the retention window. The
+ * orchestrator does this because it is the one process that is always up and
+ * already holds the shared database; each child only appends. Best-effort like
+ * fleetHealth: a failure here is logged and never takes the fleet loop down.
+ */
+const EVENT_PRUNE_EVERY_MS = 60 * 60_000;
+let lastEventPrune = 0;
+async function pruneEventLog(): Promise<void> {
+  const url = process.env.DATABASE_URL;
+  if (!url) return;
+  const now = Date.now();
+  if (now - lastEventPrune < EVENT_PRUNE_EVERY_MS) return;
+  lastEventPrune = now;
+  try {
+    const shared = await makePgDb(url);
+    const gone = await pruneEvents(shared);
+    if (gone > 0) log(`event log: pruned ${gone} lines older than ${EVENT_RETENTION_SEC / 86_400} days`);
+  } catch (e) {
+    log(`event log prune failed — ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
 async function runAccountingDiagnosisIfAsked(): Promise<void> {
   if ((process.env.OATHWALL_ACCOUNTING_DIAGNOSE ?? "").trim() !== "1") return;
   const url = process.env.DATABASE_URL;
@@ -1885,6 +1910,7 @@ export async function runOrchestrator(): Promise<void> {
       }
       await ferryCommands2();
       await fleetHealth();
+      await pruneEventLog();
     }
     await new Promise((r) => setTimeout(r, RECONCILE_MS));
   }

@@ -5,6 +5,7 @@ import { bnbChain, bnbTestnet, gasSymbol } from "@oathwall/core";
 import { listSavedWallets } from "@/lib/session";
 import { isAddr, normalizeAddr } from "@/lib/address";
 import { planFromBrowser, sweepFromBrowser, redact, type BrowserWallet } from "@/lib/recover-client";
+import { readJsonBody } from "@/lib/read-json";
 import type { WithdrawAmounts } from "@oathwall/recover";
 
 /**
@@ -107,9 +108,9 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
     setLoadingCtx(true);
     try {
       const r = await fetch("/api/recover");
-      setCtx((await r.json()) as Ctx);
-    } catch {
-      setCtx({ hasStoredKey: false, hasBundler: false, error: "couldn't reach the recovery service" });
+      setCtx(await readJsonBody<Ctx>(r));
+    } catch (e) {
+      setCtx({ hasStoredKey: false, hasBundler: false, error: e instanceof Error ? e.message : "couldn't reach the recovery service" });
     }
     setLoadingCtx(false);
   }
@@ -220,11 +221,11 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "plan", ownerKey: ownerKey.trim(), chainId }),
       });
-      const j = (await r.json()) as PlanRes;
+      const j = await readJsonBody<PlanRes>(r);
       if (!r.ok || j.error) setError(j.error ?? "couldn't read that wallet.");
       else setPlan(j);
-    } catch {
-      setError("couldn't reach the recovery service.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "couldn't reach the recovery service.");
     }
     setBusy(null);
   }
@@ -319,11 +320,11 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const j = (await r.json()) as SweepRes;
+      const j = await readJsonBody<SweepRes>(r);
       if (!r.ok || j.error) setError(j.error ?? "recovery failed.");
       else setResult(j);
-    } catch {
-      setError("couldn't reach the recovery service.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "couldn't reach the recovery service.");
     }
     setBusy(null);
   }
@@ -520,6 +521,15 @@ export function RecoverPanel({ initialOwnerKey = "" }: { initialOwnerKey?: strin
           )}
 
           {error && <p className="recover-err mono">{error}</p>}
+          {/* The server's own refusal from the first read. It was parsed into
+              `ctx` and never shown, so a failed read looked like a key prompt. */}
+          {/* Hosted sends `error` as a notice next to `clientSide`, not a failure. */}
+          {!error && ctx?.error && !clientSide && (
+            <p className="recover-err mono">
+              {ctx.error}
+              {ctx.detail ? ` — ${ctx.detail}` : ""}
+            </p>
+          )}
 
           <p className="recover-note">
             Signed by your <b>owner key</b> (not the capped session key), so it works after a kill and

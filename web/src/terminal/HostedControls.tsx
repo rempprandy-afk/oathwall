@@ -10,6 +10,7 @@ import { X } from "lucide-react";
 import { PrivySignIn } from "@/terminal/PrivySignIn";
 import { privyEnabled } from "@/lib/privy-client";
 import { blockerAdvice } from "@/lib/live-blocker";
+import { readJsonBody } from "@/lib/read-json";
 import { tradesWord } from "./rules";
 
 export interface AccountState {
@@ -18,7 +19,9 @@ export interface AccountState {
 }
 export async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {...init, cache:"no-store", signal: AbortSignal.timeout(20000)});
-  const data = await response.json();
+  // Read as text first: a proxy error page or a route that threw is not JSON,
+  // and Safari reports that as "The string did not match the expected pattern".
+  const data = await readJsonBody<{error?: string; errors?: string[]; why?: string}>(response);
   if (!response.ok) throw new Error(data.error || data.errors?.join(" ") || data.why || `Request failed (${response.status})`);
   return data as T;
 }
